@@ -11,6 +11,14 @@ export default function App() {
   const [mensagem, setMensagem] = useState('');
   const [carregando, setCarregando] = useState(false);
   const [demo, setDemo] = useState(false);
+  const [clubes, setClubes] = useState([]);
+  const [carregandoClubes, setCarregandoClubes] = useState(false);
+  const [nomeClube, setNomeClube] = useState('');
+  const [sigla, setSigla] = useState('');
+  const [cidade, setCidade] = useState('');
+  const [estadio, setEstadio] = useState('');
+  const [capacidade, setCapacidade] = useState('10000');
+  const [erroClube, setErroClube] = useState('');
 
   const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base'];
 
@@ -22,6 +30,27 @@ export default function App() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    let ativo = true;
+    async function carregarClubes() {
+      if (!session || !supabase) {
+        setClubes([]);
+        return;
+      }
+      setCarregandoClubes(true);
+      const { data, error } = await supabase
+        .from('clubs')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (!ativo) return;
+      if (error) setErroClube('Não foi possível carregar seus clubes: ' + error.message);
+      else setClubes(data || []);
+      setCarregandoClubes(false);
+    }
+    carregarClubes();
+    return () => { ativo = false; };
+  }, [session]);
 
   async function entrar(event) {
     event.preventDefault();
@@ -60,13 +89,48 @@ export default function App() {
     setCarregando(false);
   }
 
+  async function criarClube(event) {
+    event.preventDefault();
+    if (!session) return;
+    setCarregando(true);
+    setErroClube('');
+    const { data, error } = await supabase
+      .from('clubs')
+      .insert({
+        owner_id: session.user.id,
+        nome: nomeClube.trim(),
+        sigla: sigla.trim().toUpperCase(),
+        cidade: cidade.trim(),
+        estadio: estadio.trim() || null,
+        capacidade: Number(capacidade) || 10000,
+        pais: 'Brasil',
+        orcamento: 5000000
+      })
+      .select()
+      .single();
+    if (error) {
+      setErroClube('Não foi possível criar o clube: ' + error.message);
+    } else {
+      setClubes([data]);
+      setMensagem('Clube criado e salvo no banco de dados!');
+      setNomeClube('');
+      setSigla('');
+      setCidade('');
+      setEstadio('');
+      setCapacidade('10000');
+    }
+    setCarregando(false);
+  }
+
   async function sair() {
     if (supabase) await supabase.auth.signOut();
     setSession(null);
     setDemo(false);
+    setClubes([]);
   }
 
   const autenticado = Boolean(session || demo);
+  const clubeAtual = clubes[0];
 
   if (supabaseConfigured && !session) {
     return (
@@ -113,22 +177,45 @@ export default function App() {
           <button style={styles.primary} onClick={() => setDemo(true)}>Acessar demonstração</button>
         </section>
       )}
-      <section style={styles.club}>
-        <div>
-          <span style={styles.eyebrow}>SEU CLUBE</span>
-          <h2>União Caçapavense</h2>
-          <p style={styles.muted}>Caçapava • Brasil</p>
-        </div>
-        <div style={styles.clubBadge}>UC</div>
-      </section>
-      <nav style={styles.nav}>
-        {abas.map(item => <button key={item} onClick={() => setAba(item)} style={aba === item ? styles.activeTab : styles.tab}>{item}</button>)}
-      </nav>
-      <section style={styles.panel}>
-        <h2>{aba}</h2>
-        {aba === 'Início' ? <><p>Bem-vindo ao Manager Futebol Online!</p><p>Seu clube está pronto para iniciar a temporada.</p><div style={styles.stats}><div><strong>R$ 5 mi</strong><span>Orçamento inicial</span></div><div><strong>18</strong><span>Jogadores</span></div><div><strong>1ª</strong><span>Temporada</span></div></div></> :
-          <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
-      </section>
+      {session && carregandoClubes ? (
+        <section style={styles.panel}><p>Carregando seus clubes...</p></section>
+      ) : session && !clubeAtual ? (
+        <section style={styles.panel}>
+          <span style={styles.eyebrow}>PRIMEIRO PASSO DO TREINADOR</span>
+          <h2>Crie seu clube</h2>
+          <p style={styles.muted}>Cadastre a identidade do seu time. As informações serão salvas na sua conta.</p>
+          <form onSubmit={criarClube} style={styles.formGrid}>
+            <label>Nome do clube<input style={styles.input} value={nomeClube} onChange={e => setNomeClube(e.target.value)} placeholder="Ex.: União Caçapavense" required /></label>
+            <label>Sigla<input style={styles.input} value={sigla} onChange={e => setSigla(e.target.value)} placeholder="Ex.: UCA" maxLength={5} required /></label>
+            <label>Cidade<input style={styles.input} value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Sua cidade" required /></label>
+            <label>Estádio<input style={styles.input} value={estadio} onChange={e => setEstadio(e.target.value)} placeholder="Nome do estádio" /></label>
+            <label>Capacidade<input style={styles.input} type="number" min="100" value={capacidade} onChange={e => setCapacidade(e.target.value)} required /></label>
+            <button style={styles.primary} disabled={carregando}>{carregando ? 'Salvando...' : 'Criar meu clube'}</button>
+          </form>
+          {erroClube && <p style={styles.error}>{erroClube}</p>}
+          {mensagem && <p style={styles.notice}>{mensagem}</p>}
+        </section>
+      ) : (
+        <>
+          {clubeAtual && <section style={styles.club}>
+            <div>
+              <span style={styles.eyebrow}>SEU CLUBE</span>
+              <h2>{clubeAtual.nome}</h2>
+              <p style={styles.muted}>{clubeAtual.cidade} • {clubeAtual.pais}</p>
+              <p style={styles.muted}>Estádio: {clubeAtual.estadio || 'A definir'} • Capacidade: {Number(clubeAtual.capacidade).toLocaleString('pt-BR')}</p>
+            </div>
+            <div style={styles.clubBadge}>{clubeAtual.sigla || 'MFO'}</div>
+          </section>}
+          <nav style={styles.nav}>
+            {abas.map(item => <button key={item} onClick={() => setAba(item)} style={aba === item ? styles.activeTab : styles.tab}>{item}</button>)}
+          </nav>
+          <section style={styles.panel}>
+            <h2>{aba}</h2>
+            {aba === 'Início' ? <><p>Bem-vindo ao Manager Futebol Online!</p><p>Seu clube está cadastrado na sua conta.</p><div style={styles.stats}><div><strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR')}</strong><span>Orçamento inicial</span></div><div><strong>0</strong><span>Jogadores cadastrados</span></div><div><strong>1ª</strong><span>Temporada</span></div></div></> :
+              <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
+          </section>
+        </>
+      )}
       <footer style={styles.footer}>Manager Futebol Online • Projeto em desenvolvimento</footer>
     </main>
   );
@@ -144,14 +231,16 @@ const styles = {
   tabs: {display:'flex', gap:8, margin:'22px 0 16px'},
   tab: {background:'#17263b', color:'#dbe7f5', border:'1px solid #34465f', borderRadius:9, padding:'11px 15px', cursor:'pointer'},
   activeTab: {background:'#176b4b', color:'#fff', border:'1px solid #67e8a5', borderRadius:9, padding:'11px 15px', cursor:'pointer', fontWeight:'bold'},
-  input: {width:'100%', padding:13, borderRadius:9, border:'1px solid #34465f', background:'#0b1220', color:'#fff', fontSize:15},
+  input: {width:'100%', boxSizing:'border-box', padding:13, borderRadius:9, border:'1px solid #34465f', background:'#0b1220', color:'#fff', fontSize:15, marginTop:6},
+  formGrid: {display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))', gap:14, marginTop:20},
   primary: {background:'#168653', color:'#fff', border:0, borderRadius:9, padding:'13px 18px', cursor:'pointer', fontWeight:'bold'},
   secondary: {background:'#26364d', color:'#fff', border:0, borderRadius:9, padding:'10px 14px', cursor:'pointer'},
   link: {background:'transparent', border:0, color:'#67e8a5', marginTop:14, cursor:'pointer'},
   notice: {background:'#17263b', color:'#dbe7f5', padding:12, borderRadius:9, fontSize:14, overflowWrap:'anywhere'},
+  error: {background:'#3a1e25', color:'#fecaca', padding:12, borderRadius:9, fontSize:14, overflowWrap:'anywhere'},
   noticeBox: {background:'#332b18', border:'1px solid #8b6b2c', borderRadius:12, padding:18, marginBottom:20, color:'#f8e7b0'},
   club: {background:'linear-gradient(120deg,#123d32,#17263b)', border:'1px solid #285b49', borderRadius:16, padding:22, display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18},
-  clubBadge: {width:62, height:62, borderRadius:18, background:'#67e8a5', color:'#0b1220', display:'grid', placeItems:'center', fontWeight:'bold', fontSize:22},
+  clubBadge: {width:62, height:62, borderRadius:18, background:'#67e8a5', color:'#0b1220', display:'grid', placeItems:'center', fontWeight:'bold', fontSize:18, padding:6, textAlign:'center'},
   eyebrow: {color:'#67e8a5', fontSize:11, letterSpacing:2, fontWeight:'bold'},
   nav: {display:'flex', flexWrap:'wrap', gap:8, marginBottom:18},
   panel: {background:'#111c2e', border:'1px solid #26364d', borderRadius:14, padding:22, minHeight:190},
