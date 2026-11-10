@@ -27,6 +27,8 @@ export default function App() {
   const [carregandoJogadores, setCarregandoJogadores] = useState(false);
   const [novoJogador, setNovoJogador] = useState({ nome: '', posicao: 'Atacante', data_nascimento: '', overall: 50 });
   const [erroElenco, setErroElenco] = useState('');
+  const [ligaPais, setLigaPais] = useState('Brasil');
+  const [ligaDivisao, setLigaDivisao] = useState('1ª divisão');
   const clubeAtual = clubes[0];
 
   const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Imprensa', 'Rankings'];
@@ -357,35 +359,53 @@ export default function App() {
                 <p style={styles.mutedSmall}>O calendário visual está definido. A ligação com a data da temporada e o bloqueio automático das negociações serão ativados junto ao motor de temporadas e ao Mercado.</p>
               </div> :
               aba === 'Rankings' ? <div>
-                <p style={styles.muted}>Central de rankings, estatísticas e premiações do Manager Futebol Online. Os dados abaixo são exemplos demonstrativos; as classificações oficiais serão calculadas quando ligas, partidas e estatísticas estiverem integradas.</p>
-                <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'18px 0'}}>
-                  <span style={styles.activeTab}>Temporada atual</span><span style={styles.tab}>Histórico</span><span style={styles.tab}>Mundo</span>
-                </div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:14}}>
+                <p style={styles.muted}>Central de rankings mundiais e classificações por liga. Os exemplos desta tela são demonstrativos; as tabelas oficiais dependerão dos resultados reais das temporadas.</p>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:14,marginTop:18}}>
                   <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:16}}>
-                    <span style={styles.eyebrow}>CLUBES • RANKING MUNDIAL</span><h3>Melhores clubes</h3>
-                    {['1º União Caçapavense','2º Real Madrid','3º Manchester City','4º Bayern de Munique','5º Flamengo'].map((x,i)=><p key={i} style={{borderBottom:'1px solid #26364d',paddingBottom:8}}>{x}</p>)}
+                    <span style={styles.eyebrow}>RANKING MUNDIAL DE CLUBES</span><h3>Clubes em destaque</h3>
+                    {['União Caçapavense','Real Madrid','Manchester City','Bayern de Munique','Flamengo'].map((x,i)=><p key={i}>{i+1}º {x}</p>)}
                   </div>
                   <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:16}}>
-                    <span style={styles.eyebrow}>SELEÇÕES • RANKING MUNDIAL</span><h3>Melhores seleções</h3>
-                    {['1º Brasil','2º Argentina','3º França','4º Espanha','5º Inglaterra'].map((x,i)=><p key={i} style={{borderBottom:'1px solid #26364d',paddingBottom:8}}>{x}</p>)}
+                    <span style={styles.eyebrow}>RANKING MUNDIAL DE SELEÇÕES</span><h3>Seleções em destaque</h3>
+                    {['Brasil','Argentina','França','Espanha','Inglaterra'].map((x,i)=><p key={i}>{i+1}º {x}</p>)}
                   </div>
                   <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:16}}>
-                    <span style={styles.eyebrow}>ARTILHARIA • TEMPORADA</span><h3>Goleadores</h3>
-                    {['1º Erling Haaland — 0 gols','2º Kylian Mbappé — 0 gols','3º Vinícius Júnior — 0 gols','4º Harry Kane — 0 gols','5º Endrick — 0 gols'].map((x,i)=><p key={i} style={{borderBottom:'1px solid #26364d',paddingBottom:8}}>{x}</p>)}
+                    <span style={styles.eyebrow}>ARTILHARIA GERAL</span><h3>Goleadores</h3>
+                    {['Erling Haaland','Kylian Mbappé','Vinícius Júnior','Harry Kane','Endrick'].map((x,i)=><p key={i}>{i+1}º {x} — aguardando jogos</p>)}
                   </div>
-                  <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:16}}>
-                    <span style={styles.eyebrow}>PREMIAÇÕES • FIM DE TEMPORADA</span><h3>Melhores do ano</h3>
-                    <p>🏆 Bola de Ouro do MFO</p><p>⭐ Melhor treinador</p><p>🧤 Melhor goleiro</p><p>🌱 Revelação do ano</p><p>🎯 Melhor por posição</p>
+                </div>
+                <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
+                  <span style={styles.eyebrow}>CLASSIFICAÇÃO POR LIGA</span>
+                  <h3>Escolha o campeonato</h3>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12}}>
+                    <label style={{color:'#a7b3c5',fontSize:13}}>País
+                      <select style={styles.input} value={ligaPais} onChange={e=>setLigaPais(e.target.value)}>
+                        {['Brasil','Argentina','Inglaterra','Espanha','Alemanha','Itália','França','Portugal','Holanda','México'].map(p=><option key={p}>{p}</option>)}
+                      </select>
+                    </label>
+                    <label style={{color:'#a7b3c5',fontSize:13}}>Divisão
+                      <select style={styles.input} value={ligaDivisao} onChange={e=>setLigaDivisao(e.target.value)}>
+                        <option value="1ª divisão">1ª divisão</option><option value="2ª divisão">2ª divisão</option>
+                      </select>
+                    </label>
                   </div>
+                  <p style={styles.mutedSmall}>{ligaPais} • {ligaDivisao} • Temporada 1 — prévia ilustrativa</p>
+                  <div style={{overflowX:'auto'}}>
+                    <table style={styles.table}>
+                      <thead><tr><th>Pos.</th><th>Clube</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th></tr></thead>
+                      <tbody>
+                        {Array.from({length:10},(_,i)=>({pos:i+1,nome:i===0?(ligaPais==='Brasil'?'União Caçapavense':ligaPais+' FC'):['Atlético Serrano','Real do Vale','Esportivo Central','Nacional FC','Ferroviário','União Atlética','Estrela do Norte','Grêmio Regional','Desportivo Azul'][i-1]})).map(t=><tr key={t.pos}><td>{t.pos}º</td><td>{t.nome}</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>)}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p style={styles.mutedSmall}>Cada país terá sua própria classificação e divisões. A versão completa também exibirá forma recente, saldo de gols, artilharia e assistências específicas da liga.</p>
                 </div>
                 <div style={{background:'#17263b',borderRadius:10,padding:16,marginTop:16}}>
-                  <strong>Livro dos recordes • Todos os tempos</strong>
+                  <strong>Premiações e recordes históricos</strong>
                   <ul style={{color:'#cbd5e1',lineHeight:1.8,paddingLeft:20}}>
-                    <li>Maiores artilheiros da história</li><li>Jogadores com mais assistências e títulos</li><li>Clubes e seleções com mais conquistas</li><li>Maior sequência de vitórias e invencibilidade</li><li>Recordes por país, liga e competição</li>
+                    <li>Bola de Ouro, melhor treinador e melhor goleiro</li><li>Revelação e melhor jogador por posição</li><li>Artilheiros por liga e no ranking geral</li><li>Maiores campeões e recordistas de todos os tempos</li>
                   </ul>
                 </div>
-                <p style={styles.mutedSmall}>Nesta etapa, os rankings são apenas uma prévia visual, sem pontuação competitiva real. Não representam resultados oficiais nem estatísticas verificadas.</p>
               </div> :
               aba === 'Estádio' ? <div>
                 <p style={styles.muted}>Seu clube começa com um estádio de 10 mil lugares. As ampliações são financiadas pelo caixa do clube e levam tempo para ficar prontas.</p>
