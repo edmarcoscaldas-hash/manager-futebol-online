@@ -64,7 +64,7 @@ select
   nome_antigo,
   pais_base,
   (
-    primeiros[((seq - 1) / 20)::integer + 1] || ' ' ||
+    primeiros[(((seq - 1) / 20)::integer % 20) + 1] || ' ' ||
     sobrenomes[((seq - 1) % 20)::integer + 1]
   ) as nome_base,
   seq
@@ -93,6 +93,7 @@ set nome = case
       )
   )
   then m.nome_base || ' ' || lpad(m.seq::text, 3, '0')
+  when m.seq > 400 then m.nome_base || ' ' || lpad(m.seq::text, 3, '0')
   else m.nome_base
 end
 from mfo_duplicate_player_names m
