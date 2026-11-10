@@ -537,8 +537,8 @@ export default function App() {
                   <p style={styles.muted}>Você ainda não tem jogadores. Acesse a área Mercado para montar seu primeiro elenco.</p>
                   <button style={styles.primary} onClick={() => setAba('Mercado')}>Ir para o Mercado</button>
                 </div> :
-                  <div style={{overflowX:'auto', marginTop:20}}><table style={styles.table}><thead><tr><th>Jogador</th><th>Posição</th><th>Nascimento</th><th>Overall</th></tr></thead><tbody>
-                    {jogadores.map(j => <tr key={j.id}><td>{j.nome}</td><td>{j.posicao || '-'}</td><td>{j.data_nascimento ? new Date(j.data_nascimento + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</td><td>{j.overall}</td></tr>)}
+                  <div style={{overflowX:'auto', marginTop:20}}><table style={styles.table}><thead><tr><th>Jogador</th><th>Posição</th><th>Idade</th><th>Overall</th></tr></thead><tbody>
+                    {jogadores.map(j => <tr key={j.id}><td>{j.nome}</td><td>{j.posicao || '-'}</td><td>{j.data_nascimento ? (() => { const nascimento = new Date(j.data_nascimento + 'T12:00:00'); const hoje = new Date(); let idade = hoje.getFullYear() - nascimento.getFullYear(); const aniversarioAindaNaoChegou = hoje.getMonth() < nascimento.getMonth() || (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate()); if (aniversarioAindaNaoChegou) idade--; return `${idade} anos`; })() : '-'}</td><td>{j.overall}</td></tr>)}
                   </tbody></table></div>}
               </div> :
               aba === 'Mercado' ? <div>
