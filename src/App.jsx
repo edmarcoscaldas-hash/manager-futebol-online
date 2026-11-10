@@ -357,32 +357,33 @@ export default function App() {
                 <p style={styles.mutedSmall}>O calendário visual está definido. A ligação com a data da temporada e o bloqueio automático das negociações serão ativados junto ao motor de temporadas e ao Mercado.</p>
               </div> :
               aba === 'Imprensa' ? <div>
-                <p style={styles.muted}>Em partidas decisivas, clássicos, finais e jogos de acesso, o treinador poderá participar de entrevistas antes ou depois da partida.</p>
+                <p style={styles.muted}>Entrevistas demonstrativas do treinador. Em partidas importantes, a imprensa fará perguntas relacionadas ao resultado e ao contexto do jogo.</p>
                 <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:20,marginTop:16}}>
-                  <span style={styles.eyebrow}>ENTREVISTA PÓS-JOGO • JOGO DECISIVO</span>
+                  <span style={styles.eyebrow}>ENTREVISTA PÓS-JOGO • PARTIDA IMPORTANTE</span>
                   <h3 style={{margin:'10px 0'}}>Repórter: “Seu time venceu, mas sofreu pressão nos minutos finais. O que explica esse resultado?”</h3>
+                  <p style={styles.muted}>Escolha uma resposta:</p>
                   <div style={{display:'grid',gap:10,marginTop:18}}>
                     {[
-                      {id:'humilde',texto:'“Foi uma vitória do grupo. Temos muito a melhorar e vamos trabalhar.”',efeito:'Torcida e elenco valorizam a humildade.',impacto:'Reputação +2 • Moral do elenco +2'},
-                      {id:'confiante',texto:'“Nosso planejamento está dando resultado. Estamos prontos para desafios maiores.”',efeito:'Aumenta a confiança e a expectativa da diretoria.',impacto:'Reputação +3 • Pressão da diretoria +1'},
-                      {id:'critico',texto:'“Não gostei da atuação. Alguns jogadores precisam assumir mais responsabilidade.”',efeito:'A cobrança pode motivar alguns atletas, mas criar desconforto no elenco.',impacto:'Cobrança interna +2 • Moral do elenco -2'}
+                      {id:'humilde',texto:'“Foi uma vitória do grupo. Temos muito a melhorar e vamos trabalhar.”',efeito:'A torcida e o elenco valorizam a humildade.',impacto:'Reputação +2 • Moral do elenco +2'},
+                      {id:'confiante',texto:'“Nosso planejamento está dando resultado. Estamos prontos para desafios maiores.”',efeito:'A confiança aumenta, mas a diretoria passa a cobrar resultados maiores.',impacto:'Reputação +3 • Pressão da diretoria +1'},
+                      {id:'critico',texto:'“Não gostei da atuação. Alguns jogadores precisam assumir mais responsabilidade.”',efeito:'A cobrança pode motivar alguns atletas, mas também gerar desconforto.',impacto:'Cobrança interna +2 • Moral do elenco -2'}
                     ].map(opcao => <button key={opcao.id} onClick={() => {setRespostaImprensa(opcao.id);setImpactoImprensa(opcao);}} style={{...styles.secondary,textAlign:'left',padding:14,border:respostaImprensa===opcao.id?'1px solid #67e8a5':'1px solid #34465f',background:respostaImprensa===opcao.id?'#174b39':'#17263b'}}>{opcao.texto}</button>)}
                   </div>
                   {impactoImprensa && <div style={{background:'#17263b',borderRadius:10,padding:14,marginTop:14}}>
-                    <strong>Consequência da resposta</strong>
+                    <strong>Reação prevista</strong>
                     <p style={styles.muted}>{impactoImprensa.efeito}</p>
                     <p style={{color:'#67e8a5',fontWeight:'bold'}}>{impactoImprensa.impacto}</p>
-                    <p style={styles.mutedSmall}>Demonstração: os efeitos ainda não são gravados no banco nem aplicados aos atributos reais do elenco.</p>
+                    <p style={styles.mutedSmall}>Protótipo visual: a escolha aparece nesta tela, mas ainda não é salva nem modifica os indicadores reais do clube.</p>
                   </div>}
                 </div>
                 <div style={{background:'#17263b',borderRadius:10,padding:16,marginTop:16}}>
-                  <strong>Quando as entrevistas aparecem?</strong>
+                  <strong>Entrevistas previstas para</strong>
                   <ul style={{color:'#cbd5e1',lineHeight:1.8,paddingLeft:20}}>
                     <li>Clássicos e rivalidades regionais</li>
-                    <li>Finais e semifinais de copas</li>
-                    <li>Decisões de acesso, título ou rebaixamento</li>
-                    <li>Estreia de treinador e contratações de grande repercussão</li>
-                    <li>Após vitórias históricas, derrotas pesadas ou crises</li>
+                    <li>Finais e semifinais</li>
+                    <li>Decisões de título, acesso ou rebaixamento</li>
+                    <li>Estreias em competições internacionais</li>
+                    <li>Vitórias históricas, derrotas pesadas e polêmicas</li>
                   </ul>
                 </div>
               </div> :
