@@ -21,13 +21,15 @@ export default function App() {
   const [erroClube, setErroClube] = useState('');
   const [mensagemEstadio, setMensagemEstadio] = useState('');
   const [carregandoEstadio, setCarregandoEstadio] = useState(false);
+  const [respostaImprensa, setRespostaImprensa] = useState('');
+  const [impactoImprensa, setImpactoImprensa] = useState(null);
   const [jogadores, setJogadores] = useState([]);
   const [carregandoJogadores, setCarregandoJogadores] = useState(false);
   const [novoJogador, setNovoJogador] = useState({ nome: '', posicao: 'Atacante', data_nascimento: '', overall: 50 });
   const [erroElenco, setErroElenco] = useState('');
   const clubeAtual = clubes[0];
 
-  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio'];
+  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Imprensa'];
 
   useEffect(() => {
     if (!supabase) return;
@@ -353,6 +355,36 @@ export default function App() {
                   </ul>
                 </div>
                 <p style={styles.mutedSmall}>O calendário visual está definido. A ligação com a data da temporada e o bloqueio automático das negociações serão ativados junto ao motor de temporadas e ao Mercado.</p>
+              </div> :
+              aba === 'Imprensa' ? <div>
+                <p style={styles.muted}>Em partidas decisivas, clássicos, finais e jogos de acesso, o treinador poderá participar de entrevistas antes ou depois da partida.</p>
+                <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:20,marginTop:16}}>
+                  <span style={styles.eyebrow}>ENTREVISTA PÓS-JOGO • JOGO DECISIVO</span>
+                  <h3 style={{margin:'10px 0'}}>Repórter: “Seu time venceu, mas sofreu pressão nos minutos finais. O que explica esse resultado?”</h3>
+                  <div style={{display:'grid',gap:10,marginTop:18}}>
+                    {[
+                      {id:'humilde',texto:'“Foi uma vitória do grupo. Temos muito a melhorar e vamos trabalhar.”',efeito:'Torcida e elenco valorizam a humildade.',impacto:'Reputação +2 • Moral do elenco +2'},
+                      {id:'confiante',texto:'“Nosso planejamento está dando resultado. Estamos prontos para desafios maiores.”',efeito:'Aumenta a confiança e a expectativa da diretoria.',impacto:'Reputação +3 • Pressão da diretoria +1'},
+                      {id:'critico',texto:'“Não gostei da atuação. Alguns jogadores precisam assumir mais responsabilidade.”',efeito:'A cobrança pode motivar alguns atletas, mas criar desconforto no elenco.',impacto:'Cobrança interna +2 • Moral do elenco -2'}
+                    ].map(opcao => <button key={opcao.id} onClick={() => {setRespostaImprensa(opcao.id);setImpactoImprensa(opcao);}} style={{...styles.secondary,textAlign:'left',padding:14,border:respostaImprensa===opcao.id?'1px solid #67e8a5':'1px solid #34465f',background:respostaImprensa===opcao.id?'#174b39':'#17263b'}}>{opcao.texto}</button>)}
+                  </div>
+                  {impactoImprensa && <div style={{background:'#17263b',borderRadius:10,padding:14,marginTop:14}}>
+                    <strong>Consequência da resposta</strong>
+                    <p style={styles.muted}>{impactoImprensa.efeito}</p>
+                    <p style={{color:'#67e8a5',fontWeight:'bold'}}>{impactoImprensa.impacto}</p>
+                    <p style={styles.mutedSmall}>Demonstração: os efeitos ainda não são gravados no banco nem aplicados aos atributos reais do elenco.</p>
+                  </div>}
+                </div>
+                <div style={{background:'#17263b',borderRadius:10,padding:16,marginTop:16}}>
+                  <strong>Quando as entrevistas aparecem?</strong>
+                  <ul style={{color:'#cbd5e1',lineHeight:1.8,paddingLeft:20}}>
+                    <li>Clássicos e rivalidades regionais</li>
+                    <li>Finais e semifinais de copas</li>
+                    <li>Decisões de acesso, título ou rebaixamento</li>
+                    <li>Estreia de treinador e contratações de grande repercussão</li>
+                    <li>Após vitórias históricas, derrotas pesadas ou crises</li>
+                  </ul>
+                </div>
               </div> :
               aba === 'Estádio' ? <div>
                 <p style={styles.muted}>Seu clube começa com um estádio de 10 mil lugares. As ampliações são financiadas pelo caixa do clube e levam tempo para ficar prontas.</p>
