@@ -476,13 +476,17 @@ export default function App() {
                 <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:20,marginTop:16}}>
                   <span style={styles.eyebrow}>ENTREVISTA PÓS-JOGO</span>
                   <h3 style={{marginTop:10}}>O que achou da derrota da equipe?</h3>
-                  <p style={styles.muted}>Escolha sua declaração. Cada posicionamento afeta de maneira diferente a relação com diretoria, jogadores e torcida.</p>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:16}}>
-                    <button style={styles.primary} onClick={() => responderImprensa('elogiar')}>Elogiar a entrega da equipe</button>
-                    <button style={styles.primary} onClick={() => responderImprensa('reconhecer')}>Reconhecer que o time jogou mal</button>
-                    <button style={styles.secondary} onClick={() => responderImprensa('criticar')}>Criticar duramente a atuação</button>
-                    <button style={styles.secondary} onClick={() => responderImprensa('proteger')}>Assumir a responsabilidade e proteger o elenco</button>
-                    <button style={styles.secondary} onClick={() => responderImprensa('cobrar')}>Cobrar uma reação imediata</button>
+                  <p style={styles.muted}>Como treinador, escolha exatamente o que você diria aos jornalistas. Cada declaração terá consequências diferentes para a relação com diretoria, jogadores e torcida.</p>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr',gap:12,marginTop:16}}>
+                    {Object.entries({
+                      elogiar: '“O resultado é doloroso, mas não vou deixar de reconhecer o esforço dos jogadores. Competimos, tivemos momentos em que controlamos a partida e criamos situações para sair com outro placar. Claro que precisamos melhorar a concentração nos momentos decisivos. Agora é levantar a cabeça, corrigir os detalhes e trabalhar. Não tenho dúvida de que esse grupo pode dar uma resposta.”',
+                      reconhecer: '“Hoje não estivemos no nosso nível. Erramos passes simples, perdemos duelos importantes e demos espaços que um adversário desse nível não costuma desperdiçar. Não adianta procurar desculpas: precisamos jogar mais e melhor. A responsabilidade é de todos, começando por mim, e vamos trabalhar para corrigir isso.”',
+                      criticar: '“Foi uma atuação muito abaixo do que a camisa deste clube exige. Faltou intensidade, concentração e personalidade em momentos importantes. Não podemos entrar em campo esperando que o jogo se resolva sozinho. Vou conversar com o elenco, porque algumas atitudes precisam mudar. Ninguém tem lugar garantido se não corresponder.”',
+                      proteger: '“A responsabilidade maior é minha. Sou eu quem prepara a equipe, escolhe a estratégia e toma as decisões. Não vou apontar o dedo para um jogador depois de uma derrota. Temos um grupo trabalhador e vamos resolver nossas questões internamente. Peço ao torcedor que continue apoiando, porque precisamos estar unidos neste momento.”',
+                      cobrar: '“Não podemos tratar essa derrota como se fosse normal. O torcedor espera entrega e competitividade, e nós temos a obrigação de oferecer isso. A conversa no vestiário será franca. Quero ver mais atitude nos treinamentos e uma resposta dentro de campo já na próxima rodada. O discurso precisa virar resultado.”'
+                    }).map(([tipo, fala]) => (
+                      <button key={tipo} style={{...styles.secondary,textAlign:'left',lineHeight:1.7,padding:16,fontSize:14}} onClick={() => responderImprensa(tipo)}>{fala}</button>
+                    ))}
                   </div>
                 </div>
                 {respostaImprensa && <div style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:16}}>
