@@ -29,7 +29,7 @@ export default function App() {
   const [erroElenco, setErroElenco] = useState('');
   const clubeAtual = clubes[0];
 
-  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Imprensa'];
+  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Imprensa', 'Rankings'];
 
   useEffect(() => {
     if (!supabase) return;
@@ -356,36 +356,36 @@ export default function App() {
                 </div>
                 <p style={styles.mutedSmall}>O calendário visual está definido. A ligação com a data da temporada e o bloqueio automático das negociações serão ativados junto ao motor de temporadas e ao Mercado.</p>
               </div> :
-              aba === 'Imprensa' ? <div>
-                <p style={styles.muted}>Entrevistas demonstrativas do treinador. Em partidas importantes, a imprensa fará perguntas relacionadas ao resultado e ao contexto do jogo.</p>
-                <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:20,marginTop:16}}>
-                  <span style={styles.eyebrow}>ENTREVISTA PÓS-JOGO • PARTIDA IMPORTANTE</span>
-                  <h3 style={{margin:'10px 0'}}>Repórter: “Seu time venceu, mas sofreu pressão nos minutos finais. O que explica esse resultado?”</h3>
-                  <p style={styles.muted}>Escolha uma resposta:</p>
-                  <div style={{display:'grid',gap:10,marginTop:18}}>
-                    {[
-                      {id:'humilde',texto:'“Foi uma vitória do grupo. Temos muito a melhorar e vamos trabalhar.”',efeito:'A torcida e o elenco valorizam a humildade.',impacto:'Reputação +2 • Moral do elenco +2'},
-                      {id:'confiante',texto:'“Nosso planejamento está dando resultado. Estamos prontos para desafios maiores.”',efeito:'A confiança aumenta, mas a diretoria passa a cobrar resultados maiores.',impacto:'Reputação +3 • Pressão da diretoria +1'},
-                      {id:'critico',texto:'“Não gostei da atuação. Alguns jogadores precisam assumir mais responsabilidade.”',efeito:'A cobrança pode motivar alguns atletas, mas também gerar desconforto.',impacto:'Cobrança interna +2 • Moral do elenco -2'}
-                    ].map(opcao => <button key={opcao.id} onClick={() => {setRespostaImprensa(opcao.id);setImpactoImprensa(opcao);}} style={{...styles.secondary,textAlign:'left',padding:14,border:respostaImprensa===opcao.id?'1px solid #67e8a5':'1px solid #34465f',background:respostaImprensa===opcao.id?'#174b39':'#17263b'}}>{opcao.texto}</button>)}
+              aba === 'Rankings' ? <div>
+                <p style={styles.muted}>Central de rankings, estatísticas e premiações do Manager Futebol Online. Os dados abaixo são exemplos demonstrativos; as classificações oficiais serão calculadas quando ligas, partidas e estatísticas estiverem integradas.</p>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'18px 0'}}>
+                  <span style={styles.activeTab}>Temporada atual</span><span style={styles.tab}>Histórico</span><span style={styles.tab}>Mundo</span>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:14}}>
+                  <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>CLUBES • RANKING MUNDIAL</span><h3>Melhores clubes</h3>
+                    {['1º União Caçapavense','2º Real Madrid','3º Manchester City','4º Bayern de Munique','5º Flamengo'].map((x,i)=><p key={i} style={{borderBottom:'1px solid #26364d',paddingBottom:8}}>{x}</p>)}
                   </div>
-                  {impactoImprensa && <div style={{background:'#17263b',borderRadius:10,padding:14,marginTop:14}}>
-                    <strong>Reação prevista</strong>
-                    <p style={styles.muted}>{impactoImprensa.efeito}</p>
-                    <p style={{color:'#67e8a5',fontWeight:'bold'}}>{impactoImprensa.impacto}</p>
-                    <p style={styles.mutedSmall}>Protótipo visual: a escolha aparece nesta tela, mas ainda não é salva nem modifica os indicadores reais do clube.</p>
-                  </div>}
+                  <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>SELEÇÕES • RANKING MUNDIAL</span><h3>Melhores seleções</h3>
+                    {['1º Brasil','2º Argentina','3º França','4º Espanha','5º Inglaterra'].map((x,i)=><p key={i} style={{borderBottom:'1px solid #26364d',paddingBottom:8}}>{x}</p>)}
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>ARTILHARIA • TEMPORADA</span><h3>Goleadores</h3>
+                    {['1º Erling Haaland — 0 gols','2º Kylian Mbappé — 0 gols','3º Vinícius Júnior — 0 gols','4º Harry Kane — 0 gols','5º Endrick — 0 gols'].map((x,i)=><p key={i} style={{borderBottom:'1px solid #26364d',paddingBottom:8}}>{x}</p>)}
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>PREMIAÇÕES • FIM DE TEMPORADA</span><h3>Melhores do ano</h3>
+                    <p>🏆 Bola de Ouro do MFO</p><p>⭐ Melhor treinador</p><p>🧤 Melhor goleiro</p><p>🌱 Revelação do ano</p><p>🎯 Melhor por posição</p>
+                  </div>
                 </div>
                 <div style={{background:'#17263b',borderRadius:10,padding:16,marginTop:16}}>
-                  <strong>Entrevistas previstas para</strong>
+                  <strong>Livro dos recordes • Todos os tempos</strong>
                   <ul style={{color:'#cbd5e1',lineHeight:1.8,paddingLeft:20}}>
-                    <li>Clássicos e rivalidades regionais</li>
-                    <li>Finais e semifinais</li>
-                    <li>Decisões de título, acesso ou rebaixamento</li>
-                    <li>Estreias em competições internacionais</li>
-                    <li>Vitórias históricas, derrotas pesadas e polêmicas</li>
+                    <li>Maiores artilheiros da história</li><li>Jogadores com mais assistências e títulos</li><li>Clubes e seleções com mais conquistas</li><li>Maior sequência de vitórias e invencibilidade</li><li>Recordes por país, liga e competição</li>
                   </ul>
                 </div>
+                <p style={styles.mutedSmall}>Nesta etapa, os rankings são apenas uma prévia visual, sem pontuação competitiva real. Não representam resultados oficiais nem estatísticas verificadas.</p>
               </div> :
               aba === 'Estádio' ? <div>
                 <p style={styles.muted}>Seu clube começa com um estádio de 10 mil lugares. As ampliações são financiadas pelo caixa do clube e levam tempo para ficar prontas.</p>
