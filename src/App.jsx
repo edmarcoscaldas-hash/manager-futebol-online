@@ -23,6 +23,7 @@ export default function App() {
   const [carregandoJogadores, setCarregandoJogadores] = useState(false);
   const [novoJogador, setNovoJogador] = useState({ nome: '', posicao: 'Atacante', data_nascimento: '', overall: 50 });
   const [erroElenco, setErroElenco] = useState('');
+  const clubeAtual = clubes[0];
 
   const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base'];
 
@@ -180,7 +181,6 @@ export default function App() {
   }
 
   const autenticado = Boolean(session || demo);
-  const clubeAtual = clubes[0];
 
   if (supabaseConfigured && !session) {
     return (
