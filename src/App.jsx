@@ -19,13 +19,15 @@ export default function App() {
   const [estadio, setEstadio] = useState('');
   const [capacidade, setCapacidade] = useState('10000');
   const [erroClube, setErroClube] = useState('');
+  const [mensagemEstadio, setMensagemEstadio] = useState('');
+  const [carregandoEstadio, setCarregandoEstadio] = useState(false);
   const [jogadores, setJogadores] = useState([]);
   const [carregandoJogadores, setCarregandoJogadores] = useState(false);
   const [novoJogador, setNovoJogador] = useState({ nome: '', posicao: 'Atacante', data_nascimento: '', overall: 50 });
   const [erroElenco, setErroElenco] = useState('');
   const clubeAtual = clubes[0];
 
-  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base'];
+  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio'];
 
   useEffect(() => {
     if (!supabase) return;
@@ -173,6 +175,58 @@ export default function App() {
     setCarregando(false);
   }
 
+  const niveisEstadio = [
+    { nivel: 2, capacidade: 20000, custo: 8000000, dias: 14, nome: 'Ampliação' },
+    { nivel: 3, capacidade: 40000, custo: 20000000, dias: 30, nome: 'Estádio moderno' },
+    { nivel: 4, capacidade: 70000, custo: 45000000, dias: 45, nome: 'Arena' }
+  ];
+
+  async function iniciarAmpliacao() {
+    if (!clubeAtual?.id || !supabase) return;
+    const nivelAtual = Number(clubeAtual.stadium_level || 1);
+    const proximo = niveisEstadio.find(n => n.nivel === nivelAtual + 1);
+    if (!proximo) return;
+    const saldo = Number(clubeAtual.orcamento || 0);
+    if (saldo < proximo.custo) {
+      setMensagemEstadio('Saldo insuficiente. O clube precisa acumular mais receitas antes de iniciar a obra.');
+      return;
+    }
+    setCarregandoEstadio(true);
+    setMensagemEstadio('');
+    const inicio = new Date();
+    const fim = new Date(inicio.getTime() + proximo.dias * 24 * 60 * 60 * 1000);
+    const { data, error } = await supabase.from('clubs').update({
+      orcamento: saldo - proximo.custo,
+      stadium_target_capacity: proximo.capacidade,
+      stadium_upgrade_started_at: inicio.toISOString(),
+      stadium_upgrade_finishes_at: fim.toISOString()
+    }).eq('id', clubeAtual.id).select().single();
+    if (error) setMensagemEstadio('Não foi possível iniciar a obra: ' + error.message);
+    else {
+      setClubes(lista => lista.map(clube => clube.id === data.id ? data : clube));
+      setMensagemEstadio('Obra iniciada! O estádio ficará em ampliação por ' + proximo.dias + ' dias.');
+    }
+    setCarregandoEstadio(false);
+  }
+
+  useEffect(() => {
+    async function concluirObra() {
+      if (!clubeAtual?.id || !clubeAtual.stadium_upgrade_finishes_at || !supabase) return;
+      if (new Date(clubeAtual.stadium_upgrade_finishes_at).getTime() > Date.now()) return;
+      const proximo = niveisEstadio.find(n => n.capacidade === Number(clubeAtual.stadium_target_capacity));
+      if (!proximo) return;
+      const { data, error } = await supabase.from('clubs').update({
+        capacidade: proximo.capacidade,
+        stadium_level: proximo.nivel,
+        stadium_target_capacity: null,
+        stadium_upgrade_started_at: null,
+        stadium_upgrade_finishes_at: null
+      }).eq('id', clubeAtual.id).select().single();
+      if (!error && data) setClubes(lista => lista.map(clube => clube.id === data.id ? data : clube));
+    }
+    concluirObra();
+  }, [clubeAtual?.id, clubeAtual?.stadium_upgrade_finishes_at]);
+
   async function sair() {
     if (supabase) await supabase.auth.signOut();
     setSession(null);
@@ -299,6 +353,32 @@ export default function App() {
                   </ul>
                 </div>
                 <p style={styles.mutedSmall}>O calendário visual está definido. A ligação com a data da temporada e o bloqueio automático das negociações serão ativados junto ao motor de temporadas e ao Mercado.</p>
+              </div> :
+              aba === 'Estádio' ? <div>
+                <p style={styles.muted}>Seu clube começa com um estádio de 10 mil lugares. As ampliações são financiadas pelo caixa do clube e levam tempo para ficar prontas.</p>
+                <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:20,marginTop:16}}>
+                  <span style={styles.eyebrow}>INFRAESTRUTURA ATUAL</span>
+                  <h3 style={{fontSize:28,margin:'8px 0',color:'#67e8a5'}}>{Number(clubeAtual?.capacidade || 10000).toLocaleString('pt-BR')} lugares</h3>
+                  <p style={styles.muted}>{clubeAtual?.estadio || 'Estádio do clube'} • Nível {Number(clubeAtual?.stadium_level || 1)} de 4</p>
+                  <p style={styles.muted}>Caixa disponível: <strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR')}</strong></p>
+                </div>
+                {clubeAtual?.stadium_upgrade_finishes_at ? <div style={{background:'#17263b',borderRadius:10,padding:16,marginTop:16}}>
+                  <strong>Obra em andamento</strong>
+                  <p style={styles.muted}>Nova capacidade: {Number(clubeAtual.stadium_target_capacity).toLocaleString('pt-BR')} lugares</p>
+                  <p style={styles.muted}>Previsão de conclusão: {new Date(clubeAtual.stadium_upgrade_finishes_at).toLocaleDateString('pt-BR')}</p>
+                  <p style={styles.mutedSmall}>A capacidade será atualizada automaticamente quando a obra terminar e o clube acessar o jogo.</p>
+                </div> : Number(clubeAtual?.stadium_level || 1) >= 4 ? <p style={styles.notice}>Seu estádio atingiu o nível máximo de expansão.</p> : <div style={{marginTop:18}}>
+                  <h3>Próxima ampliação</h3>
+                  {(() => { const prox = niveisEstadio.find(n => n.nivel === Number(clubeAtual?.stadium_level || 1) + 1); return prox ? <div style={{background:'#17263b',borderRadius:10,padding:16}}>
+                    <strong>{prox.nome} • {prox.capacidade.toLocaleString('pt-BR')} lugares</strong>
+                    <p style={styles.muted}>Investimento: R$ {prox.custo.toLocaleString('pt-BR')}</p>
+                    <p style={styles.muted}>Tempo estimado: {prox.dias} dias</p>
+                    <button style={styles.primary} onClick={iniciarAmpliacao} disabled={carregandoEstadio || Number(clubeAtual?.orcamento || 0) < prox.custo}>{carregandoEstadio ? 'Iniciando obra...' : 'Iniciar ampliação'}</button>
+                    {Number(clubeAtual?.orcamento || 0) < prox.custo && <p style={styles.mutedSmall}>Caixa insuficiente. Gere mais receitas para liberar a obra.</p>}
+                  </div> : null; })()}
+                </div>}
+                {mensagemEstadio && <p style={styles.notice}>{mensagemEstadio}</p>}
+                <p style={styles.mutedSmall}>Os custos e prazos são valores iniciais de balanceamento. A integração com bilheteria e outras receitas será feita no módulo financeiro.</p>
               </div> :
               <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
           </section>
