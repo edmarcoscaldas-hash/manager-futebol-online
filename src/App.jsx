@@ -414,6 +414,26 @@ export default function App() {
                 </div>}
                 <p style={styles.mutedSmall}>A busca e os filtros consultam os registros do Supabase. Envio, resposta e conclusão de propostas serão ativados na próxima etapa, com validação de saldo, janela de transferências e atualização segura dos contratos.</p>
               </div> :
+              aba === 'Imprensa' ? <div>
+                <p style={styles.muted}>Central de imprensa do clube. Responda às entrevistas após clássicos, semifinais, finais, decisões importantes e partidas marcantes.</p>
+                <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:20,marginTop:16}}>
+                  <span style={styles.eyebrow}>ENTREVISTA PÓS-JOGO</span>
+                  <h3 style={{marginTop:10}}>O que você achou do desempenho da equipe?</h3>
+                  <p style={styles.muted}>Escolha como treinador responderia aos jornalistas:</p>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:16}}>
+                    <button style={styles.primary} onClick={() => {setRespostaImprensa('Humilde');setImpactoImprensa('Você valorizou o esforço coletivo e manteve um tom respeitoso. A resposta pode fortalecer a imagem de equilíbrio do treinador.');}}>Resposta humilde</button>
+                    <button style={styles.primary} onClick={() => {setRespostaImprensa('Confiante');setImpactoImprensa('Você demonstrou confiança no projeto e no elenco. A resposta transmite ambição, mas aumenta a expectativa da torcida e da imprensa.');}}>Resposta confiante</button>
+                    <button style={styles.secondary} onClick={() => {setRespostaImprensa('Crítica');setImpactoImprensa('Você cobrou mais atitude e desempenho. A resposta mostra exigência, mas pode gerar pressão sobre o grupo.');}}>Resposta crítica</button>
+                  </div>
+                </div>
+                {respostaImprensa && <div style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:16}}>
+                  <span style={styles.eyebrow}>RESPOSTA ENVIADA</span>
+                  <h3>{respostaImprensa}</h3>
+                  <p style={styles.muted}>{impactoImprensa}</p>
+                  <button style={styles.secondary} onClick={() => {setRespostaImprensa('');setImpactoImprensa(null);}}>Nova entrevista</button>
+                </div>}
+                <p style={styles.mutedSmall}>Nesta versão, a entrevista e seus efeitos são demonstrativos: ainda não estão vinculados ao motor de partidas, à moral dos jogadores ou à reputação do treinador.</p>
+              </div> :
               aba === 'Rankings' ? <div>
                 <p style={styles.muted}>Central de rankings mundiais e classificações por liga. Os exemplos desta tela são demonstrativos; as tabelas oficiais dependerão dos resultados reais das temporadas.</p>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:14,marginTop:18}}>
