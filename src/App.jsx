@@ -274,6 +274,32 @@ export default function App() {
                     {jogadores.map(j => <tr key={j.id}><td>{j.nome}</td><td>{j.posicao || '-'}</td><td>{j.data_nascimento ? new Date(j.data_nascimento + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</td><td>{j.overall}</td></tr>)}
                   </tbody></table></div>}
               </div> :
+              aba === 'Mercado' ? <div>
+                <p style={styles.muted}>As negociações de jogadores seguirão o calendário oficial do jogo. Fora das janelas, novas transferências entre clubes ficam bloqueadas.</p>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:14,marginTop:18}}>
+                  <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}>
+                    <span style={styles.eyebrow}>1ª JANELA</span>
+                    <h3 style={{margin:'8px 0'}}>Janela de julho</h3>
+                    <strong style={{fontSize:22,color:'#67e8a5'}}>01 a 31 de julho</strong>
+                    <p style={styles.muted}>Compras, empréstimos, ofertas e transferências liberadas durante todo o mês.</p>
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:18}}>
+                    <span style={styles.eyebrow}>2ª JANELA</span>
+                    <h3 style={{margin:'8px 0'}}>Janela de verão</h3>
+                    <strong style={{fontSize:22,color:'#67e8a5'}}>01 de dezembro a 31 de janeiro</strong>
+                    <p style={styles.muted}>Período para reforçar o elenco entre temporadas e no início do ano.</p>
+                  </div>
+                </div>
+                <div style={{background:'#17263b',borderRadius:10,padding:16,marginTop:16}}>
+                  <strong>Regras das janelas</strong>
+                  <ul style={{color:'#cbd5e1',lineHeight:1.8,paddingLeft:20}}>
+                    <li>Ofertas e contrapropostas poderão ser negociadas durante a janela.</li>
+                    <li>Empréstimos e compras serão registrados no histórico do clube.</li>
+                    <li>Jogadores sem contrato poderão ser contratados fora das janelas, conforme regra do jogo.</li>
+                  </ul>
+                </div>
+                <p style={styles.mutedSmall}>O calendário visual está definido. A ligação com a data da temporada e o bloqueio automático das negociações serão ativados junto ao motor de temporadas e ao Mercado.</p>
+              </div> :
               <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
           </section>
         </>
