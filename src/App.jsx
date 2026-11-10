@@ -286,6 +286,53 @@ export default function App() {
     concluirObra();
   }, [clubeAtual?.id, clubeAtual?.stadium_upgrade_finishes_at]);
 
+  async function responderImprensa(tipo) {
+    if (!clubeAtual?.id || !supabase) {
+      setRespostaImprensa(tipo);
+      setImpactoImprensa('Entre com seu clube conectado para registrar a resposta e atualizar as reputações.');
+      return;
+    }
+
+    const reputacaoAtual = {
+      reputacao_diretoria: Number(clubeAtual.reputacao_diretoria ?? 50),
+      reputacao_jogadores: Number(clubeAtual.reputacao_jogadores ?? 50),
+      reputacao_torcida: Number(clubeAtual.reputacao_torcida ?? 50)
+    };
+    const escolhas = {
+      bem: {
+        titulo: 'O time foi bem, apesar da derrota',
+        fala: '“Acredito que fizemos uma partida competitiva. Tivemos bons momentos, conseguimos criar oportunidades, mas infelizmente não fomos eficientes quando tivemos a chance. O futebol também é decidido nos detalhes. Não vou usar a derrota como desculpa, mas seria injusto ignorar o que a equipe produziu. Vamos corrigir o que faltou e seguir trabalhando.”',
+        delta: { reputacao_diretoria: 1, reputacao_jogadores: 3, reputacao_torcida: 1 }
+      },
+      mal: {
+        titulo: 'O time foi mal',
+        fala: '“Nossa atuação ficou abaixo do esperado. Faltou qualidade na construção das jogadas, cometemos erros que custaram caro e não conseguimos reagir quando sofremos o gol. A responsabilidade começa em mim. Vamos analisar a partida, cobrar uma resposta nos treinamentos e trabalhar para que o próximo jogo seja diferente.”',
+        delta: { reputacao_diretoria: 3, reputacao_jogadores: -1, reputacao_torcida: 3 }
+      },
+      horrivel: {
+        titulo: 'A atuação foi horrível',
+        fala: '“Foi muito abaixo do que este clube exige. Não vou procurar desculpas nem tentar esconder a realidade. Faltou intensidade, organização e atitude em campo. Entendo a insatisfação do torcedor e assumo minha parcela de responsabilidade. Teremos conversas internas e algumas decisões poderão ser tomadas. Precisamos dar uma resposta imediata.”',
+        delta: { reputacao_diretoria: 1, reputacao_jogadores: -3, reputacao_torcida: 2 }
+      }
+    };
+    const escolha = escolhas[tipo];
+    if (!escolha) return;
+    const atualizadas = {
+      reputacao_diretoria: Math.max(0, Math.min(100, reputacaoAtual.reputacao_diretoria + escolha.delta.reputacao_diretoria)),
+      reputacao_jogadores: Math.max(0, Math.min(100, reputacaoAtual.reputacao_jogadores + escolha.delta.reputacao_jogadores)),
+      reputacao_torcida: Math.max(0, Math.min(100, reputacaoAtual.reputacao_torcida + escolha.delta.reputacao_torcida))
+    };
+    const { data, error } = await supabase.from('clubs').update(atualizadas).eq('id', clubeAtual.id).select().single();
+    if (error) {
+      setRespostaImprensa(escolha.titulo);
+      setImpactoImprensa(escolha.fala + ' (A declaração foi exibida, mas as reputações não foram salvas. Verifique se a atualização SQL foi executada.)');
+      return;
+    }
+    setClubes(lista => lista.map(clube => clube.id === data.id ? data : clube));
+    setRespostaImprensa(escolha.titulo);
+    setImpactoImprensa(escolha.fala);
+  }
+
   async function sair() {
     if (supabase) await supabase.auth.signOut();
     setSession(null);
@@ -419,20 +466,25 @@ export default function App() {
                 <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:20,marginTop:16}}>
                   <span style={styles.eyebrow}>ENTREVISTA PÓS-JOGO</span>
                   <h3 style={{marginTop:10}}>O que achou da derrota da equipe?</h3>
-                  <p style={styles.muted}>O jornalista quer saber sua avaliação. Escolha o que dizer na coletiva:</p>
+                  <p style={styles.muted}>Escolha sua declaração. Cada posicionamento afeta de maneira diferente a relação com diretoria, jogadores e torcida.</p>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:16}}>
-                    <button style={styles.primary} onClick={() => {setRespostaImprensa('A equipe foi bem');setImpactoImprensa('“Apesar da derrota, acredito que fizemos uma boa partida em vários momentos. A equipe competiu, criou oportunidades e mostrou organização. É claro que o resultado não era o que queríamos, mas não podemos analisar o jogo apenas pelo placar. Precisamos aproveitar os pontos positivos, corrigir os detalhes que decidiram a partida e trabalhar para voltar a vencer.”');}}>O time foi bem, apesar da derrota</button>
-                    <button style={styles.primary} onClick={() => {setRespostaImprensa('A equipe foi mal');setImpactoImprensa('“Hoje ficamos abaixo do que podemos apresentar. Faltou concentração, erramos passes importantes e não conseguimos impor nosso ritmo. O adversário aproveitou melhor as oportunidades. Não adianta procurar desculpas: precisamos reconhecer os erros, conversar internamente e trabalhar para que essa atuação não se repita.”');}}>O time foi mal</button>
-                    <button style={styles.secondary} onClick={() => {setRespostaImprensa('Atuação horrível');setImpactoImprensa('“Foi uma atuação muito ruim, talvez uma das piores desde que estou aqui. Não vou tentar maquiar o que aconteceu: faltou atitude, organização e competitividade. A torcida tem razão em cobrar. Eu assumo minha responsabilidade, mas os jogadores também precisam entender o peso desta camisa. Vamos rever tudo, tomar decisões e dar uma resposta dentro de campo.”');}}>A atuação foi horrível</button>
+                    <button style={styles.primary} onClick={() => responderImprensa('bem')}>O time foi bem, apesar da derrota</button>
+                    <button style={styles.primary} onClick={() => responderImprensa('mal')}>O time foi mal</button>
+                    <button style={styles.secondary} onClick={() => responderImprensa('horrivel')}>A atuação foi horrível</button>
                   </div>
                 </div>
                 {respostaImprensa && <div style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:16}}>
                   <span style={styles.eyebrow}>DECLARAÇÃO À IMPRENSA</span>
-                  <h3>Resposta {respostaImprensa.toLowerCase()}</h3>
+                  <h3>{respostaImprensa}</h3>
                   <p style={{color:"#dbe7f5",fontSize:15,lineHeight:1.8,marginTop:12}}>{impactoImprensa}</p>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,marginTop:16}}>
+                    <div style={{background:'#0b1220',borderRadius:9,padding:12}}><strong>Diretoria</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_diretoria ?? 50)}/100</div></div>
+                    <div style={{background:'#0b1220',borderRadius:9,padding:12}}><strong>Jogadores</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_jogadores ?? 50)}/100</div></div>
+                    <div style={{background:'#0b1220',borderRadius:9,padding:12}}><strong>Torcida</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_torcida ?? 50)}/100</div></div>
+                  </div>
                   <button style={styles.secondary} onClick={() => {setRespostaImprensa('');setImpactoImprensa(null);}}>Nova entrevista</button>
                 </div>}
-                <p style={styles.mutedSmall}>Nesta versão, a entrevista e seus efeitos são demonstrativos: ainda não estão vinculados ao motor de partidas, à moral dos jogadores ou à reputação do treinador.</p>
+                <p style={styles.mutedSmall}>As reputações são registradas no clube e variam conforme sua declaração. Nesta etapa, os efeitos ainda não são calculados automaticamente pelo resultado real da partida.</p>
               </div> :
               aba === 'Rankings' ? <div>
                 <p style={styles.muted}>Central de rankings mundiais e classificações por liga. Os exemplos desta tela são demonstrativos; as tabelas oficiais dependerão dos resultados reais das temporadas.</p>
