@@ -21,6 +21,15 @@ export default function App() {
   const [erroClube, setErroClube] = useState('');
   const [mensagemEstadio, setMensagemEstadio] = useState('');
   const [carregandoEstadio, setCarregandoEstadio] = useState(false);
+  const [movimentacoesFinanceiras, setMovimentacoesFinanceiras] = useState([]);
+  const [carregandoFinancas, setCarregandoFinancas] = useState(false);
+  const [erroFinancas, setErroFinancas] = useState('');
+  const [mensagemFinancas, setMensagemFinancas] = useState('');
+  const [tipoLancamento, setTipoLancamento] = useState('despesa');
+  const [categoriaLancamento, setCategoriaLancamento] = useState('Salários');
+  const [descricaoLancamento, setDescricaoLancamento] = useState('');
+  const [valorLancamento, setValorLancamento] = useState('');
+  const [salvandoLancamento, setSalvandoLancamento] = useState(false);
   const [respostaImprensa, setRespostaImprensa] = useState('');
   const [impactoImprensa, setImpactoImprensa] = useState(null);
   const [jogadores, setJogadores] = useState([]);
@@ -51,7 +60,7 @@ export default function App() {
   const [valorMax, setValorMax] = useState('100000000');
   const clubeAtual = clubes[0];
 
-  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Imprensa', 'Rankings'];
+  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Finanças', 'Imprensa', 'Rankings'];
 
   useEffect(() => {
     if (!supabase) return;
@@ -127,6 +136,29 @@ export default function App() {
     return () => { ativo = false; };
   }, [session, aba]);
 
+  useEffect(() => {
+    let ativo = true;
+    async function carregarFinancas() {
+      if (!session || !clubeAtual?.id || !supabase || aba !== 'Finanças') return;
+      setCarregandoFinancas(true);
+      setErroFinancas('');
+      const { data, error } = await supabase
+        .from('financial_transactions')
+        .select('*')
+        .eq('club_id', clubeAtual.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (!ativo) return;
+      if (error) setErroFinancas('Não foi possível carregar o financeiro: ' + error.message);
+      else setMovimentacoesFinanceiras(data || []);
+      setCarregandoFinancas(false);
+    }
+    carregarFinancas();
+    return () => { ativo = false; };
+  }, [session, clubeAtual?.id, aba]);
+
+  const receitasFinanceiras = movimentacoesFinanceiras.filter(m => m.tipo === 'receita').reduce((s, m) => s + Number(m.valor || 0), 0);
+  const despesasFinanceiras = movimentacoesFinanceiras.filter(m => m.tipo === 'despesa').reduce((s, m) => s + Number(m.valor || 0), 0);
   const jogadoresFiltrados = jogadoresMercado.filter(j => {
     const clube = clubesMercado.find(c => c.id === j.club_id);
     const posicaoOk = filtroPosicao === 'Todas' || j.posicao === filtroPosicao;
@@ -168,6 +200,38 @@ export default function App() {
       setJogadorOferta(null);
     }
     setEnviandoOferta(false);
+  }
+
+  async function registrarLancamentoFinanceiro(event) {
+    event.preventDefault();
+    if (!clubeAtual?.id || !supabase) return;
+    const valor = Number(valorLancamento);
+    if (!Number.isFinite(valor) || valor <= 0) {
+      setMensagemFinancas('Informe um valor maior que zero.');
+      return;
+    }
+    setSalvandoLancamento(true);
+    setMensagemFinancas('');
+    const { data, error } = await supabase.rpc('register_financial_transaction', {
+      p_tipo: tipoLancamento,
+      p_categoria: categoriaLancamento,
+      p_descricao: descricaoLancamento.trim(),
+      p_valor: valor
+    });
+    if (error) {
+      setMensagemFinancas('Não foi possível registrar: ' + error.message);
+    } else {
+      setMensagemFinancas(data?.message || 'Lançamento registrado com sucesso.');
+      const [clubRes, movRes] = await Promise.all([
+        supabase.from('clubs').select('*').eq('id', clubeAtual.id).single(),
+        supabase.from('financial_transactions').select('*').eq('club_id', clubeAtual.id).order('created_at', { ascending: false }).limit(100)
+      ]);
+      if (!clubRes.error && clubRes.data) setClubes(lista => lista.map(c => c.id === clubRes.data.id ? clubRes.data : c));
+      if (!movRes.error) setMovimentacoesFinanceiras(movRes.data || []);
+      setDescricaoLancamento('');
+      setValorLancamento('');
+    }
+    setSalvandoLancamento(false);
   }
 
   async function adicionarJogador(event) {
@@ -528,6 +592,48 @@ export default function App() {
                   </article>;})}
                 </div>}
                 <p style={styles.mutedSmall}>As propostas são processadas pelo banco de dados. Contratações livres não têm taxa; compras e empréstimos verificam disponibilidade e orçamento. Empréstimos vencidos retornam ao clube de origem quando o mercado é carregado.</p>
+              </div> :
+              aba === 'Finanças' ? <div>
+                <p style={styles.muted}>Controle o caixa do clube, registre receitas e despesas e acompanhe o histórico financeiro.</p>
+                {erroFinancas && <p style={styles.error}>{erroFinancas}</p>}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:16}}>
+                  <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}><span style={styles.eyebrow}>SALDO DISPONÍVEL</span><h3 style={{fontSize:25,color:'#67e8a5',margin:'10px 0'}}>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Caixa atual do clube</p></div>
+                  <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}><span style={styles.eyebrow}>RECEITAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#67e8a5',margin:'10px 0'}}>R$ {receitasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Últimas 100 movimentações</p></div>
+                  <div style={{background:'#0b1220',border:'1px solid #6b3b45',borderRadius:12,padding:18}}><span style={{...styles.eyebrow,color:'#fca5a5'}}>DESPESAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#fca5a5',margin:'10px 0'}}>R$ {despesasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Últimas 100 movimentações</p></div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16,marginTop:20}}>
+                  <form onSubmit={registrarLancamentoFinanceiro} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18}}>
+                    <span style={styles.eyebrow}>NOVO LANÇAMENTO</span>
+                    <label style={{...styles.filterLabel,display:'block',marginTop:14}}>Tipo
+                      <select style={styles.input} value={tipoLancamento} onChange={e=>{setTipoLancamento(e.target.value);setCategoriaLancamento(e.target.value==='receita'?'Patrocínio':'Salários');}}><option value="receita">Receita</option><option value="despesa">Despesa</option></select>
+                    </label>
+                    <label style={{...styles.filterLabel,display:'block',marginTop:12}}>Categoria
+                      <select style={styles.input} value={categoriaLancamento} onChange={e=>setCategoriaLancamento(e.target.value)}>
+                        {(tipoLancamento==='receita'?['Bilheteria','Patrocínio','Premiação','Direitos de TV','Venda de jogador','Outras receitas']:['Salários','Comissão técnica','Contratação de jogador','Viagens','Manutenção do estádio','Obras do estádio','Outras despesas']).map(c=><option key={c}>{c}</option>)}
+                      </select>
+                    </label>
+                    <label style={{...styles.filterLabel,display:'block',marginTop:12}}>Descrição
+                      <input style={styles.input} value={descricaoLancamento} onChange={e=>setDescricaoLancamento(e.target.value)} placeholder="Ex.: Patrocínio da temporada" maxLength={120} />
+                    </label>
+                    <label style={{...styles.filterLabel,display:'block',marginTop:12}}>Valor (R$)
+                      <input style={styles.input} type="number" min="0.01" step="0.01" value={valorLancamento} onChange={e=>setValorLancamento(e.target.value)} placeholder="0,00" required />
+                    </label>
+                    <button style={{...styles.primary,width:'100%',marginTop:16}} disabled={salvandoLancamento}>{salvandoLancamento?'Salvando...':'Registrar movimentação'}</button>
+                    {mensagemFinancas && <p style={styles.notice}>{mensagemFinancas}</p>}
+                  </form>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18}}>
+                    <span style={styles.eyebrow}>VISÃO FINANCEIRA</span><h3>Resumo do clube</h3>
+                    <p style={styles.muted}>Resultado das movimentações carregadas: <strong style={{color:receitasFinanceiras-despesasFinanceiras>=0?'#67e8a5':'#fca5a5'}}>R$ {(receitasFinanceiras-despesasFinanceiras).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></p>
+                    <p style={styles.muted}>Orçamento disponível: <strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></p>
+                    <p style={styles.mutedSmall}>O saldo inicial já existente no clube é preservado. Nesta primeira versão, receitas e despesas são lançadas manualmente; bilheteria, salários e premiações serão automatizados quando o calendário e o motor de partidas estiverem integrados.</p>
+                  </div>
+                </div>
+                <div style={{marginTop:22}}>
+                  <h3>Histórico de movimentações</h3>
+                  {carregandoFinancas ? <p style={styles.muted}>Carregando movimentações...</p> : movimentacoesFinanceiras.length===0 ? <p style={styles.muted}>Nenhuma movimentação registrada ainda. Faça o primeiro lançamento acima.</p> : <div style={{overflowX:'auto'}}><table style={styles.table}><thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>
+                    {movimentacoesFinanceiras.map(m=><tr key={m.id}><td>{new Date(m.created_at).toLocaleDateString('pt-BR')}</td><td style={{color:m.tipo==='receita'?'#67e8a5':'#fca5a5'}}>{m.tipo==='receita'?'Entrada':'Saída'}</td><td>{m.categoria}</td><td>{m.descricao || '-'}</td><td style={{whiteSpace:'nowrap'}}>R$ {Number(m.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>)}
+                  </tbody></table></div>}
+                </div>
               </div> :
               aba === 'Imprensa' ? <div>
                 <p style={styles.muted}>Central de imprensa do clube. Responda às entrevistas após clássicos, semifinais, finais, decisões importantes e partidas marcantes.</p>
