@@ -19,6 +19,10 @@ export default function App() {
   const [estadio, setEstadio] = useState('');
   const [capacidade, setCapacidade] = useState('10000');
   const [erroClube, setErroClube] = useState('');
+  const [jogadores, setJogadores] = useState([]);
+  const [carregandoJogadores, setCarregandoJogadores] = useState(false);
+  const [novoJogador, setNovoJogador] = useState({ nome: '', posicao: 'Atacante', data_nascimento: '', overall: 50 });
+  const [erroElenco, setErroElenco] = useState('');
 
   const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base'];
 
@@ -51,6 +55,52 @@ export default function App() {
     carregarClubes();
     return () => { ativo = false; };
   }, [session]);
+
+  useEffect(() => {
+    let ativo = true;
+    async function carregarJogadores() {
+      if (!clubeAtual?.id || !supabase || aba !== 'Elenco') return;
+      setCarregandoJogadores(true);
+      const { data, error } = await supabase
+        .from('players')
+        .select('*')
+        .eq('club_id', clubeAtual.id)
+        .order('created_at', { ascending: true });
+      if (!ativo) return;
+      if (error) setErroElenco('Não foi possível carregar o elenco: ' + error.message);
+      else setJogadores(data || []);
+      setCarregandoJogadores(false);
+    }
+    carregarJogadores();
+    return () => { ativo = false; };
+  }, [clubeAtual?.id, aba]);
+
+  async function adicionarJogador(event) {
+    event.preventDefault();
+    if (!clubeAtual?.id) return;
+    setCarregando(true);
+    setErroElenco('');
+    const { data, error } = await supabase.from('players').insert({
+      club_id: clubeAtual.id,
+      nome: novoJogador.nome.trim(),
+      posicao: novoJogador.posicao,
+      data_nascimento: novoJogador.data_nascimento || null,
+      overall: Number(novoJogador.overall) || 50,
+      potencial: Math.max(60, Number(novoJogador.overall) || 50)
+    }).select().single();
+    if (error) setErroElenco('Não foi possível adicionar o jogador: ' + error.message);
+    else {
+      setJogadores(lista => [...lista, data]);
+      setNovoJogador({ nome: '', posicao: 'Atacante', data_nascimento: '', overall: 50 });
+    }
+    setCarregando(false);
+  }
+
+  async function removerJogador(id) {
+    const { error } = await supabase.from('players').delete().eq('id', id);
+    if (error) setErroElenco('Não foi possível remover o jogador: ' + error.message);
+    else setJogadores(lista => lista.filter(jogador => jogador.id !== id));
+  }
 
   async function entrar(event) {
     event.preventDefault();
@@ -211,7 +261,22 @@ export default function App() {
           </nav>
           <section style={styles.panel}>
             <h2>{aba}</h2>
-            {aba === 'Início' ? <><p>Bem-vindo ao Manager Futebol Online!</p><p>Seu clube está cadastrado na sua conta.</p><div style={styles.stats}><div><strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR')}</strong><span>Orçamento inicial</span></div><div><strong>0</strong><span>Jogadores cadastrados</span></div><div><strong>1ª</strong><span>Temporada</span></div></div></> :
+            {aba === 'Início' ? <><p>Bem-vindo ao Manager Futebol Online!</p><p>Seu clube está cadastrado na sua conta.</p><div style={styles.stats}><div><strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR')}</strong><span>Orçamento inicial</span></div><div><strong>{jogadores.length}</strong><span>Jogadores carregados</span></div><div><strong>1ª</strong><span>Temporada</span></div></div></> :
+              aba === 'Elenco' ? <div>
+                <p style={styles.muted}>Cadastre e gerencie os jogadores do seu clube. Os dados ficam salvos no banco.</p>
+                <form onSubmit={adicionarJogador} style={styles.formGrid}>
+                  <label>Nome do jogador<input style={styles.input} value={novoJogador.nome} onChange={e => setNovoJogador({...novoJogador, nome:e.target.value})} required placeholder="Nome completo" /></label>
+                  <label>Posição<select style={styles.input} value={novoJogador.posicao} onChange={e => setNovoJogador({...novoJogador, posicao:e.target.value})}>{['Goleiro','Zagueiro','Lateral','Volante','Meia','Ponta','Atacante'].map(p => <option key={p}>{p}</option>)}</select></label>
+                  <label>Data de nascimento<input style={styles.input} type="date" value={novoJogador.data_nascimento} onChange={e => setNovoJogador({...novoJogador, data_nascimento:e.target.value})} /></label>
+                  <label>Overall inicial<input style={styles.input} type="number" min="1" max="99" value={novoJogador.overall} onChange={e => setNovoJogador({...novoJogador, overall:e.target.value})} /></label>
+                  <button style={styles.primary} disabled={carregando}>{carregando ? 'Salvando...' : 'Adicionar jogador'}</button>
+                </form>
+                {erroElenco && <p style={styles.error}>{erroElenco}</p>}
+                {carregandoJogadores ? <p>Carregando elenco...</p> : jogadores.length === 0 ? <p style={styles.muted}>Nenhum jogador cadastrado ainda.</p> :
+                  <div style={{overflowX:'auto', marginTop:20}}><table style={styles.table}><thead><tr><th>Jogador</th><th>Posição</th><th>Nascimento</th><th>Overall</th><th></th></tr></thead><tbody>
+                    {jogadores.map(j => <tr key={j.id}><td>{j.nome}</td><td>{j.posicao || '-'}</td><td>{j.data_nascimento ? new Date(j.data_nascimento + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</td><td>{j.overall}</td><td><button style={styles.remove} onClick={() => removerJogador(j.id)}>Remover</button></td></tr>)}
+                  </tbody></table></div>}
+              </div> :
               <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
           </section>
         </>
@@ -245,6 +310,8 @@ const styles = {
   nav: {display:'flex', flexWrap:'wrap', gap:8, marginBottom:18},
   panel: {background:'#111c2e', border:'1px solid #26364d', borderRadius:14, padding:22, minHeight:190},
   stats: {display:'flex', gap:12, flexWrap:'wrap', marginTop:24},
+  table: {width:'100%', borderCollapse:'collapse', textAlign:'left', fontSize:14},
+  remove: {background:'#5b2630', color:'#fff', border:0, borderRadius:6, padding:'7px 10px', cursor:'pointer'},
   user: {fontSize:12, color:'#b7c6d8', maxWidth:220, overflowWrap:'anywhere'},
   footer: {color:'#718096', fontSize:12, textAlign:'center', marginTop:28}
 };
