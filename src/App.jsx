@@ -299,20 +299,30 @@ export default function App() {
       reputacao_torcida: Number(clubeAtual.reputacao_torcida ?? 50)
     };
     const escolhas = {
-      bem: {
-        titulo: 'O time foi bem, apesar da derrota',
-        fala: '“Acredito que fizemos uma partida competitiva. Tivemos bons momentos, conseguimos criar oportunidades, mas infelizmente não fomos eficientes quando tivemos a chance. O futebol também é decidido nos detalhes. Não vou usar a derrota como desculpa, mas seria injusto ignorar o que a equipe produziu. Vamos corrigir o que faltou e seguir trabalhando.”',
-        delta: { reputacao_diretoria: 1, reputacao_jogadores: 3, reputacao_torcida: 1 }
+      elogiar: {
+        titulo: 'Elogiar a entrega da equipe',
+        fala: '“O resultado é doloroso, mas não vou deixar de reconhecer o esforço dos jogadores. Competimos, tivemos momentos em que controlamos a partida e criamos situações para sair com outro placar. Claro que precisamos melhorar a concentração nos momentos decisivos. Agora é levantar a cabeça, corrigir os detalhes e trabalhar. Não tenho dúvida de que esse grupo pode dar uma resposta.”',
+        delta: { reputacao_diretoria: 1, reputacao_jogadores: 4, reputacao_torcida: 2 }
       },
-      mal: {
-        titulo: 'O time foi mal',
-        fala: '“Nossa atuação ficou abaixo do esperado. Faltou qualidade na construção das jogadas, cometemos erros que custaram caro e não conseguimos reagir quando sofremos o gol. A responsabilidade começa em mim. Vamos analisar a partida, cobrar uma resposta nos treinamentos e trabalhar para que o próximo jogo seja diferente.”',
-        delta: { reputacao_diretoria: 3, reputacao_jogadores: -1, reputacao_torcida: 3 }
+      reconhecer: {
+        titulo: 'Reconhecer que o time jogou mal',
+        fala: '“Hoje não estivemos no nosso nível. Erramos passes simples, perdemos duelos importantes e demos espaços que um adversário desse nível não costuma desperdiçar. Não adianta procurar desculpas: precisamos jogar mais e melhor. A responsabilidade é de todos, começando por mim, e vamos trabalhar para corrigir isso.”',
+        delta: { reputacao_diretoria: 3, reputacao_jogadores: 0, reputacao_torcida: 3 }
       },
-      horrivel: {
-        titulo: 'A atuação foi horrível',
-        fala: '“Foi muito abaixo do que este clube exige. Não vou procurar desculpas nem tentar esconder a realidade. Faltou intensidade, organização e atitude em campo. Entendo a insatisfação do torcedor e assumo minha parcela de responsabilidade. Teremos conversas internas e algumas decisões poderão ser tomadas. Precisamos dar uma resposta imediata.”',
-        delta: { reputacao_diretoria: 1, reputacao_jogadores: -3, reputacao_torcida: 2 }
+      criticar: {
+        titulo: 'Criticar duramente a atuação',
+        fala: '“Foi uma atuação muito abaixo do que a camisa deste clube exige. Faltou intensidade, concentração e personalidade em momentos importantes. Não podemos entrar em campo esperando que o jogo se resolva sozinho. Vou conversar com o elenco, porque algumas atitudes precisam mudar. Ninguém tem lugar garantido se não corresponder.”',
+        delta: { reputacao_diretoria: 2, reputacao_jogadores: -4, reputacao_torcida: 4 }
+      },
+      proteger: {
+        titulo: 'Assumir a responsabilidade e proteger o elenco',
+        fala: '“A responsabilidade maior é minha. Sou eu quem prepara a equipe, escolhe a estratégia e toma as decisões. Não vou apontar o dedo para um jogador depois de uma derrota. Temos um grupo trabalhador e vamos resolver nossas questões internamente. Peço ao torcedor que continue apoiando, porque precisamos estar unidos neste momento.”',
+        delta: { reputacao_diretoria: 2, reputacao_jogadores: 5, reputacao_torcida: 3 }
+      },
+      cobrar: {
+        titulo: 'Cobrar uma reação imediata',
+        fala: '“Não podemos tratar essa derrota como se fosse normal. O torcedor espera entrega e competitividade, e nós temos a obrigação de oferecer isso. A conversa no vestiário será franca. Quero ver mais atitude nos treinamentos e uma resposta dentro de campo já na próxima rodada. O discurso precisa virar resultado.”',
+        delta: { reputacao_diretoria: 4, reputacao_jogadores: -2, reputacao_torcida: 4 }
       }
     };
     const escolha = escolhas[tipo];
@@ -468,9 +478,11 @@ export default function App() {
                   <h3 style={{marginTop:10}}>O que achou da derrota da equipe?</h3>
                   <p style={styles.muted}>Escolha sua declaração. Cada posicionamento afeta de maneira diferente a relação com diretoria, jogadores e torcida.</p>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:16}}>
-                    <button style={styles.primary} onClick={() => responderImprensa('bem')}>O time foi bem, apesar da derrota</button>
-                    <button style={styles.primary} onClick={() => responderImprensa('mal')}>O time foi mal</button>
-                    <button style={styles.secondary} onClick={() => responderImprensa('horrivel')}>A atuação foi horrível</button>
+                    <button style={styles.primary} onClick={() => responderImprensa('elogiar')}>Elogiar a entrega da equipe</button>
+                    <button style={styles.primary} onClick={() => responderImprensa('reconhecer')}>Reconhecer que o time jogou mal</button>
+                    <button style={styles.secondary} onClick={() => responderImprensa('criticar')}>Criticar duramente a atuação</button>
+                    <button style={styles.secondary} onClick={() => responderImprensa('proteger')}>Assumir a responsabilidade e proteger o elenco</button>
+                    <button style={styles.secondary} onClick={() => responderImprensa('cobrar')}>Cobrar uma reação imediata</button>
                   </div>
                 </div>
                 {respostaImprensa && <div style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:16}}>
