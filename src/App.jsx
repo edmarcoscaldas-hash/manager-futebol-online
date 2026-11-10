@@ -155,7 +155,7 @@ export default function App() {
         sigla: sigla.trim().toUpperCase(),
         cidade: cidade.trim(),
         estadio: estadio.trim() || null,
-        capacidade: Number(capacidade) || 10000,
+        capacidade: 10000,
         pais: 'Brasil',
         orcamento: 5000000
       })
@@ -293,7 +293,7 @@ export default function App() {
             <label>Sigla<input style={styles.input} value={sigla} onChange={e => setSigla(e.target.value)} placeholder="Ex.: UCA" maxLength={5} required /></label>
             <label>Cidade<input style={styles.input} value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Sua cidade" required /></label>
             <label>Estádio<input style={styles.input} value={estadio} onChange={e => setEstadio(e.target.value)} placeholder="Nome do estádio" /></label>
-            <label>Capacidade<input style={styles.input} type="number" min="100" value={capacidade} onChange={e => setCapacidade(e.target.value)} required /></label>
+            <label>Capacidade inicial<input style={styles.input} type="number" value="10000" readOnly /></label>
             <button style={styles.primary} disabled={carregando}>{carregando ? 'Salvando...' : 'Criar meu clube'}</button>
           </form>
           {erroClube && <p style={styles.error}>{erroClube}</p>}
