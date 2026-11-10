@@ -421,15 +421,15 @@ export default function App() {
                   <h3 style={{marginTop:10}}>O que você achou do desempenho da equipe?</h3>
                   <p style={styles.muted}>Escolha como treinador responderia aos jornalistas:</p>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:16}}>
-                    <button style={styles.primary} onClick={() => {setRespostaImprensa('Humilde');setImpactoImprensa('Você valorizou o esforço coletivo e manteve um tom respeitoso. A resposta pode fortalecer a imagem de equilíbrio do treinador.');}}>Resposta humilde</button>
-                    <button style={styles.primary} onClick={() => {setRespostaImprensa('Confiante');setImpactoImprensa('Você demonstrou confiança no projeto e no elenco. A resposta transmite ambição, mas aumenta a expectativa da torcida e da imprensa.');}}>Resposta confiante</button>
-                    <button style={styles.secondary} onClick={() => {setRespostaImprensa('Crítica');setImpactoImprensa('Você cobrou mais atitude e desempenho. A resposta mostra exigência, mas pode gerar pressão sobre o grupo.');}}>Resposta crítica</button>
+                    <button style={styles.primary} onClick={() => {setRespostaImprensa('Humilde');setImpactoImprensa('“Primeiro, quero parabenizar os jogadores pelo esforço. Sabemos que ainda temos muita coisa para melhorar, mas esse grupo trabalha sério todos os dias. O resultado é consequência do trabalho de todos: atletas, comissão técnica e funcionários. Não existe vitória individual no futebol. Vamos manter os pés no chão, corrigir os erros e continuar evoluindo jogo a jogo.”');}}>Resposta humilde</button>
+                    <button style={styles.primary} onClick={() => {setRespostaImprensa('Confiante');setImpactoImprensa('“A equipe mostrou personalidade e deixou claro o que estamos construindo. Temos um planejamento, um elenco comprometido e confiança no nosso trabalho. Respeitamos todos os adversários, mas entramos em campo para competir e buscar a vitória. Ainda não conquistamos nada, então precisamos manter esse nível de concentração e transformar desempenho em resultados.”');}}>Resposta confiante</button>
+                    <button style={styles.secondary} onClick={() => {setRespostaImprensa('Crítica');setImpactoImprensa('“Não podemos ficar satisfeitos com o que apresentamos hoje. Cometemos erros de posicionamento, demos espaços que poderiam ter sido evitados e faltou concentração em momentos importantes. Vou conversar com o elenco e analisar o jogo com calma. A responsabilidade pelo desempenho é minha também, mas precisamos reagir e mostrar outra postura na próxima partida.”');}}>Resposta crítica</button>
                   </div>
                 </div>
                 {respostaImprensa && <div style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:16}}>
-                  <span style={styles.eyebrow}>RESPOSTA ENVIADA</span>
-                  <h3>{respostaImprensa}</h3>
-                  <p style={styles.muted}>{impactoImprensa}</p>
+                  <span style={styles.eyebrow}>DECLARAÇÃO À IMPRENSA</span>
+                  <h3>Resposta {respostaImprensa.toLowerCase()}</h3>
+                  <p style={{color:"#dbe7f5",fontSize:15,lineHeight:1.8,marginTop:12}}>{impactoImprensa}</p>
                   <button style={styles.secondary} onClick={() => {setRespostaImprensa('');setImpactoImprensa(null);}}>Nova entrevista</button>
                 </div>}
                 <p style={styles.mutedSmall}>Nesta versão, a entrevista e seus efeitos são demonstrativos: ainda não estão vinculados ao motor de partidas, à moral dos jogadores ou à reputação do treinador.</p>
