@@ -263,18 +263,15 @@ export default function App() {
             <h2>{aba}</h2>
             {aba === 'Início' ? <><p>Bem-vindo ao Manager Futebol Online!</p><p>Seu clube está cadastrado na sua conta.</p><div style={styles.stats}><div><strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR')}</strong><span>Orçamento inicial</span></div><div><strong>{jogadores.length}</strong><span>Jogadores carregados</span></div><div><strong>1ª</strong><span>Temporada</span></div></div></> :
               aba === 'Elenco' ? <div>
-                <p style={styles.muted}>Cadastre e gerencie os jogadores do seu clube. Os dados ficam salvos no banco.</p>
-                <form onSubmit={adicionarJogador} style={styles.formGrid}>
-                  <label>Nome do jogador<input style={styles.input} value={novoJogador.nome} onChange={e => setNovoJogador({...novoJogador, nome:e.target.value})} required placeholder="Nome completo" /></label>
-                  <label>Posição<select style={styles.input} value={novoJogador.posicao} onChange={e => setNovoJogador({...novoJogador, posicao:e.target.value})}>{['Goleiro','Zagueiro','Lateral','Volante','Meia','Ponta','Atacante'].map(p => <option key={p}>{p}</option>)}</select></label>
-                  <label>Data de nascimento<input style={styles.input} type="date" value={novoJogador.data_nascimento} onChange={e => setNovoJogador({...novoJogador, data_nascimento:e.target.value})} /></label>
-                  <label>Overall inicial<input style={styles.input} type="number" min="1" max="99" value={novoJogador.overall} onChange={e => setNovoJogador({...novoJogador, overall:e.target.value})} /></label>
-                  <button style={styles.primary} disabled={carregando}>{carregando ? 'Salvando...' : 'Adicionar jogador'}</button>
-                </form>
+                <p style={styles.muted}>Seu clube começa do zero. Os jogadores serão adquiridos exclusivamente pelo Mercado, por compra, empréstimo ou contratação sem contrato.</p>
                 {erroElenco && <p style={styles.error}>{erroElenco}</p>}
-                {carregandoJogadores ? <p>Carregando elenco...</p> : jogadores.length === 0 ? <p style={styles.muted}>Nenhum jogador cadastrado ainda.</p> :
-                  <div style={{overflowX:'auto', marginTop:20}}><table style={styles.table}><thead><tr><th>Jogador</th><th>Posição</th><th>Nascimento</th><th>Overall</th><th></th></tr></thead><tbody>
-                    {jogadores.map(j => <tr key={j.id}><td>{j.nome}</td><td>{j.posicao || '-'}</td><td>{j.data_nascimento ? new Date(j.data_nascimento + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</td><td>{j.overall}</td><td><button style={styles.remove} onClick={() => removerJogador(j.id)}>Remover</button></td></tr>)}
+                {carregandoJogadores ? <p>Carregando elenco...</p> : jogadores.length === 0 ? <div style={{background:'#0b1220',border:'1px dashed #40536d',borderRadius:12,padding:24,marginTop:18}}>
+                  <h3 style={{marginTop:0}}>Elenco vazio</h3>
+                  <p style={styles.muted}>Você ainda não tem jogadores. Acesse a área Mercado para montar seu primeiro elenco.</p>
+                  <button style={styles.primary} onClick={() => setAba('Mercado')}>Ir para o Mercado</button>
+                </div> :
+                  <div style={{overflowX:'auto', marginTop:20}}><table style={styles.table}><thead><tr><th>Jogador</th><th>Posição</th><th>Nascimento</th><th>Overall</th></tr></thead><tbody>
+                    {jogadores.map(j => <tr key={j.id}><td>{j.nome}</td><td>{j.posicao || '-'}</td><td>{j.data_nascimento ? new Date(j.data_nascimento + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</td><td>{j.overall}</td></tr>)}
                   </tbody></table></div>}
               </div> :
               <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
