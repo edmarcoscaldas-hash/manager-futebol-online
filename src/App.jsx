@@ -499,7 +499,7 @@ export default function App() {
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:12}}>
                     <label style={styles.filterLabel}>Tipo de negociação
-                      <select style={styles.input} value={tipoOferta} onChange={e=>{const tipo=e.target.value;setTipoOferta(tipo);setValorOferta(tipo==='emprestimo'?String(Math.max(1,Math.round(Number(jogadorOferta.valor_mercado||0)*0.02))):String(jogadorOferta.status_contrato==='livre'?0:Math.round(Number(jogadorOferta.valor_mercado||0)));}}>
+                      <select style={styles.input} value={tipoOferta} onChange={e=>{const tipo=e.target.value;setTipoOferta(tipo);const base=Number(jogadorOferta.valor_mercado||0);setValorOferta(tipo==='emprestimo'?String(Math.max(1,Math.round(base*0.02))):String(jogadorOferta.status_contrato==='livre'?0:Math.round(base)));}}>
                         {jogadorOferta.status_contrato==='livre' && <option value="compra">Contratação livre</option>}
                         {jogadorOferta.status_contrato!=='livre' && jogadorOferta.disponivel_transferencia && <option value="compra">Compra definitiva</option>}
                         {jogadorOferta.status_contrato!=='livre' && jogadorOferta.disponivel_emprestimo && <option value="emprestimo">Empréstimo</option>}
