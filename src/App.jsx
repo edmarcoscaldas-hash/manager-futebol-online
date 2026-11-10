@@ -46,6 +46,7 @@ export default function App() {
   const [jogadorOferta, setJogadorOferta] = useState(null);
   const [tipoOferta, setTipoOferta] = useState('compra');
   const [valorOferta, setValorOferta] = useState('0');
+  const [salarioOferta, setSalarioOferta] = useState('3000');
   const [mesesOferta, setMesesOferta] = useState('6');
   const [mensagemOferta, setMensagemOferta] = useState('');
   const [enviandoOferta, setEnviandoOferta] = useState(false);
@@ -59,6 +60,7 @@ export default function App() {
   const [valorMin, setValorMin] = useState('0');
   const [valorMax, setValorMax] = useState('100000000');
   const clubeAtual = clubes[0];
+  const salarioSugerido = jogadorOferta ? Math.round(3000 * Math.pow(Math.max(40, Math.min(100, Number(jogadorOferta.overall || 50))) / 50, 3.6) * (jogadorOferta.is_star ? 1.25 : 1)) : 3000;
 
   const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Finanças', 'Imprensa', 'Rankings'];
 
@@ -185,12 +187,18 @@ export default function App() {
       p_player_id: jogadorOferta.id,
       p_tipo: tipoOferta,
       p_valor: Number(valorOferta || 0),
-      p_duracao_meses: tipoOferta === 'emprestimo' ? Number(mesesOferta) : 0
+      p_duracao_meses: tipoOferta === 'emprestimo' ? Number(mesesOferta) : 0,
+      p_salario_mensal: Number(salarioOferta || 0)
     });
     if (error) {
       setMensagemOferta('Não foi possível concluir a negociação: ' + error.message);
     } else {
       setMensagemOferta(data?.message || 'Proposta processada.');
+      if (data?.status === 'contraproposta' && data?.salario_esperado) {
+        setSalarioOferta(String(data.salario_esperado));
+        setEnviandoOferta(false);
+        return;
+      }
       const [playersRes, clubsRes] = await Promise.all([
         supabase.from('players').select('*').order('overall', { ascending: false }),
         supabase.from('clubs').select('*').order('created_at', { ascending: true })
@@ -575,8 +583,12 @@ export default function App() {
                     {tipoOferta==='emprestimo' && <label style={styles.filterLabel}>Duração do empréstimo
                       <select style={styles.input} value={mesesOferta} onChange={e=>setMesesOferta(e.target.value)}>{[3,6,9,12,18,24].map(n=><option key={n} value={n}>{n} meses</option>)}</select>
                     </label>}
+                    <label style={styles.filterLabel}>Salário mensal oferecido (R$)
+                      <input style={styles.input} type="number" min="1" step="100" value={salarioOferta} onChange={e=>setSalarioOferta(e.target.value)} required />
+                    </label>
                   </div>
-                  <p style={styles.mutedSmall}>{jogadorOferta.status_contrato==='livre'?'Não há taxa de transferência. O jogador será contratado imediatamente.':tipoOferta==='compra'?'O clube vendedor aceita propostas a partir de 85% do valor de mercado.': 'O clube vendedor avalia propostas de empréstimo a partir de 2% do valor de mercado.'}</p>
+                  <p style={styles.mutedSmall}>Exigência salarial estimada deste jogador: R$ {salarioSugerido.toLocaleString('pt-BR')} por mês. O valor aumenta conforme o Overall e recebe adicional para jogadores estrela. Se a proposta for baixa, o jogador apresentará uma contraproposta.</p>
+                  <p style={styles.mutedSmall}>{jogadorOferta.status_contrato==='livre'?'Não há taxa de transferência.':tipoOferta==='compra'?'O clube vendedor aceita propostas a partir de 85% do valor de mercado.': 'O clube vendedor avalia propostas de empréstimo a partir de 2% do valor de mercado.'}</p>
                   <button style={styles.primary} disabled={enviandoOferta}>{enviandoOferta?'Processando negociação...':'Enviar proposta'}</button>
                 </form>}
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap',marginTop:16}}>
@@ -588,7 +600,7 @@ export default function App() {
                   {jogadoresFiltrados.map(j=>{const clube=clubesMercado.find(x=>x.id===j.club_id);const status=j.status_contrato==='livre'?'Sem contrato':j.disponivel_emprestimo?'Disponível para empréstimo':j.disponivel_transferencia?'À venda':'No elenco';return <article key={j.id} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
                     <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'start'}}><div><strong>{j.nome}</strong><p style={styles.mutedSmall}>{j.posicao || 'Posição não informada'} • {j.nacionalidade || 'Nacionalidade não informada'}</p></div><span style={{background:'#176b4b',padding:'6px 9px',borderRadius:8,fontWeight:'bold'}}>OVR {j.overall ?? '-'}</span></div>
                     <p style={styles.muted}>Clube: {clube?.nome || (j.status_contrato==='livre'?'Jogador livre':'Clube não identificado')}</p><p style={styles.muted}>Valor: R$ {Number(j.valor_mercado || 0).toLocaleString('pt-BR')}</p><p style={{color:'#67e8a5',fontSize:13}}>{status}</p>{j.is_star && <span style={styles.eyebrow}>★ JOGADOR ESTRELA</span>}
-                    {j.status_contrato==='livre' || j.disponivel_transferencia || j.disponivel_emprestimo ? <button style={{...styles.primary,width:'100%',marginTop:12}} onClick={()=>{setJogadorOferta(j);setTipoOferta(j.status_contrato==='livre'||j.disponivel_transferencia?'compra':'emprestimo');setValorOferta(j.status_contrato==='livre'?'0':String(Math.round(Number(j.valor_mercado||0)*(j.disponivel_transferencia?1:0.02))));setMensagemOferta('');}}>Negociar jogador</button> : <p style={styles.mutedSmall}>Não disponível para negociação.</p>}
+                    {j.status_contrato==='livre' || j.disponivel_transferencia || j.disponivel_emprestimo ? <button style={{...styles.primary,width:'100%',marginTop:12}} onClick={()=>{setJogadorOferta(j);setTipoOferta(j.status_contrato==='livre'||j.disponivel_transferencia?'compra':'emprestimo');setValorOferta(j.status_contrato==='livre'?'0':String(Math.round(Number(j.valor_mercado||0)*(j.disponivel_transferencia?1:0.02))));setSalarioOferta(String(Math.round(3000*Math.pow(Math.max(40,Math.min(100,Number(j.overall||50)))/50,3.6)*(j.is_star?1.25:1))));setMensagemOferta('');}}>Negociar jogador</button> : <p style={styles.mutedSmall}>Não disponível para negociação.</p>}
                   </article>;})}
                 </div>}
                 <p style={styles.mutedSmall}>As propostas são processadas pelo banco de dados. Contratações livres não têm taxa; compras e empréstimos verificam disponibilidade e orçamento. Empréstimos vencidos retornam ao clube de origem quando o mercado é carregado.</p>
