@@ -29,6 +29,20 @@ export default function App() {
   const [erroElenco, setErroElenco] = useState('');
   const [ligaPais, setLigaPais] = useState('Brasil');
   const [ligaDivisao, setLigaDivisao] = useState('1ª divisão');
+  const [jogadoresMercado, setJogadoresMercado] = useState([]);
+  const [clubesMercado, setClubesMercado] = useState([]);
+  const [ligasMercado, setLigasMercado] = useState([]);
+  const [carregandoMercado, setCarregandoMercado] = useState(false);
+  const [erroMercado, setErroMercado] = useState('');
+  const [filtroPosicao, setFiltroPosicao] = useState('Todas');
+  const [filtroClube, setFiltroClube] = useState('Todos');
+  const [filtroLiga, setFiltroLiga] = useState('Todas');
+  const [filtroNacionalidade, setFiltroNacionalidade] = useState('Todas');
+  const [filtroDisponibilidade, setFiltroDisponibilidade] = useState('todos');
+  const [overallMin, setOverallMin] = useState('0');
+  const [overallMax, setOverallMax] = useState('100');
+  const [valorMin, setValorMin] = useState('0');
+  const [valorMax, setValorMax] = useState('100000000');
   const clubeAtual = clubes[0];
 
   const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Imprensa', 'Rankings'];
@@ -81,6 +95,47 @@ export default function App() {
     carregarJogadores();
     return () => { ativo = false; };
   }, [clubeAtual?.id, aba]);
+
+  useEffect(() => {
+    let ativo = true;
+    async function carregarMercado() {
+      if (!session || !supabase || aba !== 'Mercado') return;
+      setCarregandoMercado(true);
+      setErroMercado('');
+      const [playersRes, clubsRes, leaguesRes] = await Promise.all([
+        supabase.from('players').select('*').order('overall', { ascending: false }),
+        supabase.from('clubs').select('id,nome,pais,league_id').order('nome'),
+        supabase.from('leagues').select('id,nome,pais,divisao,temporada').order('pais').order('divisao')
+      ]);
+      if (!ativo) return;
+      if (playersRes.error) setErroMercado('Erro ao carregar jogadores: ' + playersRes.error.message);
+      else setJogadoresMercado(playersRes.data || []);
+      if (clubsRes.error) setErroMercado('Erro ao carregar clubes para os filtros: ' + clubsRes.error.message);
+      else setClubesMercado(clubsRes.data || []);
+      if (leaguesRes.error) setErroMercado('Erro ao carregar ligas: ' + leaguesRes.error.message);
+      else setLigasMercado(leaguesRes.data || []);
+      setCarregandoMercado(false);
+    }
+    carregarMercado();
+    return () => { ativo = false; };
+  }, [session, aba]);
+
+  const jogadoresFiltrados = jogadoresMercado.filter(j => {
+    const clube = clubesMercado.find(c => c.id === j.club_id);
+    const posicaoOk = filtroPosicao === 'Todas' || j.posicao === filtroPosicao;
+    const clubeOk = filtroClube === 'Todos' || j.club_id === filtroClube;
+    const ligaOk = filtroLiga === 'Todas' || clube?.league_id === filtroLiga;
+    const nacionalidadeOk = filtroNacionalidade === 'Todas' || j.nacionalidade === filtroNacionalidade;
+    const disponibilidadeOk = filtroDisponibilidade === 'todos'
+      || (filtroDisponibilidade === 'transferencia' && j.disponivel_transferencia && j.status_contrato !== 'livre')
+      || (filtroDisponibilidade === 'emprestimo' && j.disponivel_emprestimo && j.status_contrato !== 'livre')
+      || (filtroDisponibilidade === 'livre' && j.status_contrato === 'livre');
+    const overall = Number(j.overall || 0);
+    const valor = Number(j.valor_mercado || 0);
+    return posicaoOk && clubeOk && ligaOk && nacionalidadeOk && disponibilidadeOk
+      && overall >= Number(overallMin || 0) && overall <= Number(overallMax || 100)
+      && valor >= Number(valorMin || 0) && valor <= Number(valorMax || 100000000);
+  });
 
   async function adicionarJogador(event) {
     event.preventDefault();
@@ -333,30 +388,31 @@ export default function App() {
                   </tbody></table></div>}
               </div> :
               aba === 'Mercado' ? <div>
-                <p style={styles.muted}>As negociações de jogadores seguirão o calendário oficial do jogo. Fora das janelas, novas transferências entre clubes ficam bloqueadas.</p>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:14,marginTop:18}}>
-                  <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}>
-                    <span style={styles.eyebrow}>1ª JANELA</span>
-                    <h3 style={{margin:'8px 0'}}>Janela de julho</h3>
-                    <strong style={{fontSize:22,color:'#67e8a5'}}>01 a 31 de julho</strong>
-                    <p style={styles.muted}>Compras, empréstimos, ofertas e transferências liberadas durante todo o mês.</p>
-                  </div>
-                  <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:18}}>
-                    <span style={styles.eyebrow}>2ª JANELA</span>
-                    <h3 style={{margin:'8px 0'}}>Janela de verão</h3>
-                    <strong style={{fontSize:22,color:'#67e8a5'}}>01 de dezembro a 31 de janeiro</strong>
-                    <p style={styles.muted}>Período para reforçar o elenco entre temporadas e no início do ano.</p>
-                  </div>
+                <p style={styles.muted}>Encontre jogadores cadastrados no banco de dados do MFO. Use os filtros para montar seu elenco.</p>
+                {erroMercado && <p style={styles.error}>{erroMercado}</p>}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16,marginTop:16}}>
+                  <label style={styles.filterLabel}>Posição<select style={styles.input} value={filtroPosicao} onChange={e=>setFiltroPosicao(e.target.value)}>{['Todas','Goleiro','Zagueiro','Lateral','Volante','Meia','Ponta','Atacante'].map(x=><option key={x}>{x}</option>)}</select></label>
+                  <label style={styles.filterLabel}>Clube<select style={styles.input} value={filtroClube} onChange={e=>setFiltroClube(e.target.value)}><option value="Todos">Todos os clubes</option>{clubesMercado.map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}</select></label>
+                  <label style={styles.filterLabel}>Liga<select style={styles.input} value={filtroLiga} onChange={e=>setFiltroLiga(e.target.value)}><option value="Todas">Todas as ligas</option>{ligasMercado.map(x=><option key={x.id} value={x.id}>{x.nome} • {x.pais} • {x.divisao}</option>)}</select></label>
+                  <label style={styles.filterLabel}>Nacionalidade<select style={styles.input} value={filtroNacionalidade} onChange={e=>setFiltroNacionalidade(e.target.value)}><option value="Todas">Todas</option>{[...new Set(jogadoresMercado.map(x=>x.nacionalidade).filter(Boolean))].sort().map(x=><option key={x}>{x}</option>)}</select></label>
+                  <label style={styles.filterLabel}>Disponibilidade<select style={styles.input} value={filtroDisponibilidade} onChange={e=>setFiltroDisponibilidade(e.target.value)}><option value="todos">Todas</option><option value="transferencia">À venda</option><option value="emprestimo">Empréstimo</option><option value="livre">Sem contrato</option></select></label>
+                  <label style={styles.filterLabel}>Overall mínimo<input style={styles.input} type="number" min="0" max="100" value={overallMin} onChange={e=>setOverallMin(e.target.value)} /></label>
+                  <label style={styles.filterLabel}>Overall máximo<input style={styles.input} type="number" min="0" max="100" value={overallMax} onChange={e=>setOverallMax(e.target.value)} /></label>
+                  <label style={styles.filterLabel}>Valor mínimo (R$)<input style={styles.input} type="number" min="0" value={valorMin} onChange={e=>setValorMin(e.target.value)} /></label>
+                  <label style={styles.filterLabel}>Valor máximo (R$)<input style={styles.input} type="number" min="0" value={valorMax} onChange={e=>setValorMax(e.target.value)} /></label>
                 </div>
-                <div style={{background:'#17263b',borderRadius:10,padding:16,marginTop:16}}>
-                  <strong>Regras das janelas</strong>
-                  <ul style={{color:'#cbd5e1',lineHeight:1.8,paddingLeft:20}}>
-                    <li>Ofertas e contrapropostas poderão ser negociadas durante a janela.</li>
-                    <li>Empréstimos e compras serão registrados no histórico do clube.</li>
-                    <li>Jogadores sem contrato poderão ser contratados fora das janelas, conforme regra do jogo.</li>
-                  </ul>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap',marginTop:16}}>
+                  <strong>{carregandoMercado ? 'Buscando jogadores...' : jogadoresFiltrados.length + ' jogador(es) encontrado(s)'}</strong>
+                  <button style={styles.secondary} onClick={()=>{setFiltroPosicao('Todas');setFiltroClube('Todos');setFiltroLiga('Todas');setFiltroNacionalidade('Todas');setFiltroDisponibilidade('todos');setOverallMin('0');setOverallMax('100');setValorMin('0');setValorMax('100000000');}}>Limpar filtros</button>
                 </div>
-                <p style={styles.mutedSmall}>O calendário visual está definido. A ligação com a data da temporada e o bloqueio automático das negociações serão ativados junto ao motor de temporadas e ao Mercado.</p>
+                {!carregandoMercado && jogadoresFiltrados.length === 0 ? <div style={{background:'#0b1220',border:'1px dashed #40536d',borderRadius:12,padding:22,marginTop:14}}><h3 style={{marginTop:0}}>Nenhum jogador encontrado</h3><p style={styles.muted}>O catálogo ainda está vazio ou não há jogadores com esses critérios. Os jogadores aparecerão aqui quando forem cadastrados no mercado.</p></div> :
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:12,marginTop:14}}>
+                  {jogadoresFiltrados.map(j=>{const clube=clubesMercado.find(x=>x.id===j.club_id);const status=j.status_contrato==='livre'?'Sem contrato':j.disponivel_emprestimo?'Disponível para empréstimo':j.disponivel_transferencia?'À venda':'No elenco';return <article key={j.id} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'start'}}><div><strong>{j.nome}</strong><p style={styles.mutedSmall}>{j.posicao || 'Posição não informada'} • {j.nacionalidade || 'Nacionalidade não informada'}</p></div><span style={{background:'#176b4b',padding:'6px 9px',borderRadius:8,fontWeight:'bold'}}>OVR {j.overall ?? '-'}</span></div>
+                    <p style={styles.muted}>Clube: {clube?.nome || (j.status_contrato==='livre'?'Jogador livre':'Clube não identificado')}</p><p style={styles.muted}>Valor: R$ {Number(j.valor_mercado || 0).toLocaleString('pt-BR')}</p><p style={{color:'#67e8a5',fontSize:13}}>{status}</p>{j.is_star && <span style={styles.eyebrow}>★ JOGADOR ESTRELA</span>}
+                  </article>;})}
+                </div>}
+                <p style={styles.mutedSmall}>A busca e os filtros consultam os registros do Supabase. Envio, resposta e conclusão de propostas serão ativados na próxima etapa, com validação de saldo, janela de transferências e atualização segura dos contratos.</p>
               </div> :
               aba === 'Rankings' ? <div>
                 <p style={styles.muted}>Central de rankings mundiais e classificações por liga. Os exemplos desta tela são demonstrativos; as tabelas oficiais dependerão dos resultados reais das temporadas.</p>
@@ -467,6 +523,7 @@ const styles = {
   panel: {background:'#111c2e', border:'1px solid #26364d', borderRadius:14, padding:22, minHeight:190},
   stats: {display:'flex', gap:12, flexWrap:'wrap', marginTop:24},
   table: {width:'100%', borderCollapse:'collapse', textAlign:'left', fontSize:14},
+  filterLabel: {color:'#a7b3c5',fontSize:13},
   remove: {background:'#5b2630', color:'#fff', border:0, borderRadius:6, padding:'7px 10px', cursor:'pointer'},
   user: {fontSize:12, color:'#b7c6d8', maxWidth:220, overflowWrap:'anywhere'},
   footer: {color:'#718096', fontSize:12, textAlign:'center', marginTop:28}
