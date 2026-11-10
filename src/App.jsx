@@ -34,6 +34,12 @@ export default function App() {
   const [ligasMercado, setLigasMercado] = useState([]);
   const [carregandoMercado, setCarregandoMercado] = useState(false);
   const [erroMercado, setErroMercado] = useState('');
+  const [jogadorOferta, setJogadorOferta] = useState(null);
+  const [tipoOferta, setTipoOferta] = useState('compra');
+  const [valorOferta, setValorOferta] = useState('0');
+  const [mesesOferta, setMesesOferta] = useState('6');
+  const [mensagemOferta, setMensagemOferta] = useState('');
+  const [enviandoOferta, setEnviandoOferta] = useState(false);
   const [filtroPosicao, setFiltroPosicao] = useState('Todas');
   const [filtroClube, setFiltroClube] = useState('Todos');
   const [filtroLiga, setFiltroLiga] = useState('Todas');
@@ -102,6 +108,7 @@ export default function App() {
       if (!session || !supabase || aba !== 'Mercado') return;
       setCarregandoMercado(true);
       setErroMercado('');
+      await supabase.rpc('process_expired_player_loans');
       const [playersRes, clubsRes, leaguesRes] = await Promise.all([
         supabase.from('players').select('*').order('overall', { ascending: false }),
         supabase.from('clubs').select('id,nome,pais,league_id').order('nome'),
@@ -136,6 +143,32 @@ export default function App() {
       && overall >= Number(overallMin || 0) && overall <= Number(overallMax || 100)
       && valor >= Number(valorMin || 0) && valor <= Number(valorMax || 100000000);
   });
+
+  async function enviarProposta(event) {
+    event.preventDefault();
+    if (!jogadorOferta?.id || !supabase) return;
+    setEnviandoOferta(true);
+    setMensagemOferta('');
+    const { data, error } = await supabase.rpc('submit_player_offer', {
+      p_player_id: jogadorOferta.id,
+      p_tipo: tipoOferta,
+      p_valor: Number(valorOferta || 0),
+      p_duracao_meses: tipoOferta === 'emprestimo' ? Number(mesesOferta) : 0
+    });
+    if (error) {
+      setMensagemOferta('Não foi possível concluir a negociação: ' + error.message);
+    } else {
+      setMensagemOferta(data?.message || 'Proposta processada.');
+      const [playersRes, clubsRes] = await Promise.all([
+        supabase.from('players').select('*').order('overall', { ascending: false }),
+        supabase.from('clubs').select('*').order('created_at', { ascending: true })
+      ]);
+      if (!playersRes.error) setJogadoresMercado(playersRes.data || []);
+      if (!clubsRes.error) setClubes(clubsRes.data || []);
+      setJogadorOferta(null);
+    }
+    setEnviandoOferta(false);
+  }
 
   async function adicionarJogador(event) {
     event.preventDefault();
@@ -458,6 +491,30 @@ export default function App() {
                   <label style={styles.filterLabel}>Valor mínimo (R$)<input style={styles.input} type="number" min="0" value={valorMin} onChange={e=>setValorMin(e.target.value)} /></label>
                   <label style={styles.filterLabel}>Valor máximo (R$)<input style={styles.input} type="number" min="0" value={valorMax} onChange={e=>setValorMax(e.target.value)} /></label>
                 </div>
+                {mensagemOferta && <p style={styles.notice}>{mensagemOferta}</p>}
+                {jogadorOferta && <form onSubmit={enviarProposta} style={{background:'#17263b',border:'1px solid #67e8a5',borderRadius:12,padding:18,marginTop:16}}>
+                  <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+                    <div><span style={styles.eyebrow}>NOVA NEGOCIAÇÃO</span><h3 style={{margin:'8px 0'}}>{jogadorOferta.nome}</h3><p style={styles.mutedSmall}>Overall {jogadorOferta.overall} • Valor de mercado: R$ {Number(jogadorOferta.valor_mercado || 0).toLocaleString('pt-BR')}</p></div>
+                    <button type="button" style={styles.secondary} onClick={()=>setJogadorOferta(null)}>Cancelar</button>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:12}}>
+                    <label style={styles.filterLabel}>Tipo de negociação
+                      <select style={styles.input} value={tipoOferta} onChange={e=>{const tipo=e.target.value;setTipoOferta(tipo);setValorOferta(tipo==='emprestimo'?String(Math.max(1,Math.round(Number(jogadorOferta.valor_mercado||0)*0.02))):String(jogadorOferta.status_contrato==='livre'?0:Math.round(Number(jogadorOferta.valor_mercado||0)));}}>
+                        {jogadorOferta.status_contrato==='livre' && <option value="compra">Contratação livre</option>}
+                        {jogadorOferta.status_contrato!=='livre' && jogadorOferta.disponivel_transferencia && <option value="compra">Compra definitiva</option>}
+                        {jogadorOferta.status_contrato!=='livre' && jogadorOferta.disponivel_emprestimo && <option value="emprestimo">Empréstimo</option>}
+                      </select>
+                    </label>
+                    {jogadorOferta.status_contrato!=='livre' && <label style={styles.filterLabel}>Valor da proposta (R$)
+                      <input style={styles.input} type="number" min="0" value={valorOferta} onChange={e=>setValorOferta(e.target.value)} required />
+                    </label>}
+                    {tipoOferta==='emprestimo' && <label style={styles.filterLabel}>Duração do empréstimo
+                      <select style={styles.input} value={mesesOferta} onChange={e=>setMesesOferta(e.target.value)}>{[3,6,9,12,18,24].map(n=><option key={n} value={n}>{n} meses</option>)}</select>
+                    </label>}
+                  </div>
+                  <p style={styles.mutedSmall}>{jogadorOferta.status_contrato==='livre'?'Não há taxa de transferência. O jogador será contratado imediatamente.':tipoOferta==='compra'?'O clube vendedor aceita propostas a partir de 85% do valor de mercado.': 'O clube vendedor avalia propostas de empréstimo a partir de 2% do valor de mercado.'}</p>
+                  <button style={styles.primary} disabled={enviandoOferta}>{enviandoOferta?'Processando negociação...':'Enviar proposta'}</button>
+                </form>}
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap',marginTop:16}}>
                   <strong>{carregandoMercado ? 'Buscando jogadores...' : jogadoresFiltrados.length + ' jogador(es) encontrado(s)'}</strong>
                   <button style={styles.secondary} onClick={()=>{setFiltroPosicao('Todas');setFiltroClube('Todos');setFiltroLiga('Todas');setFiltroNacionalidade('Todas');setFiltroDisponibilidade('todos');setOverallMin('0');setOverallMax('100');setValorMin('0');setValorMax('100000000');}}>Limpar filtros</button>
@@ -467,9 +524,10 @@ export default function App() {
                   {jogadoresFiltrados.map(j=>{const clube=clubesMercado.find(x=>x.id===j.club_id);const status=j.status_contrato==='livre'?'Sem contrato':j.disponivel_emprestimo?'Disponível para empréstimo':j.disponivel_transferencia?'À venda':'No elenco';return <article key={j.id} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
                     <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'start'}}><div><strong>{j.nome}</strong><p style={styles.mutedSmall}>{j.posicao || 'Posição não informada'} • {j.nacionalidade || 'Nacionalidade não informada'}</p></div><span style={{background:'#176b4b',padding:'6px 9px',borderRadius:8,fontWeight:'bold'}}>OVR {j.overall ?? '-'}</span></div>
                     <p style={styles.muted}>Clube: {clube?.nome || (j.status_contrato==='livre'?'Jogador livre':'Clube não identificado')}</p><p style={styles.muted}>Valor: R$ {Number(j.valor_mercado || 0).toLocaleString('pt-BR')}</p><p style={{color:'#67e8a5',fontSize:13}}>{status}</p>{j.is_star && <span style={styles.eyebrow}>★ JOGADOR ESTRELA</span>}
+                    {j.status_contrato==='livre' || j.disponivel_transferencia || j.disponivel_emprestimo ? <button style={{...styles.primary,width:'100%',marginTop:12}} onClick={()=>{setJogadorOferta(j);setTipoOferta(j.status_contrato==='livre'||j.disponivel_transferencia?'compra':'emprestimo');setValorOferta(j.status_contrato==='livre'?'0':String(Math.round(Number(j.valor_mercado||0)*(j.disponivel_transferencia?1:0.02))));setMensagemOferta('');}}>Negociar jogador</button> : <p style={styles.mutedSmall}>Não disponível para negociação.</p>}
                   </article>;})}
                 </div>}
-                <p style={styles.mutedSmall}>A busca e os filtros consultam os registros do Supabase. Envio, resposta e conclusão de propostas serão ativados na próxima etapa, com validação de saldo, janela de transferências e atualização segura dos contratos.</p>
+                <p style={styles.mutedSmall}>As propostas são processadas pelo banco de dados. Contratações livres não têm taxa; compras e empréstimos verificam disponibilidade e orçamento. Empréstimos vencidos retornam ao clube de origem quando o mercado é carregado.</p>
               </div> :
               aba === 'Imprensa' ? <div>
                 <p style={styles.muted}>Central de imprensa do clube. Responda às entrevistas após clássicos, semifinais, finais, decisões importantes e partidas marcantes.</p>
