@@ -1,3 +1,7 @@
+-- Garante que a estrutura dos clubes de IA exista antes da carga de jogadores.
+alter table public.clubs add column if not exists is_ai boolean not null default false;
+alter table public.clubs add column if not exists league_id uuid references public.leagues(id);
+
 -- Manager Futebol Online: catálogo inicial de jogadores
 -- Gera 22 atletas para cada clube de IA (200 clubes = 4.400 jogadores)
 -- e mais 200 agentes livres. Nomes fictícios; atributos e valores são dados de jogo.
