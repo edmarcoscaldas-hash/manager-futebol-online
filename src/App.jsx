@@ -857,36 +857,18 @@ export default function App() {
                   <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}><span style={styles.eyebrow}>RECEITAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#67e8a5',margin:'10px 0'}}>R$ {receitasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Últimas 100 movimentações</p></div>
                   <div style={{background:'#0b1220',border:'1px solid #6b3b45',borderRadius:12,padding:18}}><span style={{...styles.eyebrow,color:'#fca5a5'}}>DESPESAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#fca5a5',margin:'10px 0'}}>R$ {despesasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Últimas 100 movimentações</p></div>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16,marginTop:20}}>
-                  <form onSubmit={registrarLancamentoFinanceiro} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18}}>
-                    <span style={styles.eyebrow}>NOVO LANÇAMENTO</span>
-                    <label style={{...styles.filterLabel,display:'block',marginTop:14}}>Tipo
-                      <select style={styles.input} value={tipoLancamento} onChange={e=>{setTipoLancamento(e.target.value);setCategoriaLancamento(e.target.value==='receita'?'Patrocínio':'Salários');}}><option value="receita">Receita</option><option value="despesa">Despesa</option></select>
-                    </label>
-                    <label style={{...styles.filterLabel,display:'block',marginTop:12}}>Categoria
-                      <select style={styles.input} value={categoriaLancamento} onChange={e=>setCategoriaLancamento(e.target.value)}>
-                        {(tipoLancamento==='receita'?['Bilheteria','Patrocínio','Premiação','Direitos de TV','Venda de jogador','Outras receitas']:['Salários','Comissão técnica','Contratação de jogador','Viagens','Manutenção do estádio','Obras do estádio','Outras despesas']).map(c=><option key={c}>{c}</option>)}
-                      </select>
-                    </label>
-                    <label style={{...styles.filterLabel,display:'block',marginTop:12}}>Descrição
-                      <input style={styles.input} value={descricaoLancamento} onChange={e=>setDescricaoLancamento(e.target.value)} placeholder="Ex.: Patrocínio da temporada" maxLength={120} />
-                    </label>
-                    <label style={{...styles.filterLabel,display:'block',marginTop:12}}>Valor (R$)
-                      <input style={styles.input} type="number" min="0.01" step="0.01" value={valorLancamento} onChange={e=>setValorLancamento(e.target.value)} placeholder="0,00" required />
-                    </label>
-                    <button style={{...styles.primary,width:'100%',marginTop:16}} disabled={salvandoLancamento}>{salvandoLancamento?'Salvando...':'Registrar movimentação'}</button>
-                    {mensagemFinancas && <p style={styles.notice}>{mensagemFinancas}</p>}
-                  </form>
+                <div style={{display:'grid',gridTemplateColumns:'1fr',gap:16,marginTop:20}}>
+
                   <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18}}>
                     <span style={styles.eyebrow}>VISÃO FINANCEIRA</span><h3>Resumo do clube</h3>
                     <p style={styles.muted}>Resultado das movimentações carregadas: <strong style={{color:receitasFinanceiras-despesasFinanceiras>=0?'#67e8a5':'#fca5a5'}}>R$ {(receitasFinanceiras-despesasFinanceiras).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></p>
                     <p style={styles.muted}>Orçamento disponível: <strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></p>
-                    <p style={styles.mutedSmall}>O saldo inicial já existente no clube é preservado. Nesta primeira versão, receitas e despesas são lançadas manualmente; bilheteria, salários e premiações serão automatizados quando o calendário e o motor de partidas estiverem integrados.</p>
+                    <p style={styles.mutedSmall}>O saldo inicial já existente no clube é preservado. As movimentações automáticas do clube serão registradas aqui conforme as funcionalidades financeiras forem integradas.</p>
                   </div>
                 </div>
                 <div style={{marginTop:22}}>
                   <h3>Histórico de movimentações</h3>
-                  {carregandoFinancas ? <p style={styles.muted}>Carregando movimentações...</p> : movimentacoesFinanceiras.length===0 ? <p style={styles.muted}>Nenhuma movimentação registrada ainda. Faça o primeiro lançamento acima.</p> : <div style={{overflowX:'auto'}}><table style={styles.table}><thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>
+                  {carregandoFinancas ? <p style={styles.muted}>Carregando movimentações...</p> : movimentacoesFinanceiras.length===0 ? <p style={styles.muted}>Nenhuma movimentação registrada ainda. As receitas e despesas aparecerão aqui quando forem geradas pelo jogo.</p> : <div style={{overflowX:'auto'}}><table style={styles.table}><thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>
                     {movimentacoesFinanceiras.map(m=><tr key={m.id}><td>{new Date(m.created_at).toLocaleDateString('pt-BR')}</td><td style={{color:m.tipo==='receita'?'#67e8a5':'#fca5a5'}}>{m.tipo==='receita'?'Entrada':'Saída'}</td><td>{m.categoria}</td><td>{m.descricao || '-'}</td><td style={{whiteSpace:'nowrap'}}>R$ {Number(m.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>)}
                   </tbody></table></div>}
                 </div>
