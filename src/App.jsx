@@ -161,6 +161,21 @@ export default function App() {
 
   const receitasFinanceiras = movimentacoesFinanceiras.filter(m => m.tipo === 'receita').reduce((s, m) => s + Number(m.valor || 0), 0);
   const despesasFinanceiras = movimentacoesFinanceiras.filter(m => m.tipo === 'despesa').reduce((s, m) => s + Number(m.valor || 0), 0);
+  const clubesDisponiveisNoFiltro = filtroLiga === 'Todas'
+    ? clubesMercado
+    : clubesMercado.filter(c => c.league_id === filtroLiga);
+  const jogadoresDaLigaSelecionada = jogadoresMercado.filter(j => {
+    if (filtroLiga === 'Todas') return true;
+    const clube = clubesMercado.find(c => c.id === j.club_id);
+    return clube?.league_id === filtroLiga;
+  });
+  const nacionalidadesDisponiveis = [...new Set(
+    jogadoresDaLigaSelecionada
+      .filter(j => filtroClube === 'Todos' || j.club_id === filtroClube)
+      .map(j => j.nacionalidade)
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
   const jogadoresFiltrados = jogadoresMercado.filter(j => {
     const clube = clubesMercado.find(c => c.id === j.club_id);
     const posicaoOk = filtroPosicao === 'Todas' || j.posicao === filtroPosicao;
@@ -554,9 +569,9 @@ export default function App() {
                 {erroMercado && <p style={styles.error}>{erroMercado}</p>}
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16,marginTop:16}}>
                   <label style={styles.filterLabel}>Posição<select style={styles.input} value={filtroPosicao} onChange={e=>setFiltroPosicao(e.target.value)}>{['Todas','Goleiro','Zagueiro','Lateral','Volante','Meia','Ponta','Atacante'].map(x=><option key={x}>{x}</option>)}</select></label>
-                  <label style={styles.filterLabel}>Clube<select style={styles.input} value={filtroClube} onChange={e=>setFiltroClube(e.target.value)}><option value="Todos">Todos os clubes</option>{clubesMercado.map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}</select></label>
-                  <label style={styles.filterLabel}>Liga<select style={styles.input} value={filtroLiga} onChange={e=>setFiltroLiga(e.target.value)}><option value="Todas">Todas as ligas</option>{ligasMercado.map(x=><option key={x.id} value={x.id}>{x.nome} • {x.pais} • {x.divisao}</option>)}</select></label>
-                  <label style={styles.filterLabel}>Nacionalidade<select style={styles.input} value={filtroNacionalidade} onChange={e=>setFiltroNacionalidade(e.target.value)}><option value="Todas">Todas</option>{[...new Set(jogadoresMercado.map(x=>x.nacionalidade).filter(Boolean))].sort().map(x=><option key={x}>{x}</option>)}</select></label>
+                  <label style={styles.filterLabel}>Clube<select style={styles.input} value={filtroClube} onChange={e=>setFiltroClube(e.target.value)}><option value="Todos">Todos os clubes</option>{clubesDisponiveisNoFiltro.map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}</select></label>
+                  <label style={styles.filterLabel}>Liga<select style={styles.input} value={filtroLiga} onChange={e=>{setFiltroLiga(e.target.value);setFiltroClube('Todos');}}><option value="Todas">Todas as ligas</option>{ligasMercado.map(x=><option key={x.id} value={x.id}>{x.nome} • {x.pais} • {x.divisao}</option>)}</select></label>
+                  <label style={styles.filterLabel}>Nacionalidade<select style={styles.input} value={filtroNacionalidade} onChange={e=>setFiltroNacionalidade(e.target.value)}><option value="Todas">Todas</option>{nacionalidadesDisponiveis.map(x=><option key={x}>{x}</option>)}</select></label>
                   <label style={styles.filterLabel}>Disponibilidade<select style={styles.input} value={filtroDisponibilidade} onChange={e=>setFiltroDisponibilidade(e.target.value)}><option value="todos">Todas</option><option value="transferencia">À venda</option><option value="emprestimo">Empréstimo</option><option value="livre">Sem contrato</option></select></label>
                   <label style={styles.filterLabel}>Overall mínimo<input style={styles.input} type="number" min="0" max="100" value={overallMin} onChange={e=>setOverallMin(e.target.value)} /></label>
                   <label style={styles.filterLabel}>Overall máximo<input style={styles.input} type="number" min="0" max="100" value={overallMax} onChange={e=>setOverallMax(e.target.value)} /></label>
