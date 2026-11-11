@@ -420,7 +420,7 @@ export default function App() {
     const salarioSugeridoRenovacao = Math.max(Math.round(salarioAtual * 1.10), salarioBase);
     const salarioTexto = window.prompt('O jogador pede pelo menos R$ ' + salarioSugeridoRenovacao.toLocaleString('pt-BR') + ' por mês. Informe sua oferta salarial:', String(salarioSugeridoRenovacao));
     if (salarioTexto === null) return;
-    const salario = Number(salarioTexto.replace(',', '.'));
+    const salario = Number(salarioTexto.replace(/\\./g, '').replace(',', '.'));
     if (!Number.isFinite(salario) || salario <= 0) {
       setErroElenco('Informe um salário mensal válido.');
       return;
