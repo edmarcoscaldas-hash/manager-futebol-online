@@ -33,6 +33,12 @@ export default function App() {
   const [respostaImprensa, setRespostaImprensa] = useState('');
   const [impactoImprensa, setImpactoImprensa] = useState(null);
   const [jogadores, setJogadores] = useState([]);
+  const [jogadoresBase, setJogadoresBase] = useState([]);
+  const [candidatosBase, setCandidatosBase] = useState([]);
+  const [carregandoBase, setCarregandoBase] = useState(false);
+  const [gerandoPeneira, setGerandoPeneira] = useState(false);
+  const [mensagemBase, setMensagemBase] = useState('');
+  const [erroBase, setErroBase] = useState('');
   const [carregandoJogadores, setCarregandoJogadores] = useState(false);
   const [novoJogador, setNovoJogador] = useState({ nome: '', posicao: 'Atacante', data_nascimento: '', overall: 50 });
   const [erroElenco, setErroElenco] = useState('');
@@ -103,6 +109,7 @@ export default function App() {
         .from('players')
         .select('*')
         .eq('club_id', clubeAtual.id)
+        .eq('is_youth', false)
         .order('created_at', { ascending: true });
       if (!ativo) return;
       if (error) setErroElenco('Não foi possível carregar o elenco: ' + error.message);
@@ -121,7 +128,7 @@ export default function App() {
       setErroMercado('');
       await supabase.rpc('process_expired_player_loans');
       const [playersRes, clubsRes, leaguesRes] = await Promise.all([
-        supabase.from('players').select('*').order('overall', { ascending: false }),
+        supabase.from('players').select('*').eq('is_youth', false).order('overall', { ascending: false }),
         supabase.from('clubs').select('id,nome,pais,league_id').order('nome'),
         supabase.from('leagues').select('id,nome,pais,divisao,temporada').order('pais').order('divisao')
       ]);
@@ -192,6 +199,153 @@ export default function App() {
       && overall >= Number(overallMin || 0) && overall <= Number(overallMax || 100)
       && valor >= Number(valorMin || 0) && valor <= Number(valorMax || 100000000);
   });
+
+
+  useEffect(() => {
+    let ativo = true;
+    async function carregarBase() {
+      if (!clubeAtual?.id || !supabase || aba !== 'Base') return;
+      setCarregandoBase(true);
+      setErroBase('');
+      const [jovensRes, candidatosRes] = await Promise.all([
+        supabase.from('players').select('*').eq('club_id', clubeAtual.id).eq('is_youth', true).order('overall', { ascending: false }),
+        supabase.from('academy_trials').select('*').eq('club_id', clubeAtual.id).eq('status', 'disponivel').order('created_at', { ascending: false })
+      ]);
+      if (!ativo) return;
+      if (jovensRes.error) setErroBase('Não foi possível carregar a base: ' + jovensRes.error.message);
+      else setJogadoresBase(jovensRes.data || []);
+      if (candidatosRes.error) setErroBase('Não foi possível carregar os candidatos: ' + candidatosRes.error.message);
+      else setCandidatosBase(candidatosRes.data || []);
+      setCarregandoBase(false);
+    }
+    carregarBase();
+    return () => { ativo = false; };
+  }, [clubeAtual?.id, aba]);
+
+  function idadeJogador(dataNascimento) {
+    if (!dataNascimento) return 0;
+    const nascimento = new Date(dataNascimento + 'T12:00:00');
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    if (hoje.getMonth() < nascimento.getMonth() || (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate())) idade--;
+    return idade;
+  }
+
+  async function abrirPeneira() {
+    if (!clubeAtual?.id || !supabase) return;
+    setGerandoPeneira(true);
+    setErroBase('');
+    setMensagemBase('');
+    const { data: profissionais, error: erroProfissionais } = await supabase
+      .from('players')
+      .select('overall')
+      .eq('club_id', clubeAtual.id)
+      .eq('is_youth', false);
+    if (erroProfissionais) {
+      setErroBase('Não foi possível avaliar o elenco profissional: ' + erroProfissionais.message);
+      setGerandoPeneira(false);
+      return;
+    }
+    const mediaProfissional = profissionais?.length
+      ? profissionais.reduce((s, p) => s + Number(p.overall || 0), 0) / profissionais.length
+      : 60;
+    const tetoComum = Math.max(25, Math.min(52, Math.floor(mediaProfissional - 5)));
+    const tetoEstrela = Math.max(25, Math.min(62, Math.floor(mediaProfissional - 1)));
+    const primeiros = ['Lucas','Gabriel','Matheus','Pedro','Rafael','João','Bruno','Thiago','Felipe','Gustavo','Daniel','André','Caio','Vitor','Enzo','Arthur','Leonardo','Samuel','Davi','Murilo','Igor','Eduardo','Heitor','Renan','Alex','Marcos','Vinícius','Luan','Nicolas','Miguel','Bernardo','Theo','Antônio','Breno','Ryan','Kevin'];
+    const sobrenomes = ['Almeida','Ferreira','Costa','Oliveira','Santos','Pereira','Carvalho','Rodrigues','Martins','Lima','Gomes','Ribeiro','Barbosa','Mendes','Moreira','Nunes','Castro','Silva','Azevedo','Teixeira','Cardoso','Campos','Monteiro','Vieira','Dias','Rocha','Freitas','Moura','Andrade','Souza','Nascimento','Barros'];
+    const posicoes = ['Goleiro','Zagueiro','Lateral','Volante','Meia','Ponta','Atacante'];
+    const nacionalidades = ['Brasil','Argentina','Uruguai','Colômbia','Portugal','Espanha','França','Alemanha'];
+    const candidatos = Array.from({ length: 5 }, (_, i) => {
+      const estrela = Math.random() < 0.07;
+      const idade = 15 + Math.floor(Math.random() * 4);
+      const nascimento = new Date();
+      nascimento.setFullYear(nascimento.getFullYear() - idade);
+      nascimento.setMonth(Math.floor(Math.random() * 12), 1 + Math.floor(Math.random() * 27));
+      const maximo = estrela ? tetoEstrela : tetoComum;
+      const minimo = Math.min(estrela ? 48 : 35, maximo);
+      const overall = minimo + Math.floor(Math.random() * Math.max(1, maximo - minimo + 1));
+      const potencial = estrela
+        ? Math.max(overall, 75 + Math.floor(Math.random() * 16))
+        : Math.max(overall, 55 + Math.floor(Math.random() * 21));
+      return {
+        club_id: clubeAtual.id,
+        nome: primeiros[Math.floor(Math.random() * primeiros.length)] + ' ' + sobrenomes[Math.floor(Math.random() * sobrenomes.length)],
+        posicao: posicoes[Math.floor(Math.random() * posicoes.length)],
+        data_nascimento: nascimento.toISOString().slice(0, 10),
+        overall,
+        potencial: Math.min(99, potencial),
+        nacionalidade: nacionalidades[Math.floor(Math.random() * nacionalidades.length)],
+        is_star: estrela,
+        status: 'disponivel'
+      };
+    });
+    const { data, error } = await supabase.from('academy_trials').insert(candidatos).select();
+    if (error) setErroBase('Não foi possível abrir a peneira: ' + error.message);
+    else {
+      setCandidatosBase(lista => [...(data || []), ...lista]);
+      setMensagemBase('Peneira realizada! ' + (data || []).length + ' jovens foram avaliados. Escolha quem deseja contratar.');
+    }
+    setGerandoPeneira(false);
+  }
+
+  async function contratarDaBase(candidato) {
+    if (!candidato?.id || !clubeAtual?.id || !supabase) return;
+    setCarregandoBase(true);
+    setErroBase('');
+    const { data: jogador, error } = await supabase.from('players').insert({
+      club_id: clubeAtual.id,
+      nome: candidato.nome,
+      posicao: candidato.posicao,
+      data_nascimento: candidato.data_nascimento,
+      overall: candidato.overall,
+      potencial: candidato.potencial,
+      nacionalidade: candidato.nacionalidade,
+      is_star: candidato.is_star,
+      is_youth: true,
+      valor_mercado: candidato.is_star ? 180000 : 50000,
+      salario: 0,
+      salario_mensal: 0,
+      status_contrato: 'ativo',
+      disponivel_transferencia: false,
+      disponivel_emprestimo: false
+    }).select().single();
+    if (error) {
+      setErroBase('Não foi possível contratar o jovem: ' + error.message);
+      setCarregandoBase(false);
+      return;
+    }
+    const { error: erroCandidato } = await supabase.from('academy_trials').update({
+      status: 'contratado',
+      signed_player_id: jogador.id
+    }).eq('id', candidato.id);
+    setJogadoresBase(lista => [jogador, ...lista]);
+    setCandidatosBase(lista => lista.filter(c => c.id !== candidato.id));
+    setMensagemBase(erroCandidato
+      ? 'Jogador contratado. Não foi possível atualizar o histórico da peneira: ' + erroCandidato.message
+      : candidato.nome + ' foi contratado para a categoria de base.');
+    setCarregandoBase(false);
+  }
+
+  async function dispensarCandidato(candidato) {
+    const { error } = await supabase.from('academy_trials').update({ status: 'dispensado' }).eq('id', candidato.id);
+    if (error) setErroBase('Não foi possível dispensar o candidato: ' + error.message);
+    else {
+      setCandidatosBase(lista => lista.filter(c => c.id !== candidato.id));
+      setMensagemBase(candidato.nome + ' não foi selecionado nesta peneira.');
+    }
+  }
+
+  async function promoverJogador(jogador) {
+    if (!jogador?.id || !supabase) return;
+    setCarregandoBase(true);
+    const { data, error } = await supabase.from('players').update({ is_youth: false }).eq('id', jogador.id).eq('club_id', clubeAtual.id).select().single();
+    if (error) setErroBase('Não foi possível promover o jogador: ' + error.message);
+    else {
+      setJogadoresBase(lista => lista.filter(j => j.id !== jogador.id));
+      setMensagemBase(data.nome + ' foi promovido ao elenco profissional.');
+    }
+    setCarregandoBase(false);
+  }
 
   async function enviarProposta(event) {
     event.preventDefault();
@@ -739,6 +893,64 @@ export default function App() {
                     <li>Bola de Ouro, melhor treinador e melhor goleiro</li><li>Revelação e melhor jogador por posição</li><li>Artilheiros por liga e no ranking geral</li><li>Maiores campeões e recordistas de todos os tempos</li>
                   </ul>
                 </div>
+              </div> :
+              aba === 'Base' ? <div>
+                <p style={styles.muted}>Revele novos talentos para o clube. A base recebe jogadores de 15 a 18 anos, com evolução baseada no potencial. Os jovens ficam separados do elenco profissional até serem promovidos.</p>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginTop:16}}>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>JOVENS NA BASE</span><h3 style={{fontSize:26,margin:'8px 0'}}>{jogadoresBase.length}</h3><p style={styles.mutedSmall}>Atletas contratados</p>
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>JOVENS ESTRELAS</span><h3 style={{fontSize:26,margin:'8px 0',color:'#facc15'}}>{jogadoresBase.filter(j=>j.is_star).length} ★</h3><p style={styles.mutedSmall}>Talentos especiais</p>
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>CANDIDATOS</span><h3 style={{fontSize:26,margin:'8px 0'}}>{candidatosBase.length}</h3><p style={styles.mutedSmall}>Aguardando avaliação</p>
+                  </div>
+                </div>
+                <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
+                  <span style={styles.eyebrow}>CAPTAÇÃO DE TALENTOS</span>
+                  <h3 style={{margin:'8px 0'}}>Peneira de novos jogadores</h3>
+                  <p style={styles.muted}>Cada peneira apresenta 5 jovens aleatórios. A maioria terá overall entre 35 e 52; de 5% a 8% poderão ser estrelas, com potencial superior. O nível geral da base é mantido abaixo da média profissional do seu clube.</p>
+                  <button style={styles.primary} onClick={abrirPeneira} disabled={gerandoPeneira || carregandoBase}>{gerandoPeneira?'Avaliando candidatos...':'⚽ Abrir peneira • 5 candidatos'}</button>
+                </div>
+                {erroBase && <p style={styles.error}>{erroBase}</p>}
+                {mensagemBase && <p style={styles.notice}>{mensagemBase}</p>}
+                {carregandoBase ? <p style={styles.muted}>Carregando categoria de base...</p> : <>
+                  {candidatosBase.length>0 && <div style={{marginTop:22}}>
+                    <h3>Candidatos da peneira</h3>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:12}}>
+                      {candidatosBase.map(c=><div key={c.id} style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:15}}>
+                        <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}>
+                          <strong>{c.nome}</strong>{c.is_star&&<span style={{color:'#facc15'}}>★ TALENTO</span>}
+                        </div>
+                        <p style={styles.muted}>{c.posicao} • {idadeJogador(c.data_nascimento)} anos • {c.nacionalidade}</p>
+                        <div style={{display:'flex',gap:18,margin:'12px 0'}}>
+                          <div><span style={styles.eyebrow}>OVERALL</span><div style={{fontSize:24,fontWeight:'bold'}}>{c.overall}</div></div>
+                          <div><span style={styles.eyebrow}>POTENCIAL</span><div style={{fontSize:24,fontWeight:'bold',color:c.is_star?'#facc15':'#67e8a5'}}>{c.potencial}</div></div>
+                        </div>
+                        <div style={{display:'flex',gap:8}}>
+                          <button style={{...styles.primary,flex:1}} onClick={()=>contratarDaBase(c)} disabled={carregandoBase}>Contratar</button>
+                          <button style={styles.secondary} onClick={()=>dispensarCandidato(c)} disabled={carregandoBase}>Dispensar</button>
+                        </div>
+                      </div>)}
+                    </div>
+                  </div>}
+                  <div style={{marginTop:22}}>
+                    <h3>Elenco da categoria de base</h3>
+                    {jogadoresBase.length===0 ? <p style={styles.muted}>Sua base ainda não tem jogadores. Abra uma peneira para descobrir os primeiros talentos.</p> :
+                      <div style={{overflowX:'auto'}}><table style={styles.table}>
+                        <thead><tr><th>Jogador</th><th>Idade</th><th>Posição</th><th>Overall</th><th>Potencial</th><th>Status</th><th>Ação</th></tr></thead>
+                        <tbody>{jogadoresBase.map(j=><tr key={j.id}>
+                          <td>{j.nome} {j.is_star&&<span style={{color:'#facc15'}}>★</span>}</td>
+                          <td>{idadeJogador(j.data_nascimento)} anos</td><td>{j.posicao}</td><td>{j.overall}</td>
+                          <td style={{color:j.is_star?'#facc15':'#67e8a5'}}>{j.potencial}</td>
+                          <td>{j.is_star?'Jovem estrela':'Em desenvolvimento'}</td>
+                          <td><button style={styles.primary} onClick={()=>promoverJogador(j)} disabled={carregandoBase}>Promover</button></td>
+                        </tr>)}</tbody>
+                      </table></div>}
+                  </div>
+                </>}
+                <p style={styles.mutedSmall}>As peneiras geram candidatos fictícios para o universo do jogo. As estrelas são raras; o potencial não garante evolução automática. A promoção transfere o atleta para o elenco profissional sem alterar seu histórico ou ID.</p>
               </div> :
               aba === 'Estádio' ? <div>
                 <p style={styles.muted}>Seu clube começa com um estádio de 10 mil lugares. As ampliações são financiadas pelo caixa do clube e levam tempo para ficar prontas.</p>
