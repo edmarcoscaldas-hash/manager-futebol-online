@@ -109,7 +109,7 @@ generated as (
     id,
     primeiros[(((country_seq - 1) / 20)::integer % 20) + 1] || ' ' ||
     sobrenomes[((country_seq - 1) % 20)::integer + 1] || ' ' ||
-    upper(right(id::text, 4)) as novo_nome
+    sobrenomes[((((country_seq - 1) / 400)::integer % 20) + 1)] as novo_nome
   from name_lists
 )
 update public.players p
