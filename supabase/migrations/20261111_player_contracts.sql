@@ -143,7 +143,7 @@ $$;
 
 drop trigger if exists players_initial_contract_trigger on public.players;
 create trigger players_initial_contract_trigger
-before insert or update of club_id, status_contrato, contrato_ate
+before insert or update
 on public.players
 for each row
 execute function public.assign_initial_player_contract();
