@@ -817,7 +817,7 @@ export default function App() {
                       <select style={styles.input} value={mesesOferta} onChange={e=>setMesesOferta(e.target.value)}>{[3,6,9,12,18,24].map(n=><option key={n} value={n}>{n} meses</option>)}</select>
                     </label>}
                     <label style={styles.filterLabel}>Salário mensal oferecido (R$)
-                      <input style={styles.input} type="number" min="1" step="100" value={salarioOferta} onChange={e=>setSalarioOferta(e.target.value)} required />
+                      <input style={styles.input} type="number" min="1" step="1" value={salarioOferta} onChange={e=>setSalarioOferta(e.target.value)} required />
                     </label>
                   </div>
                   <p style={styles.mutedSmall}>Exigência salarial estimada deste jogador: R$ {salarioSugerido.toLocaleString('pt-BR')} por mês. O valor aumenta conforme o Overall e recebe adicional para jogadores estrela. Se a proposta for baixa, o jogador apresentará uma contraproposta.</p>
