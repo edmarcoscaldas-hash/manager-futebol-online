@@ -30,6 +30,9 @@ export default function App() {
   const [descricaoLancamento, setDescricaoLancamento] = useState('');
   const [valorLancamento, setValorLancamento] = useState('');
   const [salvandoLancamento, setSalvandoLancamento] = useState(false);
+  const [propostasPatrocinio, setPropostasPatrocinio] = useState([]);
+  const [temporadaPatrocinio, setTemporadaPatrocinio] = useState(1);
+  const [aceitandoPatrocinio, setAceitandoPatrocinio] = useState(false);
   const [respostaImprensa, setRespostaImprensa] = useState('');
   const [impactoImprensa, setImpactoImprensa] = useState(null);
   const [jogadores, setJogadores] = useState([]);
@@ -153,6 +156,21 @@ export default function App() {
       if (!session || !clubeAtual?.id || !supabase || aba !== 'Finanças') return;
       setCarregandoFinancas(true);
       setErroFinancas('');
+      const { data: patrocinioInfo, error: erroPatrocinio } = await supabase.rpc('ensure_sponsorship_offers', { p_club_id: clubeAtual.id });
+      if (!ativo) return;
+      if (erroPatrocinio) setErroFinancas('Não foi possível carregar o patrocínio: ' + erroPatrocinio.message);
+      else {
+        const temporadaAtual = Number(patrocinioInfo?.temporada || 1);
+        setTemporadaPatrocinio(temporadaAtual);
+        const { data: ofertas, error: erroOfertas } = await supabase
+          .from('sponsorship_offers')
+          .select('*')
+          .eq('club_id', clubeAtual.id)
+          .eq('temporada', temporadaAtual)
+          .order('valor', { ascending: false });
+        if (erroOfertas) setErroFinancas('Não foi possível consultar as propostas: ' + erroOfertas.message);
+        else setPropostasPatrocinio(ofertas || []);
+      }
       const { data, error } = await supabase
         .from('financial_transactions')
         .select('*')
@@ -395,6 +413,26 @@ export default function App() {
       setJogadorOferta(null);
     }
     setEnviandoOferta(false);
+  }
+
+  async function aceitarPatrocinio(oferta) {
+    if (!oferta?.id || !supabase || aceitandoPatrocinio) return;
+    const confirmar = window.confirm('Fechar contrato com ' + oferta.empresa + ' por R$ ' + Number(oferta.valor).toLocaleString('pt-BR') + ' na temporada ' + temporadaPatrocinio + '? Esta escolha não poderá ser alterada.');
+    if (!confirmar) return;
+    setAceitandoPatrocinio(true);
+    setMensagemFinancas('');
+    const { data, error } = await supabase.rpc('accept_sponsorship_offer', { p_offer_id: oferta.id });
+    if (error) setErroFinancas('Não foi possível fechar o patrocínio: ' + error.message);
+    else {
+      setMensagemFinancas(data?.message || 'Patrocínio contratado.');
+      const { data: ofertas } = await supabase.from('sponsorship_offers').select('*').eq('club_id', clubeAtual.id).eq('temporada', temporadaPatrocinio).order('valor', { ascending: false });
+      setPropostasPatrocinio(ofertas || []);
+      const { data: transacoes } = await supabase.from('financial_transactions').select('*').eq('club_id', clubeAtual.id).order('created_at', { ascending: false }).limit(100);
+      setMovimentacoesFinanceiras(transacoes || []);
+      const { data: clubesAtualizados } = await supabase.from('clubs').select('*').order('created_at', { ascending: true });
+      if (clubesAtualizados) setClubes(clubesAtualizados);
+    }
+    setAceitandoPatrocinio(false);
   }
 
   async function registrarLancamentoFinanceiro(event) {
@@ -795,6 +833,25 @@ export default function App() {
               aba === 'Finanças' ? <div>
                 <p style={styles.muted}>Controle o caixa do clube, registre receitas e despesas e acompanhe o histórico financeiro.</p>
                 {erroFinancas && <p style={styles.error}>{erroFinancas}</p>}
+                <section style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:16}}>
+                  <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+                    <div><span style={styles.eyebrow}>PATROCÍNIO OFICIAL</span><h3 style={{margin:'8px 0'}}>Temporada {temporadaPatrocinio}</h3></div>
+                    {propostasPatrocinio.some(p=>p.status==='aceito') && <span style={{background:'#176b4b',padding:'7px 10px',borderRadius:8,fontWeight:700}}>CONTRATO FECHADO</span>}
+                  </div>
+                  {propostasPatrocinio.some(p=>p.status==='aceito')
+                    ? <p style={styles.muted}>Patrocinador escolhido: <strong>{propostasPatrocinio.find(p=>p.status==='aceito')?.empresa}</strong>. Contrato travado até o encerramento desta temporada. O valor já foi creditado ao caixa.</p>
+                    : <><p style={styles.muted}>Três empresas prepararam propostas para seu clube. Escolha uma; o contrato ficará bloqueado até a próxima temporada.</p>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:12,marginTop:14}}>
+                        {propostasPatrocinio.map(p=><article key={p.id} style={{background:'#17263b',border:'1px solid #40536d',borderRadius:10,padding:15}}>
+                          <strong>{p.empresa}</strong>
+                          <h3 style={{color:'#67e8a5',fontSize:22,margin:'12px 0'}}>R$ {Number(p.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3>
+                          <p style={styles.mutedSmall}>Valor total do patrocínio nesta temporada.</p>
+                          <button style={{...styles.primary,width:'100%',marginTop:10}} disabled={aceitandoPatrocinio || p.status!=='ofertado'} onClick={()=>aceitarPatrocinio(p)}>{aceitandoPatrocinio?'Fechando contrato...':'Escolher empresa'}</button>
+                        </article>)}
+                      </div>
+                    </>}
+                  {mensagemFinancas && <p style={styles.notice}>{mensagemFinancas}</p>}
+                </section>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:16}}>
                   <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}><span style={styles.eyebrow}>SALDO DISPONÍVEL</span><h3 style={{fontSize:25,color:'#67e8a5',margin:'10px 0'}}>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Caixa atual do clube</p></div>
                   <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}><span style={styles.eyebrow}>RECEITAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#67e8a5',margin:'10px 0'}}>R$ {receitasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Últimas 100 movimentações</p></div>
