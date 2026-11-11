@@ -68,6 +68,7 @@ export default function App() {
   const [filtroDisponibilidade, setFiltroDisponibilidade] = useState('todos');
   const [overallMin, setOverallMin] = useState('0');
   const [overallMax, setOverallMax] = useState('100');
+  const [faixaOverall, setFaixaOverall] = useState('todos');
   const [valorMin, setValorMin] = useState('0');
   const [valorMax, setValorMax] = useState('100000000');
   const clubeAtual = clubes[0];
@@ -783,8 +784,15 @@ export default function App() {
                   <label style={styles.filterLabel}>Liga<select style={styles.input} value={filtroLiga} onChange={e=>{setFiltroLiga(e.target.value);setFiltroClube('Todos');setFiltroNacionalidade('Todas');}}><option value="Todas">Todas as ligas</option>{ligasMercado.map(x=><option key={x.id} value={x.id}>{x.nome} • {x.pais} • {x.divisao}</option>)}</select></label>
                   <label style={styles.filterLabel}>Nacionalidade<select style={styles.input} value={filtroNacionalidade} onChange={e=>setFiltroNacionalidade(e.target.value)}><option value="Todas">Todas</option>{nacionalidadesDisponiveis.map(x=><option key={x}>{x}</option>)}</select></label>
                   <label style={styles.filterLabel}>Disponibilidade<select style={styles.input} value={filtroDisponibilidade} onChange={e=>setFiltroDisponibilidade(e.target.value)}><option value="todos">Todas</option><option value="transferencia">À venda</option><option value="emprestimo">Empréstimo</option><option value="livre">Sem contrato</option></select></label>
-                  <label style={styles.filterLabel}>Overall mínimo<input style={styles.input} type="number" min="0" max="100" value={overallMin} onChange={e=>setOverallMin(e.target.value)} /></label>
-                  <label style={styles.filterLabel}>Overall máximo<input style={styles.input} type="number" min="0" max="100" value={overallMax} onChange={e=>setOverallMax(e.target.value)} /></label>
+                  <label style={styles.filterLabel}>Faixa de Overall
+                    <select style={styles.input} value={faixaOverall} onChange={e=>{const faixa=e.target.value;setFaixaOverall(faixa);const limites={todos:['0','100'],'10-30':['10','30'],'31-50':['31','50'],'51-75':['51','75'],'76-99':['76','99']};setOverallMin(limites[faixa][0]);setOverallMax(limites[faixa][1]);}}>
+                      <option value="todos">Todos os níveis</option>
+                      <option value="10-30">10 a 30</option>
+                      <option value="31-50">31 a 50</option>
+                      <option value="51-75">51 a 75</option>
+                      <option value="76-99">76 a 99</option>
+                    </select>
+                  </label>
                   <label style={styles.filterLabel}>Valor mínimo (R$)<input style={styles.input} type="number" min="0" value={valorMin} onChange={e=>setValorMin(e.target.value)} /></label>
                   <label style={styles.filterLabel}>Valor máximo (R$)<input style={styles.input} type="number" min="0" value={valorMax} onChange={e=>setValorMax(e.target.value)} /></label>
                 </div>
@@ -818,7 +826,7 @@ export default function App() {
                 </form>}
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap',marginTop:16}}>
                   <strong>{carregandoMercado ? 'Buscando jogadores...' : jogadoresFiltrados.length + ' jogador(es) encontrado(s)'}</strong>
-                  <button style={styles.secondary} onClick={()=>{setFiltroPosicao('Todas');setFiltroClube('Todos');setFiltroLiga('Todas');setFiltroNacionalidade('Todas');setFiltroDisponibilidade('todos');setOverallMin('0');setOverallMax('100');setValorMin('0');setValorMax('100000000');}}>Limpar filtros</button>
+                  <button style={styles.secondary} onClick={()=>{setFiltroPosicao('Todas');setFiltroClube('Todos');setFiltroLiga('Todas');setFiltroNacionalidade('Todas');setFiltroDisponibilidade('todos');setOverallMin('0');setOverallMax('100');setFaixaOverall('todos');setValorMin('0');setValorMax('100000000');}}>Limpar filtros</button>
                 </div>
                 {!carregandoMercado && jogadoresFiltrados.length === 0 ? <div style={{background:'#0b1220',border:'1px dashed #40536d',borderRadius:12,padding:22,marginTop:14}}><h3 style={{marginTop:0}}>Nenhum jogador encontrado</h3><p style={styles.muted}>O catálogo ainda está vazio ou não há jogadores com esses critérios. Os jogadores aparecerão aqui quando forem cadastrados no mercado.</p></div> :
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:12,marginTop:14}}>
