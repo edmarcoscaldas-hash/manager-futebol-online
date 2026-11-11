@@ -47,6 +47,7 @@ export default function App() {
   const [carregandoJogadores, setCarregandoJogadores] = useState(false);
   const [novoJogador, setNovoJogador] = useState({ nome: '', posicao: 'Atacante', data_nascimento: '', overall: 50 });
   const [erroElenco, setErroElenco] = useState('');
+  const [mensagemElenco, setMensagemElenco] = useState('');
   const [ligaPais, setLigaPais] = useState('Brasil');
   const [ligaDivisao, setLigaDivisao] = useState('1ª divisão');
   const [jogadoresMercado, setJogadoresMercado] = useState([]);
@@ -111,6 +112,7 @@ export default function App() {
     async function carregarJogadores() {
       if (!clubeAtual?.id || !supabase || aba !== 'Elenco') return;
       setCarregandoJogadores(true);
+      await supabase.rpc('process_expired_player_contracts');
       const { data, error } = await supabase
         .from('players')
         .select('*')
@@ -133,6 +135,7 @@ export default function App() {
       setCarregandoMercado(true);
       setErroMercado('');
       await supabase.rpc('process_expired_player_loans');
+      await supabase.rpc('process_expired_player_contracts');
       const [playersRes, clubsRes, leaguesRes] = await Promise.all([
         supabase.from('players').select('*').eq('is_youth', false).order('overall', { ascending: false }),
         supabase.from('clubs').select('id,nome,pais,league_id').order('nome'),
@@ -384,6 +387,62 @@ export default function App() {
     setCarregandoBase(false);
   }
 
+  async function alterarDisponibilidadeJogador(jogador, tipo) {
+    if (!jogador?.id || !clubeAtual?.id || !supabase) return;
+    setErroElenco('');
+    setMensagemElenco('');
+    const atual = tipo === 'venda' ? Boolean(jogador.disponivel_transferencia) : Boolean(jogador.disponivel_emprestimo);
+    const atualizacao = tipo === 'venda'
+      ? { disponivel_transferencia: !atual, disponivel_emprestimo: false }
+      : { disponivel_emprestimo: !atual, disponivel_transferencia: false };
+    const { data, error } = await supabase.from('players').update(atualizacao)
+      .eq('id', jogador.id).eq('club_id', clubeAtual.id).select().single();
+    if (error) setErroElenco('Não foi possível atualizar a disponibilidade: ' + error.message);
+    else {
+      setJogadores(lista => lista.map(item => item.id === data.id ? data : item));
+      setMensagemElenco(data.nome + (tipo === 'venda'
+        ? (data.disponivel_transferencia ? ' foi colocado à venda.' : ' foi retirado da lista de venda.')
+        : (data.disponivel_emprestimo ? ' foi disponibilizado para empréstimo.' : ' não está mais disponível para empréstimo.')));
+    }
+  }
+
+  async function renovarContrato(jogador) {
+    if (!jogador?.id || !supabase) return;
+    const mesesTexto = window.prompt('Prazo desejado: digite 6, 12 ou 24 meses.', '12');
+    if (mesesTexto === null) return;
+    const meses = Number(mesesTexto);
+    if (![6, 12, 24].includes(meses)) {
+      setErroElenco('Prazo inválido. Escolha 6, 12 ou 24 meses.');
+      return;
+    }
+    const salarioAtual = Number(jogador.salario_mensal || 0);
+    const salarioBase = Math.round(3000 * Math.pow(Math.max(40, Math.min(100, Number(jogador.overall || 50))) / 50, 3.6) * (jogador.is_star ? 1.25 : 1));
+    const salarioSugeridoRenovacao = Math.max(Math.round(salarioAtual * 1.10), salarioBase);
+    const salarioTexto = window.prompt('O jogador pede pelo menos R$ ' + salarioSugeridoRenovacao.toLocaleString('pt-BR') + ' por mês. Informe sua oferta salarial:', String(salarioSugeridoRenovacao));
+    if (salarioTexto === null) return;
+    const salario = Number(salarioTexto.replace(',', '.'));
+    if (!Number.isFinite(salario) || salario <= 0) {
+      setErroElenco('Informe um salário mensal válido.');
+      return;
+    }
+    setErroElenco('');
+    setMensagemElenco('');
+    const { data, error } = await supabase.rpc('renew_player_contract', {
+      p_player_id: jogador.id,
+      p_duracao_meses: meses,
+      p_salario_mensal: salario
+    });
+    if (error) setErroElenco('Não foi possível renovar o contrato: ' + error.message);
+    else if (data?.status === 'contraproposta') {
+      setErroElenco(data.message + ' O salário mínimo pedido é R$ ' + Number(data.salario_esperado).toLocaleString('pt-BR') + '.');
+    } else {
+      setMensagemElenco(data?.message || 'Contrato renovado.');
+      const { data: atualizados, error: erroLista } = await supabase.from('players').select('*')
+        .eq('club_id', clubeAtual.id).eq('is_youth', false).order('created_at', { ascending: true });
+      if (!erroLista) setJogadores(atualizados || []);
+    }
+  }
+
   async function enviarProposta(event) {
     event.preventDefault();
     if (!jogadorOferta?.id || !supabase) return;
@@ -566,9 +625,9 @@ export default function App() {
   }
 
   const niveisEstadio = [
-    { nivel: 2, capacidade: 20000, custo: 8000000, dias: 14, nome: 'Ampliação' },
-    { nivel: 3, capacidade: 40000, custo: 20000000, dias: 30, nome: 'Estádio moderno' },
-    { nivel: 4, capacidade: 70000, custo: 45000000, dias: 45, nome: 'Arena' }
+    { nivel: 2, capacidade: 20000, custo: 500000, dias: 10, nome: 'Ampliação' },
+    { nivel: 3, capacidade: 40000, custo: 1500000, dias: 10, nome: 'Estádio moderno' },
+    { nivel: 4, capacidade: 70000, custo: 3000000, dias: 10, nome: 'Arena' }
   ];
 
   async function iniciarAmpliacao() {
@@ -766,13 +825,25 @@ export default function App() {
               aba === 'Elenco' ? <div>
                 <p style={styles.muted}>Seu clube começa do zero. Os jogadores serão adquiridos exclusivamente pelo Mercado, por compra, empréstimo ou contratação sem contrato.</p>
                 {erroElenco && <p style={styles.error}>{erroElenco}</p>}
+                {mensagemElenco && <p style={styles.notice}>{mensagemElenco}</p>}
                 {carregandoJogadores ? <p>Carregando elenco...</p> : jogadores.length === 0 ? <div style={{background:'#0b1220',border:'1px dashed #40536d',borderRadius:12,padding:24,marginTop:18}}>
                   <h3 style={{marginTop:0}}>Elenco vazio</h3>
                   <p style={styles.muted}>Você ainda não tem jogadores. Acesse a área Mercado para montar seu primeiro elenco.</p>
                   <button style={styles.primary} onClick={() => setAba('Mercado')}>Ir para o Mercado</button>
                 </div> :
-                  <div style={{overflowX:'auto', marginTop:20}}><table style={styles.table}><thead><tr><th>Jogador</th><th>Posição</th><th>Idade</th><th>Overall</th></tr></thead><tbody>
-                    {jogadores.map(j => <tr key={j.id}><td>{j.nome}</td><td>{j.posicao || '-'}</td><td>{j.data_nascimento ? (() => { const nascimento = new Date(j.data_nascimento + 'T12:00:00'); const hoje = new Date(); let idade = hoje.getFullYear() - nascimento.getFullYear(); const aniversarioAindaNaoChegou = hoje.getMonth() < nascimento.getMonth() || (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate()); if (aniversarioAindaNaoChegou) idade--; return `${idade} anos`; })() : '-'}</td><td>{j.overall}</td></tr>)}
+                  <div style={{overflowX:'auto', marginTop:20}}><table style={styles.table}><thead><tr><th>Jogador</th><th>Posição</th><th>Idade</th><th>Overall</th><th>Contrato</th><th>Disponibilidade</th><th>Ações</th></tr></thead><tbody>
+                    {jogadores.map(j => <tr key={j.id}>
+                      <td>{j.nome}</td><td>{j.posicao || '-'}</td>
+                      <td>{j.data_nascimento ? (() => { const nascimento = new Date(j.data_nascimento + 'T12:00:00'); const hoje = new Date(); let idade = hoje.getFullYear() - nascimento.getFullYear(); const aniversarioAindaNaoChegou = hoje.getMonth() < nascimento.getMonth() || (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate()); if (aniversarioAindaNaoChegou) idade--; return `${idade} anos`; })() : '-'}</td>
+                      <td>{j.overall}</td>
+                      <td>{j.contrato_ate ? new Date(j.contrato_ate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem prazo'}</td>
+                      <td>{j.disponivel_transferencia ? 'À venda' : j.disponivel_emprestimo ? 'Para empréstimo' : 'Não disponível'}</td>
+                      <td><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                        <button style={styles.secondary} onClick={()=>alterarDisponibilidadeJogador(j,'venda')}>{j.disponivel_transferencia?'Retirar venda':'Colocar à venda'}</button>
+                        <button style={styles.secondary} onClick={()=>alterarDisponibilidadeJogador(j,'emprestimo')}>{j.disponivel_emprestimo?'Retirar empréstimo':'Emprestar'}</button>
+                        <button style={styles.primary} onClick={()=>renovarContrato(j)}>Renovar contrato</button>
+                      </div></td>
+                    </tr>)}
                   </tbody></table></div>}
               </div> :
               aba === 'Mercado' ? <div>
