@@ -1,4 +1,7 @@
 -- Salários individuais e contraproposta nas negociações do MFO.
+-- Remove a versão anterior de 5 parâmetros para recriá-la sem defaults,
+-- evitando ambiguidade com a versão de 4 parâmetros.
+drop function if exists public.submit_player_offer(uuid, text, numeric, integer, numeric);
 alter table public.players
   add column if not exists salario_mensal numeric(12,2) not null default 0;
 
@@ -8,9 +11,9 @@ alter table public.player_offers
 create or replace function public.submit_player_offer(
   p_player_id uuid,
   p_tipo text,
-  p_valor numeric default 0,
-  p_duracao_meses integer default 0,
-  p_salario_mensal numeric default 0
+  p_valor numeric,
+  p_duracao_meses integer,
+  p_salario_mensal numeric
 )
 returns jsonb
 language plpgsql
