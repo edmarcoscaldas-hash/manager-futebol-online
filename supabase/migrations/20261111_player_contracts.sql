@@ -24,6 +24,7 @@ begin
   set club_id = null,
       status_contrato = 'livre',
       salario_mensal = 0,
+      contrato_ate = null,
       disponivel_transferencia = false,
       disponivel_emprestimo = false
   where status_contrato = 'ativo'
