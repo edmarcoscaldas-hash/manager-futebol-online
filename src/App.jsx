@@ -36,6 +36,8 @@ export default function App() {
   const [respostaImprensa, setRespostaImprensa] = useState('');
   const [impactoImprensa, setImpactoImprensa] = useState(null);
   const [jogadores, setJogadores] = useState([]);
+  const [buscaElenco, setBuscaElenco] = useState('');
+  const [posicaoElenco, setPosicaoElenco] = useState('Todas');
   const [jogadoresBase, setJogadoresBase] = useState([]);
   const [candidatosBase, setCandidatosBase] = useState([]);
   const [carregandoBase, setCarregandoBase] = useState(false);
@@ -823,28 +825,80 @@ export default function App() {
             <h2>{aba}</h2>
             {aba === 'Início' ? <><p>Bem-vindo ao Manager Futebol Online!</p><p>Seu clube está cadastrado na sua conta.</p><div style={styles.stats}><div><strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR')}</strong><span>Orçamento inicial</span></div><div><strong>{jogadores.length}</strong><span>Jogadores carregados</span></div><div><strong>1ª</strong><span>Temporada</span></div></div></> :
               aba === 'Elenco' ? <div>
-                <p style={styles.muted}>Seu clube começa do zero. Os jogadores serão adquiridos exclusivamente pelo Mercado, por compra, empréstimo ou contratação sem contrato.</p>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+                  <div>
+                    <p style={styles.muted}>Gerencie seu grupo profissional, acompanhe os contratos e organize os jogadores do clube.</p>
+                    <span style={styles.mutedSmall}>Apresentação em cartões • dados e negociações mantidos no sistema atual</span>
+                  </div>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                    <span style={{background:'#17263b',border:'1px solid #34465f',padding:'9px 12px',borderRadius:9,fontSize:13}}><strong>{jogadores.length}</strong> atletas</span>
+                    <span style={{background:'#17263b',border:'1px solid #34465f',padding:'9px 12px',borderRadius:9,fontSize:13}}><strong>{jogadores.filter(j=>j.is_star).length}</strong> estrelas ★</span>
+                  </div>
+                </div>
                 {erroElenco && <p style={styles.error}>{erroElenco}</p>}
                 {mensagemElenco && <p style={styles.notice}>{mensagemElenco}</p>}
-                {carregandoJogadores ? <p>Carregando elenco...</p> : jogadores.length === 0 ? <div style={{background:'#0b1220',border:'1px dashed #40536d',borderRadius:12,padding:24,marginTop:18}}>
+                {carregandoJogadores ? <p style={styles.muted}>Carregando elenco...</p> : jogadores.length === 0 ? <div style={{background:'#0b1220',border:'1px dashed #40536d',borderRadius:12,padding:24,marginTop:18}}>
                   <h3 style={{marginTop:0}}>Elenco vazio</h3>
                   <p style={styles.muted}>Você ainda não tem jogadores. Acesse a área Mercado para montar seu primeiro elenco.</p>
                   <button style={styles.primary} onClick={() => setAba('Mercado')}>Ir para o Mercado</button>
-                </div> :
-                  <div style={{overflowX:'auto', marginTop:20}}><table style={styles.table}><thead><tr><th>Jogador</th><th>Posição</th><th>Idade</th><th>Overall</th><th>Contrato</th><th>Disponibilidade</th><th>Ações</th></tr></thead><tbody>
-                    {jogadores.map(j => <tr key={j.id}>
-                      <td>{j.nome}</td><td>{j.posicao || '-'}</td>
-                      <td>{j.data_nascimento ? (() => { const nascimento = new Date(j.data_nascimento + 'T12:00:00'); const hoje = new Date(); let idade = hoje.getFullYear() - nascimento.getFullYear(); const aniversarioAindaNaoChegou = hoje.getMonth() < nascimento.getMonth() || (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate()); if (aniversarioAindaNaoChegou) idade--; return `${idade} anos`; })() : '-'}</td>
-                      <td>{j.overall}</td>
-                      <td>{j.contrato_ate ? new Date(j.contrato_ate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem prazo'}</td>
-                      <td>{j.disponivel_transferencia ? 'À venda' : j.disponivel_emprestimo ? 'Para empréstimo' : 'Não disponível'}</td>
-                      <td><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                        <button style={styles.secondary} onClick={()=>alterarDisponibilidadeJogador(j,'venda')}>{j.disponivel_transferencia?'Retirar venda':'Colocar à venda'}</button>
-                        <button style={styles.secondary} onClick={()=>alterarDisponibilidadeJogador(j,'emprestimo')}>{j.disponivel_emprestimo?'Retirar empréstimo':'Emprestar'}</button>
-                        <button style={styles.primary} onClick={()=>renovarContrato(j)}>Renovar contrato</button>
-                      </div></td>
-                    </tr>)}
-                  </tbody></table></div>}
+                </div> : <>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:14,marginTop:18}}>
+                    <label style={styles.filterLabel}>Buscar jogador
+                      <input style={styles.input} value={buscaElenco} onChange={e=>setBuscaElenco(e.target.value)} placeholder="Digite o nome do atleta"/>
+                    </label>
+                    <label style={styles.filterLabel}>Filtrar por posição
+                      <select style={styles.input} value={posicaoElenco} onChange={e=>setPosicaoElenco(e.target.value)}>
+                        {['Todas','Goleiro','Zagueiro','Lateral','Volante','Meia','Ponta','Atacante'].map(p=><option key={p}>{p}</option>)}
+                      </select>
+                    </label>
+                    <div style={{display:'flex',alignItems:'end'}}>
+                      <button style={styles.secondary} onClick={()=>{setBuscaElenco('');setPosicaoElenco('Todas');}}>Limpar filtros</button>
+                    </div>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap',margin:'16px 0 10px'}}>
+                    <strong>{jogadores.filter(j=>(!buscaElenco || (j.nome||'').toLocaleLowerCase('pt-BR').includes(buscaElenco.toLocaleLowerCase('pt-BR')))&&(posicaoElenco==='Todas'||j.posicao===posicaoElenco)).length} jogador(es) exibido(s)</strong>
+                    <span style={styles.mutedSmall}>Overall • contrato • disponibilidade</span>
+                  </div>
+                  {jogadores.filter(j=>(!buscaElenco || (j.nome||'').toLocaleLowerCase('pt-BR').includes(buscaElenco.toLocaleLowerCase('pt-BR')))&&(posicaoElenco==='Todas'||j.posicao===posicaoElenco)).length===0
+                    ? <p style={styles.muted}>Nenhum atleta corresponde aos filtros selecionados.</p>
+                    : <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,290px),1fr))',gap:14}}>
+                      {jogadores.filter(j=>(!buscaElenco || (j.nome||'').toLocaleLowerCase('pt-BR').includes(buscaElenco.toLocaleLowerCase('pt-BR')))&&(posicaoElenco==='Todas'||j.posicao===posicaoElenco)).map(j=>{
+                        const idade=idadeJogador(j.data_nascimento);
+                        const status=j.disponivel_transferencia?'À venda':j.disponivel_emprestimo?'Para empréstimo':'No elenco';
+                        const iniciais=(j.nome||'Jogador').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase();
+                        return <article key={j.id} style={{background:'linear-gradient(145deg,#17263b,#0b1220 72%)',border:'1px solid #34465f',borderRadius:14,padding:15,boxShadow:'0 8px 22px rgba(0,0,0,.16)'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:12}}>
+                            <div style={{width:54,height:54,flexShrink:0,borderRadius:13,display:'grid',placeItems:'center',background:'linear-gradient(135deg,#176b4b,#26364d)',border:'1px solid #4b806b',fontSize:19,fontWeight:800,color:'#eafff3'}}>{iniciais}</div>
+                            <div style={{minWidth:0,flex:1}}>
+                              <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                                <strong style={{fontSize:15}}>{j.nome}</strong>{j.is_star&&<span style={{color:'#facc15'}}>★</span>}
+                              </div>
+                              <p style={{...styles.mutedSmall,margin:'5px 0 0'}}>{j.posicao||'Posição não informada'} • {idade?idade+' anos':'Idade não informada'}</p>
+                              <p style={{...styles.mutedSmall,margin:'3px 0 0'}}>{j.nacionalidade||'Nacionalidade não informada'}</p>
+                            </div>
+                            <div style={{background:'#176b4b',border:'1px solid #3b9b70',borderRadius:10,minWidth:52,textAlign:'center',padding:'7px 6px'}}>
+                              <span style={{display:'block',fontSize:9,color:'#c9f7df',letterSpacing:1}}>OVR</span>
+                              <strong style={{fontSize:22}}>{j.overall??'-'}</strong>
+                            </div>
+                          </div>
+                          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginTop:14}}>
+                            <div style={{background:'#0b1220',borderRadius:8,padding:9}}><span style={{...styles.mutedSmall,margin:0,fontSize:10}}>POTENCIAL</span><strong style={{display:'block',fontSize:17,color:'#67e8a5',marginTop:4}}>{j.potencial??'-'}</strong></div>
+                            <div style={{background:'#0b1220',borderRadius:8,padding:9}}><span style={{...styles.mutedSmall,margin:0,fontSize:10}}>CONTRATO</span><strong style={{display:'block',fontSize:12,marginTop:7}}>{j.contrato_ate?new Date(j.contrato_ate+'T12:00:00').toLocaleDateString('pt-BR'):'Sem prazo'}</strong></div>
+                            <div style={{background:'#0b1220',borderRadius:8,padding:9}}><span style={{...styles.mutedSmall,margin:0,fontSize:10}}>MERCADO</span><strong style={{display:'block',fontSize:12,marginTop:7}}>R$ {Number(j.valor_mercado||0).toLocaleString('pt-BR')}</strong></div>
+                          </div>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginTop:12}}>
+                            <span style={{fontSize:11,color:j.disponivel_transferencia?'#fca5a5':j.disponivel_emprestimo?'#fcd34d':'#86efac',fontWeight:700}}>{status}</span>
+                            <span style={{fontSize:10,color:'#8492a6'}}>{j.status_contrato==='livre'?'SEM CONTRATO':'VÍNCULO ATIVO'}</span>
+                          </div>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,marginTop:12}}>
+                            <button style={{...styles.secondary,fontSize:12,padding:'9px 7px'}} onClick={()=>alterarDisponibilidadeJogador(j,'venda')}>{j.disponivel_transferencia?'Retirar venda':'Colocar à venda'}</button>
+                            <button style={{...styles.secondary,fontSize:12,padding:'9px 7px'}} onClick={()=>alterarDisponibilidadeJogador(j,'emprestimo')}>{j.disponivel_emprestimo?'Retirar empréstimo':'Emprestar'}</button>
+                            <button style={{...styles.primary,gridColumn:'1 / -1',fontSize:12,padding:'10px 7px'}} onClick={()=>renovarContrato(j)}>Renovar contrato</button>
+                          </div>
+                        </article>;
+                      })}
+                    </div>}
+                </>}
               </div> :
               aba === 'Mercado' ? <div>
                 <p style={styles.muted}>Encontre jogadores cadastrados no banco de dados do MFO. Use os filtros para montar seu elenco.</p>
