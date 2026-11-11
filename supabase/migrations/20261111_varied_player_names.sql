@@ -7,12 +7,12 @@ with ranked as (
     p.id,
     coalesce(nullif(trim(p.nacionalidade), ''), nullif(trim(c.pais), ''), 'Brasil') as pais_base,
     row_number() over (
-      partition by coalesce(nullif(trim(c.pais), ''), nullif(trim(p.nacionalidade), ''), 'Brasil')
+      partition by coalesce(nullif(trim(p.nacionalidade), ''), nullif(trim(c.pais), ''), 'Brasil')
       order by lower(trim(p.nome)), p.id
     ) as country_seq
   from public.players p
   left join public.clubs c on c.id = p.club_id
-  where p.nome ~* ' [A-F0-9]{2,4}
+  where p.nome ~* ' [A-F0-9]{2,4}$'
 ),
 to_rename as (
   select id, pais_base, country_seq
