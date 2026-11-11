@@ -2,6 +2,8 @@
 -- A versão com salário passa a exigir explicitamente os cinco argumentos.
 -- A versão antiga de quatro argumentos permanece disponível para a chamada interna.
 
+drop function if exists public.submit_player_offer(uuid, text, numeric, integer, numeric);
+
 create or replace function public.submit_player_offer(
   p_player_id uuid,
   p_tipo text,
