@@ -260,7 +260,7 @@ export default function App() {
       const idade = 15 + Math.floor(Math.random() * 4);
       const nascimento = new Date();
       nascimento.setFullYear(nascimento.getFullYear() - idade);
-      nascimento.setMonth(Math.floor(Math.random() * 12), 1 + Math.floor(Math.random() * 27));
+      nascimento.setDate(nascimento.getDate() + Math.floor(Math.random() * 365));
       const maximo = estrela ? tetoEstrela : tetoComum;
       const minimo = Math.min(estrela ? 48 : 35, maximo);
       const overall = minimo + Math.floor(Math.random() * Math.max(1, maximo - minimo + 1));
