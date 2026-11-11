@@ -39,6 +39,8 @@ export default function App() {
   const [gerandoPeneira, setGerandoPeneira] = useState(false);
   const [mensagemBase, setMensagemBase] = useState('');
   const [erroBase, setErroBase] = useState('');
+  const [peneirasTemporada, setPeneirasTemporada] = useState(0);
+  const [temporadaBase, setTemporadaBase] = useState(1);
   const [carregandoJogadores, setCarregandoJogadores] = useState(false);
   const [novoJogador, setNovoJogador] = useState({ nome: '', posicao: 'Atacante', data_nascimento: '', overall: 50 });
   const [erroElenco, setErroElenco] = useState('');
@@ -207,15 +209,22 @@ export default function App() {
       if (!clubeAtual?.id || !supabase || aba !== 'Base') return;
       setCarregandoBase(true);
       setErroBase('');
-      const [jovensRes, candidatosRes] = await Promise.all([
+      const [jovensRes, candidatosRes, peneirasRes] = await Promise.all([
         supabase.from('players').select('*').eq('club_id', clubeAtual.id).eq('is_youth', true).order('overall', { ascending: false }),
-        supabase.from('academy_trials').select('*').eq('club_id', clubeAtual.id).eq('status', 'disponivel').order('created_at', { ascending: false })
+        supabase.from('academy_trials').select('*').eq('club_id', clubeAtual.id).eq('status', 'disponivel').order('created_at', { ascending: false }),
+        supabase.from('academy_trials').select('peneira_id,temporada').eq('club_id', clubeAtual.id)
       ]);
       if (!ativo) return;
       if (jovensRes.error) setErroBase('Não foi possível carregar a base: ' + jovensRes.error.message);
       else setJogadoresBase(jovensRes.data || []);
       if (candidatosRes.error) setErroBase('Não foi possível carregar os candidatos: ' + candidatosRes.error.message);
       else setCandidatosBase(candidatosRes.data || []);
+      if (peneirasRes.error) setErroBase('Não foi possível consultar o limite de peneiras: ' + peneirasRes.error.message);
+      else {
+        const registros = peneirasRes.data || [];
+        setPeneirasTemporada(new Set(registros.map(item => item.peneira_id)).size);
+        setTemporadaBase(registros[0]?.temporada || 1);
+      }
       setCarregandoBase(false);
     }
     carregarBase();
@@ -233,6 +242,11 @@ export default function App() {
 
   async function abrirPeneira() {
     if (!clubeAtual?.id || !supabase) return;
+    if (peneirasTemporada >= 2) {
+      setErroBase('Limite atingido: seu clube já realizou 2 peneiras nesta temporada.');
+      setMensagemBase('');
+      return;
+    }
     setGerandoPeneira(true);
     setErroBase('');
     setMensagemBase('');
@@ -255,6 +269,7 @@ export default function App() {
     const sobrenomes = ['Almeida','Ferreira','Costa','Oliveira','Santos','Pereira','Carvalho','Rodrigues','Martins','Lima','Gomes','Ribeiro','Barbosa','Mendes','Moreira','Nunes','Castro','Silva','Azevedo','Teixeira','Cardoso','Campos','Monteiro','Vieira','Dias','Rocha','Freitas','Moura','Andrade','Souza','Nascimento','Barros'];
     const posicoes = ['Goleiro','Zagueiro','Lateral','Volante','Meia','Ponta','Atacante'];
     const nacionalidades = ['Brasil','Argentina','Uruguai','Colômbia','Portugal','Espanha','França','Alemanha'];
+    const peneiraId = crypto.randomUUID();
     const candidatos = Array.from({ length: 5 }, (_, i) => {
       const estrela = Math.random() < 0.07;
       const idade = 15 + Math.floor(Math.random() * 4);
@@ -269,6 +284,7 @@ export default function App() {
         : Math.max(overall, 55 + Math.floor(Math.random() * 21));
       return {
         club_id: clubeAtual.id,
+        peneira_id: peneiraId,
         nome: primeiros[Math.floor(Math.random() * primeiros.length)] + ' ' + sobrenomes[Math.floor(Math.random() * sobrenomes.length)],
         posicao: posicoes[Math.floor(Math.random() * posicoes.length)],
         data_nascimento: nascimento.toISOString().slice(0, 10),
@@ -283,7 +299,9 @@ export default function App() {
     if (error) setErroBase('Não foi possível abrir a peneira: ' + error.message);
     else {
       setCandidatosBase(lista => [...(data || []), ...lista]);
-      setMensagemBase('Peneira realizada! ' + (data || []).length + ' jovens foram avaliados. Escolha quem deseja contratar.');
+      setPeneirasTemporada(total => total + 1);
+      setTemporadaBase(data?.[0]?.temporada || temporadaBase);
+      setMensagemBase('Peneira realizada! ' + (data || []).length + ' jovens foram avaliados. Você utilizou ' + (peneirasTemporada + 1) + ' de 2 peneiras nesta temporada.');
     }
     setGerandoPeneira(false);
   }
@@ -911,7 +929,8 @@ export default function App() {
                   <span style={styles.eyebrow}>CAPTAÇÃO DE TALENTOS</span>
                   <h3 style={{margin:'8px 0'}}>Peneira de novos jogadores</h3>
                   <p style={styles.muted}>Cada peneira apresenta 5 jovens aleatórios. A maioria terá overall entre 35 e 52; de 5% a 8% poderão ser estrelas, com potencial superior. O nível geral da base é mantido abaixo da média profissional do seu clube.</p>
-                  <button style={styles.primary} onClick={abrirPeneira} disabled={gerandoPeneira || carregandoBase}>{gerandoPeneira?'Avaliando candidatos...':'⚽ Abrir peneira • 5 candidatos'}</button>
+                  <p style={styles.muted}>Temporada {temporadaBase}: <strong>{peneirasTemporada} de 2 peneiras utilizadas</strong>.</p>
+                  <button style={styles.primary} onClick={abrirPeneira} disabled={gerandoPeneira || carregandoBase || peneirasTemporada >= 2}>{gerandoPeneira?'Avaliando candidatos...':peneirasTemporada >= 2?'Limite de peneiras atingido':'⚽ Abrir peneira • 5 candidatos'}</button>
                 </div>
                 {erroBase && <p style={styles.error}>{erroBase}</p>}
                 {mensagemBase && <p style={styles.notice}>{mensagemBase}</p>}
