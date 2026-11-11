@@ -1,38 +1,32 @@
--- Manager Futebol Online: renomeia somente registros com nome duplicado.
--- Preserva IDs, clubes, posições, Overall, contratos e demais dados.
--- Execute no Supabase SQL Editor após revisar o resultado do SELECT de prévia.
+-- MFO: corrige nomes repetidos sem tabela temporaria.
+-- Mantem um registro original por nome e renomeia apenas os demais.
+-- Todos os demais campos dos jogadores permanecem inalterados.
 
-begin;
-
-create temporary table mfo_duplicate_player_names on commit drop as
 with ranked as (
   select
     p.id,
-    p.nome as nome_antigo,
     coalesce(nullif(trim(c.pais), ''), nullif(trim(p.nacionalidade), ''), 'Brasil') as pais_base,
     row_number() over (
       partition by lower(trim(p.nome))
-      order by p.created_at nulls last, p.id
-    ) as duplicate_rank
+      order by p.id
+    ) as duplicate_rank,
+    row_number() over (
+      partition by coalesce(nullif(trim(c.pais), ''), nullif(trim(p.nacionalidade), ''), 'Brasil')
+      order by lower(trim(p.nome)), p.id
+    ) as country_seq
   from public.players p
   left join public.clubs c on c.id = p.club_id
   where p.nome is not null and trim(p.nome) <> ''
 ),
 to_rename as (
-  select
-    id,
-    nome_antigo,
-    pais_base,
-    row_number() over (
-      partition by lower(trim(pais_base))
-      order by lower(trim(nome_antigo)), id
-    ) as seq
+  select id, pais_base, country_seq
   from ranked
   where duplicate_rank > 1
 ),
-name_parts as (
+name_lists as (
   select
-    *,
+    id,
+    country_seq,
     case
       when pais_base ilike '%argentina%' then array['Mateo','Santiago','Thiago','Nicolás','Joaquín','Benjamín','Lautaro','Franco','Tomás','Facundo','Agustín','Valentín','Bruno','Julián','Ramiro','Ignacio','Emiliano','Dylan','Gabriel','Máximo']
       when pais_base ilike '%inglaterra%' or pais_base ilike '%england%' then array['Oliver','George','Harry','Jack','Noah','Charlie','Thomas','Oscar','James','William','Henry','Alfie','Theodore','Archie','Freddie','Leo','Arthur','Ethan','Mason','Jacob']
@@ -58,50 +52,21 @@ name_parts as (
       else array['Silva','Santos','Oliveira','Souza','Pereira','Lima','Costa','Ferreira','Rodrigues','Almeida','Nascimento','Araújo','Ribeiro','Carvalho','Gomes','Martins','Rocha','Barbosa','Alves','Monteiro']
     end as sobrenomes
   from to_rename
+),
+generated as (
+  select
+    id,
+    primeiros[(((country_seq - 1) / 20)::integer % 20) + 1] || ' ' ||
+    sobrenomes[((country_seq - 1) % 20)::integer + 1] || ' ' ||
+    upper(right(id::text, 4)) as novo_nome
+  from name_lists
 )
-select
-  id,
-  nome_antigo,
-  pais_base,
-  (
-    primeiros[(((seq - 1) / 20)::integer % 20) + 1] || ' ' ||
-    sobrenomes[((seq - 1) % 20)::integer + 1]
-  ) as nome_base,
-  seq
-from name_parts;
-
--- Prévia: quantos registros serão renomeados.
-do $$
-declare
-  total integer;
-begin
-  select count(*) into total from mfo_duplicate_player_names;
-  raise notice 'Jogadores que receberão novos nomes: %', total;
-end $$;
-
--- Atualiza somente os nomes repetidos, preservando todos os demais campos.
 update public.players p
-set nome = case
-  when exists (
-    select 1
-    from public.players other
-    where lower(trim(other.nome)) = lower(trim(m.nome_base))
-      and other.id <> p.id
-      and not exists (
-        select 1 from mfo_duplicate_player_names changing
-        where changing.id = other.id
-      )
-  )
-  then m.nome_base || ' ' || lpad(m.seq::text, 3, '0')
-  when m.seq > 400 then m.nome_base || ' ' || lpad(m.seq::text, 3, '0')
-  else m.nome_base
-end
-from mfo_duplicate_player_names m
-where p.id = m.id;
+set nome = generated.novo_nome
+from generated
+where p.id = generated.id;
 
-commit;
-
--- Verificação final: deve retornar zero linhas.
+-- Conferencia: esta consulta deve retornar zero linhas.
 select lower(trim(nome)) as nome, count(*) as quantidade
 from public.players
 group by lower(trim(nome))
