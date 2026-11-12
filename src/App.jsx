@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase, supabaseConfigured } from './lib/supabase.js';
+import LeagueModule from './components/LeagueModule.jsx';
 
 export default function App() {
   const [aba, setAba] = useState('Início');
@@ -1238,7 +1239,8 @@ export default function App() {
                 {mensagemEstadio && <p style={styles.notice}>{mensagemEstadio}</p>}
                 <p style={styles.mutedSmall}>Os custos e prazos são valores iniciais de balanceamento. A integração com bilheteria e outras receitas será feita no módulo financeiro.</p>
               </div> :
-              <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
+              aba === 'Liga' ? <LeagueModule supabase={supabase} clubeAtual={clubeAtual} />
+              : <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
           </section>
           </div>
         </>
