@@ -786,6 +786,15 @@ export default function App() {
         .mfo-app table th{color:#8de0bd;border-bottom:1px solid #31516a;padding:12px 10px;white-space:nowrap}
         .mfo-app table td{border-bottom:1px solid rgba(66,94,117,.35);padding:11px 10px}
         .mfo-app table tbody tr:hover{background:rgba(45,108,95,.12)}
+        .mfo-workspace{display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px;align-items:start;margin-top:14px}
+        .mfo-app .mfo-sidebar{position:sticky;top:14px;display:flex;flex-direction:column;align-items:stretch;background:linear-gradient(180deg,#0c1b2b,#091522);border:1px solid #20394e;border-radius:17px;padding:13px!important;min-height:470px;box-shadow:0 12px 28px rgba(0,0,0,.2)}
+        .mfo-nav-label{font-size:10px;letter-spacing:1.8px;color:#7893a8;font-weight:800;padding:9px 10px 13px}
+        .mfo-app .mfo-sidebar button{display:flex;align-items:center;gap:10px;text-align:left;width:100%;background:transparent;border:1px solid transparent;color:#b7c9d9;padding:11px 12px!important;border-radius:10px!important}
+        .mfo-app .mfo-sidebar button:hover{background:#142c3d!important;border-color:#294d5c!important}
+        .mfo-app .mfo-sidebar button[style*="176b4b"]{background:linear-gradient(100deg,#176b4b,#174b49)!important;border-color:#3b9b78!important;color:#fff}
+        .mfo-nav-dot{width:23px;height:23px;display:grid;place-items:center;border-radius:7px;background:rgba(76,167,132,.13);color:#7ce0b4;font-size:15px;flex-shrink:0}
+        .mfo-sidebar-foot{margin-top:auto;padding:18px 10px 7px;border-top:1px solid #20394e;color:#56748a;font-size:9px;letter-spacing:2px;line-height:1.7;font-weight:800}
+        .mfo-app .mfo-content{min-width:0;margin:0!important;background:linear-gradient(145deg,rgba(17,34,51,.97),rgba(10,23,36,.97));border-color:#29445a!important}
         .mfo-dashboard{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(230px,1fr);gap:16px;margin-top:16px}
         .mfo-hero{position:relative;overflow:hidden;background:linear-gradient(115deg,#123d4a,#102b40 58%,#153a36);border:1px solid #2c665d;border-radius:18px;padding:24px;min-height:190px}
         .mfo-hero:after{content:"⚽";position:absolute;right:22px;bottom:-36px;font-size:170px;opacity:.07;transform:rotate(-18deg);pointer-events:none}
@@ -793,7 +802,7 @@ export default function App() {
         .mfo-metric{background:linear-gradient(145deg,#14283a,#0d1b2a);border:1px solid #29445a;border-radius:15px;padding:17px;min-width:0}
         .mfo-metric strong{display:block;font-size:clamp(18px,2vw,25px);margin:9px 0 4px;color:#f1f8ff}
         .mfo-subpanel{background:linear-gradient(145deg,#122437,#0d1927);border:1px solid #29445a;border-radius:16px;padding:18px}
-        @media(max-width:760px){.mfo-app{padding:12px!important}.mfo-app>header{padding:15px}.mfo-app nav{position:relative;top:auto;overflow-x:auto;flex-wrap:nowrap!important}.mfo-app nav button{white-space:nowrap}.mfo-dashboard{grid-template-columns:1fr}.mfo-metric-grid{grid-template-columns:1fr}.mfo-app section[style*="grid-template-columns"]{min-width:0}}
+        @media(max-width:760px){.mfo-workspace{grid-template-columns:1fr;gap:10px}.mfo-app .mfo-sidebar{position:relative;top:auto;min-height:0;display:flex;flex-direction:row;overflow-x:auto;flex-wrap:nowrap;padding:8px!important}.mfo-nav-label,.mfo-sidebar-foot{display:none}.mfo-app .mfo-sidebar button{width:auto;white-space:nowrap;flex:0 0 auto}.mfo-app .mfo-content{padding:15px!important}.mfo-app{padding:12px!important}.mfo-app>header{padding:15px}.mfo-app nav{position:relative;top:auto;overflow-x:auto;flex-wrap:nowrap!important}.mfo-app nav button{white-space:nowrap}.mfo-dashboard{grid-template-columns:1fr}.mfo-metric-grid{grid-template-columns:1fr}.mfo-app section[style*="grid-template-columns"]{min-width:0}}
       `}</style>
       <header style={styles.header}>
         <div>
@@ -842,10 +851,13 @@ export default function App() {
             </div>
             <div style={styles.clubBadge}>{clubeAtual.sigla || 'MFO'}</div>
           </section>}
-          <nav style={styles.nav}>
-            {abas.map(item => <button key={item} onClick={() => setAba(item)} style={aba === item ? styles.activeTab : styles.tab}>{item}</button>)}
+          <div className="mfo-workspace">
+          <nav className="mfo-sidebar" style={styles.nav}>
+            <span className="mfo-nav-label">MENU PRINCIPAL</span>
+            {abas.map(item => <button key={item} onClick={() => setAba(item)} style={aba === item ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{item === 'Início' ? '⌂' : item === 'Elenco' ? '♟' : item === 'Mercado' ? '⇄' : item === 'Finanças' ? '＄' : item === 'Liga' ? '🏆' : item === 'Táticas' ? '⚽' : '▣'}</span>{item}</button>)}
+            <div className="mfo-sidebar-foot">MANAGER<br/>FUTEBOL ONLINE</div>
           </nav>
-          <section style={styles.panel}>
+          <section className="mfo-content" style={styles.panel}>
             <h2>{aba}</h2>
             {aba === 'Início' ? <div>
                 <div className="mfo-dashboard">
@@ -1228,6 +1240,7 @@ export default function App() {
               </div> :
               <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
           </section>
+          </div>
         </>
       )}
       <footer style={styles.footer}>Manager Futebol Online • Projeto em desenvolvimento</footer>
