@@ -920,7 +920,7 @@ export default function App() {
       <header style={styles.header}>
         <div>
           <h1 style={styles.heading}>⚽ Manager Futebol Online</h1>
-          <p style={styles.muted}>Temporada 1 • Brasil • Universo público</p>
+          <p style={styles.muted}>Gestão de clube • Painel da temporada</p>
         </div>
         <div style={{display:'flex', gap:8, alignItems:'center', flexWrap:'wrap'}}>
           {session && <span style={styles.user}>{session.user.email}</span>}
@@ -971,7 +971,7 @@ export default function App() {
         </section>
       ) : (
         <>
-          {clubeAtual && <section style={styles.club}>
+          {clubeAtual && aba !== 'Início' && <section style={styles.club}>
             <div>
               <span style={styles.eyebrow}>SEU CLUBE</span>
               <h2>{clubeAtual.nome}</h2>
@@ -993,7 +993,7 @@ export default function App() {
             <div className="mfo-sidebar-foot">MANAGER<br/>FUTEBOL ONLINE</div>
           </nav>
           <section className="mfo-content" style={styles.panel}>
-            <h2>{aba}</h2>
+            <h2>{aba === 'Início' ? 'Visão Geral' : aba === 'Táticas' ? 'Escalação' : aba}</h2>
             {aba === 'Início' ? <DashboardModule supabase={supabase} club={clubeAtual} onNavigate={setAba} /> :
               aba === 'Elenco' ? <div>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
@@ -1340,7 +1340,7 @@ export default function App() {
                 {mensagemEstadio && <p style={styles.notice}>{mensagemEstadio}</p>}
                 <p style={styles.mutedSmall}>Os custos e prazos são valores iniciais de balanceamento. A integração com bilheteria e outras receitas será feita no módulo financeiro.</p>
               </div> :
-              aba === 'Liga' ? <LeagueModule supabase={supabase} clubeAtual={clubeAtual} />
+              (aba === 'Liga' || aba === 'Partidas' || aba === 'Competições') ? <LeagueModule supabase={supabase} clubeAtual={clubeAtual} initialTab={aba === 'Partidas' ? 'jogos' : 'classificacao'} />
               : aba === 'Táticas' ? <TacticsModule club={clubeAtual} />
               : <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
           </section>
