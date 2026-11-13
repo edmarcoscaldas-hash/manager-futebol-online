@@ -1244,52 +1244,27 @@ export default function App() {
                 <p style={styles.mutedSmall}>As reputações são registradas no clube e variam conforme sua declaração. Nesta etapa, os efeitos ainda não são calculados automaticamente pelo resultado real da partida.</p>
               </div> :
               aba === 'Rankings' ? <div>
-                <p style={styles.muted}>Central de rankings mundiais e classificações por liga. Os exemplos desta tela são demonstrativos; as tabelas oficiais dependerão dos resultados reais das temporadas.</p>
+                <p style={styles.muted}>Os rankings serão alimentados pelos resultados oficiais das partidas e temporadas do MFO. Para não apresentar informações falsas, esta tela não exibe posições ou artilheiros demonstrativos.</p>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:14,marginTop:18}}>
-                  <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:16}}>
-                    <span style={styles.eyebrow}>RANKING MUNDIAL DE CLUBES</span><h3>Clubes em destaque</h3>
-                    {['União Caçapavense','Real Madrid','Manchester City','Bayern de Munique','Flamengo'].map((x,i)=><p key={i}>{i+1}º {x}</p>)}
-                  </div>
-                  <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:16}}>
-                    <span style={styles.eyebrow}>RANKING MUNDIAL DE SELEÇÕES</span><h3>Seleções em destaque</h3>
-                    {['Brasil','Argentina','França','Espanha','Inglaterra'].map((x,i)=><p key={i}>{i+1}º {x}</p>)}
-                  </div>
-                  <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:16}}>
-                    <span style={styles.eyebrow}>ARTILHARIA GERAL</span><h3>Goleadores</h3>
-                    {['Erling Haaland','Kylian Mbappé','Vinícius Júnior','Harry Kane','Endrick'].map((x,i)=><p key={i}>{i+1}º {x} — aguardando jogos</p>)}
-                  </div>
+                  {[
+                    ['RANKING MUNDIAL DE CLUBES','Será calculado a partir do desempenho dos clubes nas competições.'],
+                    ['RANKING MUNDIAL DE SELEÇÕES','Aguardando a integração dos torneios entre seleções.'],
+                    ['ARTILHARIA GERAL','Será preenchida com os gols registrados nas partidas finalizadas.']
+                  ].map(([titulo,descricao])=><div key={titulo} style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>{titulo}</span>
+                    <p style={styles.muted}>{descricao}</p>
+                    <strong style={{color:'#facc15'}}>Aguardando dados oficiais</strong>
+                  </div>)}
                 </div>
                 <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
                   <span style={styles.eyebrow}>CLASSIFICAÇÃO POR LIGA</span>
-                  <h3>Escolha o campeonato</h3>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12}}>
-                    <label style={{color:'#a7b3c5',fontSize:13}}>País
-                      <select style={styles.input} value={ligaPais} onChange={e=>setLigaPais(e.target.value)}>
-                        {['Brasil','Argentina','Inglaterra','Espanha','Alemanha','Itália','França','Portugal','Holanda','México'].map(p=><option key={p}>{p}</option>)}
-                      </select>
-                    </label>
-                    <label style={{color:'#a7b3c5',fontSize:13}}>Divisão
-                      <select style={styles.input} value={ligaDivisao} onChange={e=>setLigaDivisao(e.target.value)}>
-                        <option value="1ª divisão">1ª divisão</option><option value="2ª divisão">2ª divisão</option>
-                      </select>
-                    </label>
-                  </div>
-                  <p style={styles.mutedSmall}>{ligaPais} • {ligaDivisao} • Temporada 1 — prévia ilustrativa</p>
-                  <div style={{overflowX:'auto'}}>
-                    <table style={styles.table}>
-                      <thead><tr><th>Pos.</th><th>Clube</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th></tr></thead>
-                      <tbody>
-                        {Array.from({length:10},(_,i)=>({pos:i+1,nome:i===0?(ligaPais==='Brasil'?'União Caçapavense':ligaPais+' FC'):['Atlético Serrano','Real do Vale','Esportivo Central','Nacional FC','Ferroviário','União Atlética','Estrela do Norte','Grêmio Regional','Desportivo Azul'][i-1]})).map(t=><tr key={t.pos}><td>{t.pos}º</td><td>{t.nome}</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>)}
-                      </tbody>
-                    </table>
-                  </div>
-                  <p style={styles.mutedSmall}>Cada país terá sua própria classificação e divisões. A versão completa também exibirá forma recente, saldo de gols, artilharia e assistências específicas da liga.</p>
+                  <h3>Classificação oficial</h3>
+                  <p style={styles.muted}>Consulte a tabela calculada pelos resultados registrados em cada campeonato.</p>
+                  <button style={styles.primary} onClick={()=>setAba('Competições')}>Abrir competições</button>
                 </div>
                 <div style={{background:'#17263b',borderRadius:10,padding:16,marginTop:16}}>
                   <strong>Premiações e recordes históricos</strong>
-                  <ul style={{color:'#cbd5e1',lineHeight:1.8,paddingLeft:20}}>
-                    <li>Bola de Ouro, melhor treinador e melhor goleiro</li><li>Revelação e melhor jogador por posição</li><li>Artilheiros por liga e no ranking geral</li><li>Maiores campeões e recordistas de todos os tempos</li>
-                  </ul>
+                  <p style={styles.muted}>Bola de Ouro, melhor treinador, melhor goleiro, revelação, artilheiros e maiores campeões serão liberados quando os dados históricos estiverem integrados.</p>
                 </div>
               </div> :
               aba === 'Base' ? <div>
