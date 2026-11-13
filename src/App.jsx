@@ -908,8 +908,8 @@ export default function App() {
         @media(max-width:760px){
           .mfo-workspace{grid-template-columns:minmax(0,1fr)!important}
           .mfo-menu-toggle{display:flex;align-items:center;gap:10px}
-          .mfo-app .mfo-sidebar{display:none;position:relative;top:auto;min-height:0;flex-direction:column;overflow:visible;flex-wrap:nowrap;width:100%;margin-bottom:10px}
-          .mfo-app .mfo-sidebar.is-open{display:flex}
+          .mfo-app .mfo-sidebar{display:none!important;position:relative;top:auto;min-height:0;flex-direction:column;overflow:visible;flex-wrap:nowrap;width:100%;margin-bottom:10px}
+          .mfo-app .mfo-sidebar.is-open{display:flex!important}
           .mfo-app .mfo-sidebar button{width:100%;white-space:normal;flex:0 0 auto}
           .mfo-sidebar-foot{display:none}
           .mfo-dashboard-grid,.mfo-dashboard-lower{grid-template-columns:minmax(0,1fr)!important}
