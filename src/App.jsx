@@ -916,6 +916,19 @@ export default function App() {
           .mfo-content table{font-size:12px}
         }
 
+
+        .mfo-roster-grid{grid-template-columns:minmax(0,1fr)!important;gap:7px!important;margin-top:12px}
+        .mfo-player-card{display:grid;grid-template-columns:minmax(190px,1.5fr) minmax(190px,1.2fr) minmax(100px,.65fr) minmax(190px,1fr);align-items:center;gap:12px;padding:9px 12px!important;border-radius:10px!important;background:linear-gradient(100deg,#11251f,#0d1a1b)!important;border:1px solid #254536!important;box-shadow:none!important}
+        .mfo-player-card>div:first-child{min-width:0}
+        .mfo-player-card>div:first-child>div:first-child{width:38px!important;height:38px!important;border-radius:9px!important}
+        .mfo-player-card>div:nth-child(2){margin-top:0!important;gap:5px!important}
+        .mfo-player-card>div:nth-child(2)>div{padding:7px!important;background:#0a1717!important}
+        .mfo-player-card>div:nth-child(2)>div strong{font-size:13px!important}
+        .mfo-player-card>div:nth-child(3){margin-top:0!important}
+        .mfo-player-card>div:nth-child(4){margin-top:0!important}
+        .mfo-player-card>div:nth-child(4) button{font-size:10px!important;padding:8px 5px!important}
+        @media(max-width:1000px){.mfo-player-card{grid-template-columns:minmax(0,1fr) minmax(160px,.8fr)}.mfo-player-card>div:nth-child(3),.mfo-player-card>div:nth-child(4){grid-column:1/-1}}
+        @media(max-width:560px){.mfo-player-card{grid-template-columns:minmax(0,1fr)}.mfo-player-card>div:nth-child(2),.mfo-player-card>div:nth-child(3),.mfo-player-card>div:nth-child(4){grid-column:1}}
         /* Identidade visual Futmanagerbr — navegação e painéis inspirados na referência */
         .mfo-workspace{display:flex!important;flex-direction:column!important;gap:14px!important;margin-top:12px!important}
         .mfo-menu-toggle{display:none!important}
@@ -1056,12 +1069,12 @@ export default function App() {
                   </div>
                   {jogadores.filter(j=>(!buscaElenco || (j.nome||'').toLocaleLowerCase('pt-BR').includes(buscaElenco.toLocaleLowerCase('pt-BR')))&&(posicaoElenco==='Todas'||j.posicao===posicaoElenco)).length===0
                     ? <p style={styles.muted}>Nenhum atleta corresponde aos filtros selecionados.</p>
-                    : <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,290px),1fr))',gap:14}}>
+                    : <div className="mfo-roster-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,290px),1fr))',gap:14}}>
                       {jogadores.filter(j=>(!buscaElenco || (j.nome||'').toLocaleLowerCase('pt-BR').includes(buscaElenco.toLocaleLowerCase('pt-BR')))&&(posicaoElenco==='Todas'||j.posicao===posicaoElenco)).map(j=>{
                         const idade=idadeJogador(j.data_nascimento);
                         const status=j.disponivel_transferencia?'À venda':j.disponivel_emprestimo?'Para empréstimo':'No elenco';
                         const iniciais=(j.nome||'Jogador').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase();
-                        return <article key={j.id} style={{background:'linear-gradient(145deg,#17263b,#0b1220 72%)',border:'1px solid #34465f',borderRadius:14,padding:15,boxShadow:'0 8px 22px rgba(0,0,0,.16)'}}>
+                        return <article className="mfo-player-card" key={j.id} style={{background:'linear-gradient(145deg,#17263b,#0b1220 72%)',border:'1px solid #34465f',borderRadius:14,padding:15,boxShadow:'0 8px 22px rgba(0,0,0,.16)'}}>
                           <div style={{display:'flex',alignItems:'center',gap:12}}>
                             <div style={{width:54,height:54,flexShrink:0,borderRadius:13,display:'grid',placeItems:'center',background:'linear-gradient(135deg,#176b4b,#26364d)',border:'1px solid #4b806b',fontSize:19,fontWeight:800,color:'#eafff3'}}>{iniciais}</div>
                             <div style={{minWidth:0,flex:1}}>
