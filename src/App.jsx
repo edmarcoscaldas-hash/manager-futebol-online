@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import { supabase, supabaseConfigured } from './lib/supabase.js';
 import LeagueModule from './components/LeagueModule.jsx';
 import TacticsModule from './components/TacticsModule.jsx';
+import DashboardModule from './components/DashboardModule.jsx';
 
 export default function App() {
   const [aba, setAba] = useState('Início');
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [maisModulosAbertos, setMaisModulosAbertos] = useState(false);
   const [session, setSession] = useState(null);
   const [modo, setModo] = useState('login');
   const [email, setEmail] = useState('');
@@ -879,6 +882,40 @@ export default function App() {
         .mfo-metric strong{display:block;font-size:clamp(18px,2vw,25px);margin:9px 0 4px;color:#f1f8ff}
         .mfo-subpanel{background:linear-gradient(145deg,#122437,#0d1927);border:1px solid #29445a;border-radius:16px;padding:18px}
         @media(max-width:760px){.mfo-workspace{grid-template-columns:1fr;gap:10px}.mfo-app .mfo-sidebar{position:relative;top:auto;min-height:0;display:flex;flex-direction:row;overflow-x:auto;flex-wrap:nowrap;padding:8px!important}.mfo-nav-label,.mfo-sidebar-foot{display:none}.mfo-app .mfo-sidebar button{width:auto;white-space:nowrap;flex:0 0 auto}.mfo-app .mfo-content{padding:15px!important}.mfo-app{padding:12px!important}.mfo-app>header{padding:15px}.mfo-app nav{position:relative;top:auto;overflow-x:auto;flex-wrap:nowrap!important}.mfo-app nav button{white-space:nowrap}.mfo-dashboard{grid-template-columns:1fr}.mfo-metric-grid{grid-template-columns:1fr}.mfo-app section[style*="grid-template-columns"]{min-width:0}}
+
+        .mfo-app{background:radial-gradient(ellipse at 45% -20%,#102d27 0%,#07140f 42%,#050b08 100%)!important;color:#eef8f1!important}
+        .mfo-app>header{background:linear-gradient(110deg,#10271f,#0b1712)!important;border-color:#254638!important}
+        .mfo-app .mfo-content{background:linear-gradient(145deg,#101f19,#0b1511)!important;border-color:#244333!important}
+        .mfo-app .mfo-sidebar{background:linear-gradient(180deg,#0d1d16,#09130f)!important;border-color:#254638!important}
+        .mfo-app .mfo-sidebar button[style*="176b4b"]{background:linear-gradient(100deg,#168653,#126b43)!important;border-color:#43bd7b!important}
+        .mfo-hero{background:linear-gradient(115deg,#102c22,#10251e 60%,#102c24)!important;border-color:#28563e!important}
+        .mfo-metric,.mfo-subpanel{background:linear-gradient(145deg,#14271f,#0d1b15)!important;border-color:#294b39!important}
+        .mfo-menu-toggle{display:none;background:#11251b!important;border:1px solid #315b43!important;color:#e7f6eb!important;border-radius:11px!important;padding:12px 14px!important;margin:10px 0!important;width:100%;text-align:left}
+        .mfo-menu-chevron{margin-left:auto;color:#7cdaa2}
+        .mfo-more-toggle{margin-top:8px!important;border-top:1px solid #254638!important}
+        .mfo-content{min-width:0;overflow:hidden}
+        .mfo-content table{max-width:100%;display:block;overflow-x:auto}
+        .mfo-dashboard-page{display:flex;flex-direction:column;gap:16px}
+        .mfo-dashboard-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(110deg,#11271e,#12251d);border:1px solid #294b39;border-radius:15px;padding:18px}
+        .mfo-dashboard-actions{display:flex;gap:8px;flex-wrap:wrap}
+        .mfo-dashboard-actions button,.mfo-dashboard-link{background:#168653;color:#fff;border:1px solid #43bd7b;border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}
+        .mfo-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+        .mfo-dashboard-lower{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(230px,1fr);gap:13px}
+        .mfo-news-item{display:flex;flex-direction:column;gap:5px;padding:13px 0;border-top:1px solid #294b39}
+        .mfo-news-date{color:#7f9d8b;font-size:11px}
+        .mfo-summary-row{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid #294b39;color:#a9bdae;font-size:13px}
+        .mfo-summary-row strong{color:#eef8f1}
+        @media(max-width:760px){
+          .mfo-workspace{grid-template-columns:minmax(0,1fr)!important}
+          .mfo-menu-toggle{display:flex;align-items:center;gap:10px}
+          .mfo-app .mfo-sidebar{display:none;position:relative;top:auto;min-height:0;flex-direction:column;overflow:visible;flex-wrap:nowrap;width:100%;margin-bottom:10px}
+          .mfo-app .mfo-sidebar.is-open{display:flex}
+          .mfo-app .mfo-sidebar button{width:100%;white-space:normal;flex:0 0 auto}
+          .mfo-sidebar-foot{display:none}
+          .mfo-dashboard-grid,.mfo-dashboard-lower{grid-template-columns:minmax(0,1fr)!important}
+          .mfo-app .mfo-content{padding:15px!important}
+          .mfo-content table{font-size:12px}
+        }
       `}</style>
       <header style={styles.header}>
         <div>
@@ -944,47 +981,20 @@ export default function App() {
             <div style={styles.clubBadge}>{clubeAtual.sigla || 'MFO'}</div>
           </section>}
           <div className="mfo-workspace">
-          <nav className="mfo-sidebar" style={styles.nav}>
+          <button className="mfo-menu-toggle" onClick={() => setMenuAberto(value => !value)} aria-expanded={menuAberto} aria-label="Abrir ou recolher menu"><span>☰</span> Menu do jogo <span className="mfo-menu-chevron">{menuAberto ? '−' : '+'}</span></button>
+          <nav className={`mfo-sidebar ${menuAberto ? 'is-open' : ''}`} style={styles.nav}>
             <span className="mfo-nav-label">MENU PRINCIPAL</span>
-            {abas.map(item => <button key={item} onClick={() => setAba(item)} style={aba === item ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{item === 'Início' ? '⌂' : item === 'Elenco' ? '♟' : item === 'Mercado' ? '⇄' : item === 'Finanças' ? '＄' : item === 'Liga' ? '🏆' : item === 'Táticas' ? '⚽' : '▣'}</span>{item}</button>)}
+            {[
+              ['Visão Geral','Início','⌂'],['Elenco','Elenco','♟'],['Escalação','Táticas','⚽'],
+              ['Partidas','Partidas','◷'],['Competições','Competições','🏆'],['Finanças','Finanças','＄']
+            ].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value || (value === 'Competições' && aba === 'Liga') ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
+            <button className="mfo-more-toggle" onClick={() => setMaisModulosAbertos(value => !value)}><span className="mfo-nav-dot">＋</span>Outros módulos <span className="mfo-menu-chevron">{maisModulosAbertos ? '−' : '+'}</span></button>
+            {maisModulosAbertos && [['Mercado','Mercado','⇄'],['Base','Base','♙'],['Estádio','Estádio','▦'],['Imprensa','Imprensa','▤'],['Rankings','Rankings','★']].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
             <div className="mfo-sidebar-foot">MANAGER<br/>FUTEBOL ONLINE</div>
           </nav>
           <section className="mfo-content" style={styles.panel}>
             <h2>{aba}</h2>
-            {aba === 'Início' ? <div>
-                <div className="mfo-dashboard">
-                  <div className="mfo-hero">
-                    <span style={styles.eyebrow}>CENTRAL DO TREINADOR • TEMPORADA 1</span>
-                    <h2 style={{fontSize:'clamp(25px,4vw,36px)',margin:'13px 0 8px',color:'#f2fff9'}}>Bem-vindo, comandante!</h2>
-                    <p style={{color:'#c1d9e4',maxWidth:520,lineHeight:1.7,margin:0}}>Seu próximo desafio começa aqui. Gerencie o elenco, fortaleça o clube e prepare sua equipe para buscar títulos.</p>
-                    <div style={{display:'flex',gap:9,flexWrap:'wrap',marginTop:20}}>
-                      <button style={styles.primary} onClick={()=>setAba('Elenco')}>⚽ Gerenciar elenco</button>
-                      <button style={styles.secondary} onClick={()=>setAba('Mercado')}>⌕ Explorar mercado</button>
-                    </div>
-                  </div>
-                  <div className="mfo-subpanel">
-                    <span style={styles.eyebrow}>IDENTIDADE DO CLUBE</span>
-                    <div style={{display:'flex',alignItems:'center',gap:13,marginTop:18}}>
-                      <div style={{width:58,height:58,borderRadius:16,display:'grid',placeItems:'center',background:'linear-gradient(135deg,#2ab783,#155b52)',color:'#fff',fontWeight:900,fontSize:18,border:'1px solid #62d4a4'}}>{clubeAtual?.sigla||'MFO'}</div>
-                      <div><strong style={{fontSize:18}}>{clubeAtual?.nome||'Seu clube'}</strong><p style={{...styles.mutedSmall,margin:'5px 0 0'}}>{clubeAtual?.cidade||'Cidade'} • {clubeAtual?.pais||'Brasil'}</p></div>
-                    </div>
-                    <div style={{height:1,background:'#29445a',margin:'18px 0'}}/>
-                    <p style={styles.mutedSmall}>ESTÁDIO</p><strong>{clubeAtual?.estadio||'Estádio a definir'}</strong>
-                    <p style={{...styles.mutedSmall,marginTop:7}}>{Number(clubeAtual?.capacidade||10000).toLocaleString('pt-BR')} lugares</p>
-                  </div>
-                </div>
-                <div className="mfo-metric-grid" style={{marginTop:15}}>
-                  <div className="mfo-metric"><span style={styles.eyebrow}>ORÇAMENTO DO CLUBE</span><strong style={{color:'#78e2b2'}}>R$ {Number(clubeAtual?.orcamento||0).toLocaleString('pt-BR',{maximumFractionDigits:0})}</strong><span style={styles.mutedSmall}>Saldo disponível</span></div>
-                  <div className="mfo-metric"><span style={styles.eyebrow}>TEMPORADA</span><strong>01</strong><span style={styles.mutedSmall}>Preparação em andamento</span></div>
-                  <div className="mfo-metric"><span style={styles.eyebrow}>ESTRUTURA</span><strong>{Number(clubeAtual?.stadium_level||1)} / 4</strong><span style={styles.mutedSmall}>Nível do estádio</span></div>
-                </div>
-                <div className="mfo-subpanel" style={{marginTop:15}}>
-                  <span style={styles.eyebrow}>ACESSO RÁPIDO</span>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,marginTop:13}}>
-                    {[['👥','Elenco','Elenco'],['📋','Táticas','Táticas'],['🏆','Competições','Liga'],['📅','Agenda','Liga'],['💰','Finanças','Finanças'],['🏟️','Estádio','Estádio']].map(([icone,titulo,destino])=><button key={titulo} onClick={()=>setAba(destino)} style={{...styles.secondary,textAlign:'left',padding:14,background:'#102236',border:'1px solid #29445a'}}><span style={{fontSize:19,display:'block',marginBottom:7}}>{icone}</span><strong>{titulo}</strong><span style={{display:'block',fontSize:11,color:'#9bb0c2',marginTop:4}}>Abrir módulo →</span></button>)}
-                  </div>
-                </div>
-              </div> :
+            {aba === 'Início' ? <DashboardModule supabase={supabase} club={clubeAtual} onNavigate={setAba} /> :
               aba === 'Elenco' ? <div>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
                   <div>
