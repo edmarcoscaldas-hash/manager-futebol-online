@@ -7,7 +7,7 @@ const input = { width:'100%', boxSizing:'border-box', padding:12, borderRadius:9
 const th = { textAlign:'left', padding:'11px 9px', borderBottom:'1px solid #34465f', color:'#67e8a5', fontSize:12, whiteSpace:'nowrap' };
 const td = { padding:'11px 9px', borderBottom:'1px solid #26364d', fontSize:13, whiteSpace:'nowrap' };
 
-export default function LeagueModule({ supabase, clubeAtual }) {
+export default function LeagueModule({ supabase, clubeAtual, initialTab = 'classificacao' }) {
   const [ligas, setLigas] = useState([]);
   const [ligaId, setLigaId] = useState(clubeAtual?.league_id || '');
   const [classificacao, setClassificacao] = useState([]);
@@ -15,7 +15,8 @@ export default function LeagueModule({ supabase, clubeAtual }) {
   const [clubes, setClubes] = useState([]);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
-  const [abaInterna, setAbaInterna] = useState('classificacao');
+  const [abaInterna, setAbaInterna] = useState(initialTab);
+  useEffect(() => { setAbaInterna(initialTab); }, [initialTab]);
   const [simulando, setSimulando] = useState('');
   const [mensagemJogo, setMensagemJogo] = useState('');
 
