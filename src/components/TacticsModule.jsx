@@ -126,12 +126,23 @@ export default function TacticsModule({ club }) {
   }
 
   if(loading)return <p style={styles.muted}>Carregando elenco e táticas...</p>;
-  return <div>
-    <p style={styles.muted}>Configure a equipe principal. A escalação padrão será usada como base para preparar cada partida.</p>
+  return <div className="mfo-tactics-layout">
+    <style>{`
+      .mfo-tactics-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.85fr);gap:14px;align-items:start}
+      .mfo-tactics-layout>.mfo-tactics-intro,.mfo-tactics-layout>p,.mfo-tactics-layout>section:first-of-type{grid-column:1/-1}
+      .mfo-tactics-config{grid-column:2;grid-row:2}
+      .mfo-tactics-pitch{grid-column:1;grid-row:2 / span 4}
+      .mfo-tactics-pitch>div[role="img"]{max-width:none!important;height:560px!important}
+      .mfo-tactics-bench,.mfo-tactics-responsibilities{grid-column:2}
+      .mfo-tactics-layout>div:last-child{grid-column:2;display:flex;flex-wrap:wrap}
+      @media(max-width:900px){.mfo-tactics-layout{grid-template-columns:minmax(0,1fr)}.mfo-tactics-layout>*{grid-column:1!important;grid-row:auto!important}.mfo-tactics-pitch>div[role="img"]{height:480px!important}}
+      @media(max-width:560px){.mfo-tactics-pitch>div[role="img"]{height:390px!important}}
+    `}</style>
+    <p className="mfo-tactics-intro" style={styles.muted}>Configure a equipe principal. A escalação padrão será usada como base para preparar cada partida.</p>
     {error&&<p style={{color:'#ff9c9c'}}>{error}</p>}
     {message&&<p style={{color:'#80e0b2'}}>{message}</p>}
     {players.length<11?<section style={styles.panel}><h3>Elenco insuficiente</h3><p style={styles.muted}>Você precisa ter pelo menos 11 jogadores profissionais no clube para montar a escalação.</p></section>:<>
-      <section style={styles.panel}>
+      <section className="mfo-tactics-config" style={styles.panel}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12}}>
           <label style={styles.muted}>Formação<select style={styles.input} value={config.formation} onChange={e=>{setCriterion('overall');generateLineup(e.target.value,'overall')}}>{FORMATIONS.map(x=><option key={x}>{x}</option>)}</select></label>
           <label style={styles.muted}>Critério de escalação<select style={styles.input} value={criterion} onChange={e=>setCriterion(e.target.value)}><option value="overall">Maior overall</option><option value="energy">Maior energia</option></select></label>
@@ -139,7 +150,7 @@ export default function TacticsModule({ club }) {
           <label style={styles.muted}>Mentalidade<select style={styles.input} value={config.mentality} onChange={e=>update('mentality',e.target.value)}>{[{value:'very_defensive',label:'Muito defensiva'},{value:'defensive',label:'Defensiva'},{value:'normal',label:'Normal'},{value:'offensive',label:'Ofensiva'},{value:'very_offensive',label:'Muito ofensiva'}].map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></label>
         </div>
       </section>
-      <section style={styles.panel}>
+      <section className="mfo-tactics-pitch" style={styles.panel}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <h3 style={{margin:0}}>Prévia tática • ${config.formation}</h3>
           <span style={styles.muted}>A posição dos jogadores segue a ordem dos titulares</span>
@@ -181,13 +192,13 @@ export default function TacticsModule({ club }) {
         </div>}
       </section>
       <p style={styles.muted}>Titulares definidos: {config.starters.filter(Boolean).length}/11</p>
-      <section style={styles.panel}>
+      <section className="mfo-tactics-bench" style={styles.panel}>
         <h3 style={{marginTop:0}}>Banco de reservas ({config.bench.filter(Boolean).length}/7)</h3>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
           {config.bench.map((id,i)=><label key={i} style={styles.muted}>Reserva {i+1}{playerSelect(id,v=>update('bench',config.bench.map((x,j)=>j===i?v:x)),selected.filter(x=>x!==id))}</label>)}
         </div>
       </section>
-      <section style={styles.panel}>
+      <section className="mfo-tactics-responsibilities" style={styles.panel}>
         <h3 style={{marginTop:0}}>Responsáveis</h3>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:12}}>
           {[[ 'captain_player_id','Capitão'],['penalty_taker_player_id','Pênaltis'],['free_kick_taker_player_id','Faltas'],['corner_taker_player_id','Escanteios']].map(([key,label])=><label key={key} style={styles.muted}>{label}{playerSelect(config[key],v=>update(key,v),[],players.filter(p=>selected.includes(p.id)))}</label>)}
