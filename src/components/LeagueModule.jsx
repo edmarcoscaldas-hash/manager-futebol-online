@@ -16,6 +16,8 @@ export default function LeagueModule({ supabase, clubeAtual }) {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [abaInterna, setAbaInterna] = useState('classificacao');
+  const [simulando, setSimulando] = useState('');
+  const [mensagemJogo, setMensagemJogo] = useState('');
 
   useEffect(() => {
     let ativo = true;
@@ -73,6 +75,34 @@ export default function LeagueModule({ supabase, clubeAtual }) {
   const rodadas = useMemo(() => [...new Set(partidas.map(p => p.round_number))].sort((a,b)=>a-b), [partidas]);
   const partidasFinalizadas = partidas.filter(p => p.status === 'finished').length;
 
+  async function simularPartida(partida) {
+    if (!partida?.id || simulando) return;
+    setSimulando(partida.id);
+    setMensagemJogo('');
+    const { data, error } = await supabase.rpc('simulate_match', { p_match_id: partida.id });
+    if (error) {
+      setMensagemJogo('Não foi possível simular a partida: ' + error.message);
+      setSimulando('');
+      return;
+    }
+    const [standingsRes, matchesRes] = await Promise.all([
+      supabase.from('league_standings').select('*').eq('league_id', ligaId)
+        .order('points', { ascending:false })
+        .order('goal_difference', { ascending:false })
+        .order('goals_for', { ascending:false }),
+      supabase.from('matches').select('*').eq('league_id', ligaId)
+        .order('round_number').order('match_date')
+    ]);
+    if (standingsRes.error) setMensagemJogo('Partida finalizada, mas houve erro ao atualizar a classificação: ' + standingsRes.error.message);
+    else setClassificacao(standingsRes.data || []);
+    if (matchesRes.error) setMensagemJogo('Partida finalizada, mas houve erro ao atualizar o calendário: ' + matchesRes.error.message);
+    else setPartidas(matchesRes.data || []);
+    if (!standingsRes.error && !matchesRes.error) {
+      setMensagemJogo('Partida simulada! Placar: ' + data.home_score + ' × ' + data.away_score);
+    }
+    setSimulando('');
+  }
+
   return <div>
     <p style={muted}>Acompanhe os campeonatos cadastrados no MFO, a classificação calculada pelos resultados e a agenda de partidas.</p>
     {erro && <p style={{background:'#3a1e25',color:'#fecaca',padding:12,borderRadius:9}}>{erro}</p>}
@@ -94,6 +124,7 @@ export default function LeagueModule({ supabase, clubeAtual }) {
       <button style={{background:abaInterna==='classificacao'?'#176b4b':'#26364d',color:'#fff',border:0,borderRadius:8,padding:'10px 14px',cursor:'pointer'}} onClick={()=>setAbaInterna('classificacao')}>Classificação</button>
       <button style={{background:abaInterna==='jogos'?'#176b4b':'#26364d',color:'#fff',border:0,borderRadius:8,padding:'10px 14px',cursor:'pointer'}} onClick={()=>setAbaInterna('jogos')}>Calendário e jogos</button>
     </div>
+    {mensagemJogo && <p style={{background:'#17263b',color:'#dbe7f5',padding:12,borderRadius:9,marginTop:12}}>{mensagemJogo}</p>}
     {carregando ? <p style={muted}>Carregando dados do campeonato...</p> : abaInterna==='classificacao' ? <section style={card}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap'}}>
         <h3 style={{margin:'0 0 12px'}}>Tabela de classificação</h3>
@@ -117,6 +148,11 @@ export default function LeagueModule({ supabase, clubeAtual }) {
             <span style={{background:'#17263b',borderRadius:8,padding:'7px 10px',fontWeight:800,whiteSpace:'nowrap'}}>{p.status==='finished'?p.home_score+' × '+p.away_score:'VS'}</span>
             <strong style={{fontSize:13}}>{nomeClube(p.away_club_id)}</strong>
             <span style={{...small,gridColumn:'1 / -1',textAlign:'center'}}>{p.match_date?new Date(p.match_date).toLocaleString('pt-BR'):'Data a definir'} • {p.status==='finished'?'Finalizado':p.status==='live'?'Em andamento':p.status==='cancelled'?'Cancelado':'Agendado'}</span>
+            {p.status==='scheduled' && (p.home_club_id===clubeAtual?.id || p.away_club_id===clubeAtual?.id) && <div style={{gridColumn:'1 / -1',textAlign:'center',marginTop:4}}>
+              <button onClick={()=>simularPartida(p)} disabled={Boolean(simulando)} style={{background:'#176b4b',color:'#fff',border:0,borderRadius:8,padding:'8px 13px',cursor:'pointer',fontWeight:700}}>
+                {simulando===p.id?'Simulando...':'⚽ Simular partida'}
+              </button>
+            </div>}
           </div>)}
         </div>)}
     </section>}
