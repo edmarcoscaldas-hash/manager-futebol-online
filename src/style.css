@@ -31,3 +31,9 @@ button {
 button:hover {
   background: #25634d;
 }
+
+
+/* MFO responsive game layout */
+html,body,#root{min-height:100%;width:100%;margin:0}
+body{background:#050b08;color:#eef8f1}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #43bd7b;outline-offset:2px}
