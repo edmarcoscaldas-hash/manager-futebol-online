@@ -15,6 +15,10 @@ export default function App() {
   const [demo, setDemo] = useState(false);
   const [clubes, setClubes] = useState([]);
   const [carregandoClubes, setCarregandoClubes] = useState(false);
+  const [carreira, setCarreira] = useState(null);
+  const [clubesDisponiveis, setClubesDisponiveis] = useState([]);
+  const [clubeSelecionado, setClubeSelecionado] = useState('');
+  const [iniciandoCarreira, setIniciandoCarreira] = useState(false);
   const [nomeClube, setNomeClube] = useState('');
   const [sigla, setSigla] = useState('');
   const [cidade, setCidade] = useState('');
@@ -92,22 +96,63 @@ export default function App() {
 
   useEffect(() => {
     let ativo = true;
-    async function carregarClubes() {
+    async function carregarCarreira() {
       if (!session || !supabase) {
         setClubes([]);
+        setCarreira(null);
+        setClubesDisponiveis([]);
         return;
       }
       setCarregandoClubes(true);
-      const { data, error } = await supabase
-        .from('clubs')
-        .select('*')
-        .order('created_at', { ascending: true });
+      setErroClube('');
+      const nomeTreinador = session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Treinador';
+      const { data: careerId, error: careerError } = await supabase.rpc('create_manager_career', {
+        p_manager_name: nomeTreinador
+      });
       if (!ativo) return;
-      if (error) setErroClube('Não foi possível carregar seus clubes: ' + error.message);
-      else setClubes(data || []);
+      if (careerError) {
+        setErroClube('Não foi possível carregar sua carreira: ' + careerError.message);
+        setCarregandoClubes(false);
+        return;
+      }
+      setCarreira({ id: careerId, manager_name: nomeTreinador });
+      const { data: empregos, error: empregoError } = await supabase
+        .from('manager_employments')
+        .select('id,club_id,salary,contract_end,status')
+        .eq('career_id', careerId)
+        .eq('status', 'active')
+        .limit(1);
+      if (!ativo) return;
+      if (empregoError) {
+        setErroClube('Não foi possível consultar seu clube atual: ' + empregoError.message);
+        setCarregandoClubes(false);
+        return;
+      }
+      if (empregos?.length) {
+        const { data: club, error: clubError } = await supabase
+          .from('clubs').select('*').eq('id', empregos[0].club_id).single();
+        if (!ativo) return;
+        if (clubError) setErroClube('Não foi possível carregar o clube da carreira: ' + clubError.message);
+        else setClubes(club ? [club] : []);
+        setClubesDisponiveis([]);
+      } else {
+        setClubes([]);
+        const [aiRes, ownRes] = await Promise.all([
+          supabase.from('clubs').select('id,nome,pais,cidade,league_id,is_ai').eq('is_ai', true).order('nome'),
+          supabase.from('clubs').select('id,nome,pais,cidade,league_id,is_ai').eq('owner_id', session.user.id).eq('is_ai', false).order('nome')
+        ]);
+        if (!ativo) return;
+        if (aiRes.error || ownRes.error) {
+          setErroClube('Não foi possível carregar os clubes disponíveis: ' + (aiRes.error || ownRes.error).message);
+        } else {
+          const options = [...(ownRes.data || []), ...(aiRes.data || [])];
+          setClubesDisponiveis(options);
+          setClubeSelecionado(options[0]?.id || '');
+        }
+      }
       setCarregandoClubes(false);
     }
-    carregarClubes();
+    carregarCarreira();
     return () => { ativo = false; };
   }, [session]);
 
@@ -595,6 +640,33 @@ export default function App() {
     setCarregando(false);
   }
 
+  async function iniciarVinculoComClube(clubId, salary = 0) {
+    if (!clubId || !supabase) return false;
+    setIniciandoCarreira(true);
+    setErroClube('');
+    const { error } = await supabase.rpc('start_manager_employment', {
+      p_club_id: clubId,
+      p_salary: salary,
+      p_contract_months: 12
+    });
+    if (error) {
+      setErroClube('Não foi possível assumir este clube: ' + error.message);
+      setIniciandoCarreira(false);
+      return false;
+    }
+    const { data, error: clubError } = await supabase.from('clubs').select('*').eq('id', clubId).single();
+    if (clubError) {
+      setErroClube('Vínculo criado, mas não foi possível carregar o clube: ' + clubError.message);
+      setIniciandoCarreira(false);
+      return false;
+    }
+    setClubes([data]);
+    setClubesDisponiveis([]);
+    setMensagem('Carreira iniciada! Você agora comanda ' + data.nome + '.');
+    setIniciandoCarreira(false);
+    return true;
+  }
+
   async function criarClube(event) {
     event.preventDefault();
     if (!session) return;
@@ -617,13 +689,15 @@ export default function App() {
     if (error) {
       setErroClube('Não foi possível criar o clube: ' + error.message);
     } else {
-      setClubes([data]);
-      setMensagem('Clube criado e salvo no banco de dados!');
-      setNomeClube('');
-      setSigla('');
-      setCidade('');
-      setEstadio('');
-      setCapacidade('10000');
+      const iniciou = await iniciarVinculoComClube(data.id);
+      if (iniciou) {
+        setMensagem('Clube criado e carreira iniciada com sucesso!');
+        setNomeClube('');
+        setSigla('');
+        setCidade('');
+        setEstadio('');
+        setCapacidade('10000');
+      }
     }
     setCarregando(false);
   }
@@ -828,17 +902,33 @@ export default function App() {
         <section style={styles.panel}><p>Carregando seus clubes...</p></section>
       ) : session && !clubeAtual ? (
         <section style={styles.panel}>
-          <span style={styles.eyebrow}>PRIMEIRO PASSO DO TREINADOR</span>
-          <h2>Crie seu clube</h2>
-          <p style={styles.muted}>Cadastre a identidade do seu time. As informações serão salvas na sua conta.</p>
-          <form onSubmit={criarClube} style={styles.formGrid}>
-            <label>Nome do clube<input style={styles.input} value={nomeClube} onChange={e => setNomeClube(e.target.value)} placeholder="Ex.: União Caçapavense" required /></label>
-            <label>Sigla<input style={styles.input} value={sigla} onChange={e => setSigla(e.target.value)} placeholder="Ex.: UCA" maxLength={5} required /></label>
-            <label>Cidade<input style={styles.input} value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Sua cidade" required /></label>
-            <label>Estádio<input style={styles.input} value={estadio} onChange={e => setEstadio(e.target.value)} placeholder="Nome do estádio" /></label>
-            <label>Capacidade inicial<input style={styles.input} type="number" value="10000" readOnly /></label>
-            <button style={styles.primary} disabled={carregando}>{carregando ? 'Salvando...' : 'Criar meu clube'}</button>
-          </form>
+          <span style={styles.eyebrow}>MERCADO DE TREINADORES • INÍCIO DE CARREIRA</span>
+          <h2>Escolha seu primeiro desafio</h2>
+          <p style={styles.muted}>Você pode assumir um clube existente do universo do MFO ou começar do zero criando sua própria equipe. Cada treinador comanda apenas um clube por vez.</p>
+          <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
+            <h3>Assumir um clube existente</h3>
+            <label style={styles.filterLabel}>Clube disponível
+              <select style={styles.input} value={clubeSelecionado} onChange={e => setClubeSelecionado(e.target.value)}>
+                {clubesDisponiveis.map(c => <option key={c.id} value={c.id}>{c.nome} • {c.pais || 'País não informado'}{c.is_ai ? ' • IA' : ' • Meu clube'}</option>)}
+              </select>
+            </label>
+            <button style={{...styles.primary,marginTop:12}} disabled={!clubeSelecionado || iniciandoCarreira} onClick={() => iniciarVinculoComClube(clubeSelecionado)}>
+              {iniciandoCarreira ? 'Assumindo clube...' : 'Assumir este clube'}
+            </button>
+            <p style={styles.mutedSmall}>Os clubes da IA mantêm seu cadastro original. Sua carreira registra apenas o vínculo profissional.</p>
+          </div>
+          <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18,marginTop:16}}>
+            <h3>Criar um clube do zero</h3>
+            <p style={styles.muted}>Comece com estádio de 10 mil lugares e orçamento inicial de R$ 5 milhões.</p>
+            <form onSubmit={criarClube} style={styles.formGrid}>
+              <label>Nome do clube<input style={styles.input} value={nomeClube} onChange={e => setNomeClube(e.target.value)} placeholder="Ex.: União Caçapavense" required /></label>
+              <label>Sigla<input style={styles.input} value={sigla} onChange={e => setSigla(e.target.value)} placeholder="Ex.: UCA" maxLength={5} required /></label>
+              <label>Cidade<input style={styles.input} value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Sua cidade" required /></label>
+              <label>Estádio<input style={styles.input} value={estadio} onChange={e => setEstadio(e.target.value)} placeholder="Nome do estádio" /></label>
+              <label>Capacidade inicial<input style={styles.input} type="number" value="10000" readOnly /></label>
+              <button style={styles.primary} disabled={carregando || iniciandoCarreira}>{carregando ? 'Salvando...' : 'Criar clube e iniciar carreira'}</button>
+            </form>
+          </div>
           {erroClube && <p style={styles.error}>{erroClube}</p>}
           {mensagem && <p style={styles.notice}>{mensagem}</p>}
         </section>
