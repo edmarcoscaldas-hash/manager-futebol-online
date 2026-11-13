@@ -827,8 +827,7 @@ export default function App() {
     return (
       <main style={styles.page}>
         <section style={styles.authCard}>
-          <div style={{fontSize: 42}}>⚽</div>
-          <h1 style={styles.heading}>Manager Futebol Online</h1>
+          <img src="/Futmanagerbr-logo.png" alt="Futmanagerbr — Monte seu time. Faça história." style={{display:"block",width:"min(260px, 75vw)",height:"auto",maxHeight:260,objectFit:"contain",margin:"0 auto 12px"}} />
           <p style={styles.muted}>Entre para administrar seu clube e disputar campeonatos.</p>
           <div style={styles.tabs}>
             <button style={modo === 'login' ? styles.activeTab : styles.tab} onClick={() => {setModo('login'); setMensagem('');}}>Entrar</button>
