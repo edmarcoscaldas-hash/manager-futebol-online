@@ -123,3 +123,60 @@ Esta rodada acrescenta evidências para algumas competições, mas não fecha a 
 | Liga de Expansión MX | 16 | Provisório; confirmar fonte oficial |
 
 **Importante:** os totais acima são contagens de participantes, não uma autorização para gerar calendários. A programação deve respeitar playoffs, grupos, fases finais, datas de copa e regras próprias. O calendário atual do MFO permanece intacto até a migração ser aprovada.
+
+
+## 8. Nova rodada de validação — África, Ásia, Argentina e Oriente Médio (13/11/2026)
+
+### Arábia Saudita
+- **Roshn Saudi League 2026/27: 18 clubes, 34 rodadas e 306 partidas.** A Saudi Pro League publicou o calendário oficial e informa explicitamente os 306 jogos e 34 rodadas. Fonte oficial: https://www.spl.com.sa/en/news/spl-announces-2026-27-rsl-fixture-schedule
+- **Saudi First Division 2026/27: 18 clubes.** A página oficial da federação lista 18 clubes na Premier Division e 18 na First Division para 2026/27. Fonte oficial: https://www.saff.com.sa/en/teams.php?id=1
+- A lista de clubes da federação também mostra níveis inferiores, mas não significa que todos devam ser incorporados ao escopo MFO. A divisão escolhida precisa ser definida e seus regulamentos consultados. Página oficial: https://www.saff.com.sa/en/about.php?id=2&type=2
+
+### Argentina
+- **Liga Profesional 2026: 30 clubes em duas zonas de 15.** A AFA publicou os grupos A e B do Apertura e Clausura. O formato não deve ser modelado como liga única de 30 em turno e returno; é preciso representar as fases Apertura/Clausura, datas interzonais e mata-mata conforme regulamento. Fonte oficial AFA: https://www.afa.com.ar/es/posts/sorteo-de-la-liga-profesional-2026-se-definen-los-grupos-del-torneo-apertura-y-torneo-clausura
+- **Primera Nacional 2026: 36 clubes em duas zonas de 18.** A estrutura está descrita em fonte secundária especializada; falta anexar o regulamento oficial AFA antes de programar o calendário. Fonte secundária: https://ligasargentinas.com.ar/2026
+- Consequência para o MFO: a primeira divisão argentina deve deixar de ser tratada como grupo único; a segunda divisão exige duas zonas, além de regras de promoção/rebaixamento e playoffs.
+
+### Marrocos
+- **Botola Pro 1 Inwi: 16 clubes.**
+- **Botola Pro 2 Inwi: 16 clubes.**
+- A LNFP, entidade do futebol profissional marroquino vinculada à FRMF, apresenta explicitamente 16 clubes em cada uma das duas divisões profissionais. Fonte oficial: https://lnfp.ma/
+- Para um grupo único em turno e returno, a conta teórica é 30 jogos por clube e 240 partidas por divisão. Confirmar eventuais alterações de regulamento antes de gerar a tabela final.
+
+### Egito
+- **Egyptian Premier League 2026/27: 20 clubes.** A primeira fase é disputada em turno único: 190 jogos. Depois, os seis primeiros formam o grupo do título (15 jogos) e os outros 14 disputam o grupo de permanência (91 jogos). Total aritmético: 296 jogos, sujeito à validação do regulamento e de eventuais partidas adicionais. A fonte consultada informa a estrutura e os participantes promovidos/rebaixados. Fonte jornalística especializada: https://english.ahram.org.eg/UI/Front/Inner.aspx?NewsContentID=573720
+- A mesma fonte informa que a liga pretende retornar a 18 clubes em turno e returno em 2027/28. Portanto, não transportar o formato 2026/27 automaticamente para a temporada seguinte.
+- **Segunda divisão egípcia:** ainda sem quantidade única aprovada para o MFO. A estrutura publicada pela EFA para 2025/26 tem Segunda Divisão A e B, com grupos; é necessário confirmar a organização 2026/27 antes de importar.
+
+### Emirados Árabes Unidos
+- **ADNOC Pro League: 14 clubes** na lista oficial de clubes da UAE Pro League. Fonte oficial: https://www.uaeproleague.ae/en/clubs
+- A página de clubes não basta para comprovar, isoladamente, o calendário completo 2026/27 nem a quantidade de participantes da First Division. Esses itens permanecem pendentes.
+- Não usar 10 clubes no banco como representação final da primeira divisão.
+
+### Tunísia
+- **Ligue 1: 16 clubes**, conforme a lista pública de participantes 2026/27 consultada em fonte não oficial. A fonte indica 30 jogos por clube em turno e returno.
+- **Ligue 2:** a mesma base apresenta uma competição dividida em grupos regionais e uma pirâmide com 28 clubes, mas a informação precisa ser confirmada pela Federação Tunisiana antes de definir a modelagem. Fontes não oficiais: https://www.national-football-teams.com/old/leagues/190/2026_1/Untitled.html e https://www.footlink.tn/competitions
+- Status: manter os números como pistas para pesquisa, não como autorização de importação.
+
+### África do Sul
+- A PSL confirmou as datas da temporada 2026/27 da Betway Premiership e da Motsepe Foundation Championship, além de copas e playoffs de promoção. A página consultada não fornece, no trecho disponível, uma declaração explícita e consolidada do número de participantes da Championship. Fonte oficial: https://www.psl.co.za/news/article/5615294-psl-confirms-the-202627-season-calend
+- A lista de fixtures e o regulamento da temporada devem ser usados para fechar o total de clubes e o formato de cada divisão. Não alterar os números atuais com base apenas no anúncio do calendário.
+
+### Quadro de atualização desta rodada
+
+| Competição | Participantes | Formato / observação | Confiança |
+|---|---:|---|---|
+| Saudi Pro League 2026/27 | 18 | 34 rodadas, 306 jogos | Oficial |
+| Saudi First Division 2026/27 | 18 | Regulamento e calendário a conferir | Oficial para contagem |
+| Argentina Liga Profesional 2026 | 30 | Duas zonas de 15; Apertura/Clausura | Oficial AFA |
+| Argentina Primera Nacional 2026 | 36 | Duas zonas de 18 | Secundária; regulamento AFA pendente |
+| Botola Pro 1 | 16 | Turno e returno a confirmar no regulamento | Oficial LNFP |
+| Botola Pro 2 | 16 | Formato detalhado pendente | Oficial LNFP |
+| Egyptian Premier League 2026/27 | 20 | Primeira fase + grupos finais | Fonte especializada |
+| UAE ADNOC Pro League | 14 | Calendário 2026/27 pendente | Oficial UAE Pro League |
+| Tunisia Ligue 1 2026/27 | 16 | 30 jogos por clube segundo fonte secundária | Secundária |
+| Tunisia Ligue 2 2026/27 | 28 (provisório) | Grupos regionais; confirmar federação | Secundária |
+| South Africa Premiership | — | Calendário confirmado; contagem a fechar | Oficial PSL |
+| South Africa Championship | — | Calendário confirmado; contagem a fechar | Oficial PSL |
+
+**Decisão de implementação:** estes dados entram no inventário de validação, não diretamente no banco. O MFO deverá suportar competições com grupos, fases Apertura/Clausura, playoffs, ligas de turno único e divisões geográficas. Só depois de validar o regulamento e a lista de participantes de cada temporada será seguro gerar calendários específicos.
