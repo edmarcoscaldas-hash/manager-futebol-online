@@ -53,6 +53,7 @@ const empty = {formation:'4-3-3',tactical_style:'balanced',mentality:'normal',ca
 export default function TacticsModule({ club }) {
   const [players,setPlayers]=useState([]);
   const [criterion,setCriterion]=useState('overall');
+  const [activeSlot,setActiveSlot]=useState(null);
   const [config,setConfig]=useState(empty);
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
@@ -155,20 +156,31 @@ export default function TacticsModule({ club }) {
             const p=playerMap.get(id);
             const point=pitchPositions[i];
             if(!point)return null;
-            return <div key={i} title={p? p.nome+' • '+p.overall : 'Titular '+(i+1)} style={{position:'absolute',left:point.x+'%',top:point.y+'%',transform:'translate(-50%,-50%)',width:76,maxWidth:'18%',textAlign:'center',zIndex:2}}>
-              <div style={{width:34,height:34,margin:'0 auto 3px',display:'grid',placeItems:'center',borderRadius:'50%',background:p?'#f5c542':'#64748b',border:'2px solid #fff',color:'#172033',fontSize:12,fontWeight:900,boxShadow:'0 2px 8px #0008'}}>{p?.overall ?? '—'}</div>
-              <div style={{fontSize:10,fontWeight:800,color:'#fff',textShadow:'0 1px 3px #000',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p?.nome || 'Vaga '+(i+1)}</div>
-            </div>;
+            const roles = (FORMATION_ROLES[config.formation] || FORMATION_ROLES['4-3-3'])[i] || [];
+            return <button key={i} type="button" onClick={()=>setActiveSlot(i)} title={p ? p.nome+' • '+p.overall : 'Escolher '+roles.join(' / ')} style={{position:'absolute',left:point.x+'%',top:point.y+'%',transform:'translate(-50%,-50%)',width:82,maxWidth:'20%',textAlign:'center',zIndex:2,background:'transparent',border:activeSlot===i?'2px solid #f5c542':'2px solid transparent',borderRadius:10,padding:2,cursor:'pointer',color:'#fff'}}>
+              <div style={{width:34,height:34,margin:'0 auto 3px',display:'grid',placeItems:'center',borderRadius:'50%',background:p?'#f5c542':'#64748b',border:'2px solid #fff',color:'#172033',fontSize:12,fontWeight:900,boxShadow:'0 2px 8px #0008'}}>{p?.overall ?? '＋'}</div>
+              <div style={{fontSize:10,fontWeight:800,color:'#fff',textShadow:'0 1px 3px #000',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p?.nome || roles[0] || 'Vaga '+(i+1)}</div>
+            </button>;
           })}
         </div>
-        <p style={{...styles.muted,textAlign:'center',marginBottom:0}}>Campo ilustrativo: ajuste os titulares abaixo para atualizar a prévia.</p>
+        <p style={{...styles.muted,textAlign:'center',marginBottom:0}}>Clique em qualquer jogador ou posição no campo para escolher quem vai jogar ali.</p>
+        {activeSlot!==null && <div style={{marginTop:14,background:'#0b1725',border:'1px solid #35516a',borderRadius:10,padding:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+            <strong>Escolher jogador • {(FORMATION_ROLES[config.formation] || FORMATION_ROLES['4-3-3'])[activeSlot]?.join(' / ')}</strong>
+            <button type='button' onClick={()=>setActiveSlot(null)} style={{...styles.button,padding:'6px 10px'}}>Fechar</button>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:8,marginTop:12}}>
+            {players.filter(player=>{
+              const roles=(FORMATION_ROLES[config.formation] || FORMATION_ROLES['4-3-3'])[activeSlot] || [];
+              const pos=(player.posicao||'').toLowerCase();
+              return roles.some(role=>pos.includes(role.toLowerCase())) && (!selected.includes(player.id) || player.id===config.starters[activeSlot]);
+            }).sort((a,b)=>criterion==='energy' ? Number(b.energia??100)-Number(a.energia??100) || Number(b.overall||0)-Number(a.overall||0) : Number(b.overall||0)-Number(a.overall||0) || Number(b.energia??100)-Number(a.energia??100)).map(player=><button key={player.id} type='button' onClick={()=>{setConfig(old=>({...old,starters:old.starters.map((id,index)=>index===activeSlot?player.id:id)}));setActiveSlot(null);}} style={{...styles.input,textAlign:'left',cursor:'pointer'}}>{player.nome} • OVR {player.overall} • EN {player.energia??100}{player.is_star?' ★':''}</button>)}
+            {players.filter(player=>{const roles=(FORMATION_ROLES[config.formation] || FORMATION_ROLES['4-3-3'])[activeSlot] || [];return roles.some(role=>(player.posicao||'').toLowerCase().includes(role.toLowerCase())) && (!selected.includes(player.id)||player.id===config.starters[activeSlot]);}).length===0 && <span style={styles.muted}>Não há outros jogadores disponíveis para esta posição.</span>}
+          </div>
+          {config.starters[activeSlot] && <button type='button' onClick={()=>{setConfig(old=>({...old,starters:old.starters.map((id,index)=>index===activeSlot?'':id)}));setActiveSlot(null);}} style={{...styles.button,marginTop:10,background:'#7a3030',borderColor:'#a34a4a'}}>Remover jogador da posição</button>}
+        </div>}
       </section>
-      <section style={styles.panel}>
-        <h3 style={{marginTop:0}}>Time titular ({config.starters.filter(Boolean).length}/11)</h3>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
-          {config.starters.map((id,i)=><label key={i} style={styles.muted}>Titular {i+1}{playerSelect(id,v=>update('starters',config.starters.map((x,j)=>j===i?v:x)),selected.filter(x=>x!==id))}</label>)}
-        </div>
-      </section>
+      <p style={styles.muted}>Titulares definidos: {config.starters.filter(Boolean).length}/11</p>
       <section style={styles.panel}>
         <h3 style={{marginTop:0}}>Banco de reservas ({config.bench.filter(Boolean).length}/7)</h3>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
