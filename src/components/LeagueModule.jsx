@@ -81,30 +81,49 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
 
   async function simularPartida(partida) {
     if (!partida?.id || simulando) return;
-    setSimulando(partida.id);
-    setMensagemJogo('');
-    const { data, error } = await supabase.rpc('simulate_match', { p_match_id: partida.id });
-    if (error) {
-      setMensagemJogo('Não foi possível simular a partida: ' + error.message);
-      setSimulando('');
+    if (partida.status !== 'scheduled') {
+      setMensagemJogo('Esta partida não está agendada ou já foi processada.');
       return;
     }
-    const [standingsRes, matchesRes] = await Promise.all([
-      supabase.from('league_standings').select('*').eq('league_id', ligaId)
-        .order('points', { ascending:false })
-        .order('goal_difference', { ascending:false })
-        .order('goals_for', { ascending:false }),
-      supabase.from('matches').select('*').eq('league_id', ligaId)
-        .order('round_number').order('match_date')
-    ]);
-    if (standingsRes.error) setMensagemJogo('Partida finalizada, mas houve erro ao atualizar a classificação: ' + standingsRes.error.message);
-    else setClassificacao(standingsRes.data || []);
-    if (matchesRes.error) setMensagemJogo('Partida finalizada, mas houve erro ao atualizar o calendário: ' + matchesRes.error.message);
-    else setPartidas(matchesRes.data || []);
-    if (!standingsRes.error && !matchesRes.error) {
-      setMensagemJogo('Partida simulada! Placar: ' + data.home_score + ' × ' + data.away_score);
+    if (partida.home_club_id !== clubeAtual?.id && partida.away_club_id !== clubeAtual?.id) {
+      setMensagemJogo('Você só pode solicitar a simulação de partidas do clube que está treinando.');
+      return;
     }
-    setSimulando('');
+
+    setSimulando(partida.id);
+    setMensagemJogo('');
+    try {
+      const { data, error } = await supabase.rpc('simulate_match', { p_match_id: partida.id });
+      if (error) throw error;
+
+      const [standingsRes, matchesRes] = await Promise.all([
+        supabase.from('league_standings').select('*').eq('league_id', ligaId)
+          .order('points', { ascending:false })
+          .order('goal_difference', { ascending:false })
+          .order('goals_for', { ascending:false }),
+        supabase.from('matches').select('*').eq('league_id', ligaId)
+          .order('round_number').order('match_date')
+      ]);
+
+      if (standingsRes.error) throw new Error('Partida processada, mas não foi possível atualizar a classificação: ' + standingsRes.error.message);
+      if (matchesRes.error) throw new Error('Partida processada, mas não foi possível atualizar o calendário: ' + matchesRes.error.message);
+
+      setClassificacao(standingsRes.data || []);
+      setPartidas(matchesRes.data || []);
+
+      const result = Array.isArray(data) ? data[0] : data;
+      const homeScore = result?.home_score;
+      const awayScore = result?.away_score;
+      setMensagemJogo(
+        homeScore !== undefined && awayScore !== undefined
+          ? 'Partida simulada! Placar: ' + homeScore + ' × ' + awayScore
+          : 'Partida processada. Calendário e classificação atualizados.'
+      );
+    } catch (error) {
+      setMensagemJogo('Não foi possível concluir a simulação: ' + (error?.message || 'Erro inesperado.'));
+    } finally {
+      setSimulando('');
+    }
   }
 
   return <div className="mfo-matches">
