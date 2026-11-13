@@ -915,6 +915,31 @@ export default function App() {
           .mfo-app .mfo-content{padding:15px!important}
           .mfo-content table{font-size:12px}
         }
+
+        /* Identidade visual Futmanagerbr — navegação e painéis inspirados na referência */
+        .mfo-workspace{display:flex!important;flex-direction:column!important;gap:14px!important;margin-top:12px!important}
+        .mfo-menu-toggle{display:none!important}
+        .mfo-app .mfo-sidebar{position:relative!important;top:auto!important;display:flex!important;flex-direction:row!important;align-items:center!important;flex-wrap:nowrap!important;gap:5px!important;overflow-x:auto!important;min-height:0!important;width:100%!important;padding:7px!important;background:linear-gradient(110deg,#102a22,#0c1d1b)!important;border:1px solid #24483b!important;border-radius:15px!important;scrollbar-width:thin}
+        .mfo-nav-label,.mfo-sidebar-foot{display:none!important}
+        .mfo-app .mfo-sidebar button{width:auto!important;min-width:max-content!important;flex:0 0 auto!important;justify-content:center!important;white-space:nowrap!important;padding:10px 13px!important;font-size:11px!important;letter-spacing:.2px}
+        .mfo-app .mfo-sidebar button[style*="176b4b"]{background:linear-gradient(110deg,#15965b,#20c86b)!important;border-color:#55e58a!important;color:#04170d!important}
+        .mfo-app .mfo-content{width:100%!important;margin:0!important;padding:20px!important;background:linear-gradient(145deg,#0d1c22,#09141b)!important;border:1px solid #203c3b!important;border-radius:16px!important}
+        .mfo-app .mfo-content>h2{display:flex;align-items:center;gap:10px;margin:0 0 15px!important;padding-bottom:12px;border-bottom:1px solid #234237;color:#e8f5ed!important;font-size:20px!important}
+        .mfo-app>header{background:linear-gradient(110deg,#102a22,#0b1917)!important;border-color:#2b5140!important}
+        .mfo-app>header img{filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
+        .mfo-app table th{color:#65e99a!important;font-size:10px!important;letter-spacing:.6px;text-transform:uppercase}
+        .mfo-app table td{font-size:12px!important}
+        .mfo-app input,.mfo-app select{background:#0b1920!important;border-color:#29483e!important}
+        .mfo-app button{transition:background .18s,border-color .18s,transform .18s}
+        .mfo-app button:hover{border-color:#48cf80!important}
+        @media(max-width:760px){
+          .mfo-app{padding:10px!important}
+          .mfo-app>header{padding:10px!important}
+          .mfo-app>header img{width:58px!important;height:58px!important}
+          .mfo-app .mfo-sidebar{display:flex!important;flex-direction:row!important;overflow-x:auto!important;flex-wrap:nowrap!important}
+          .mfo-app .mfo-sidebar button{width:auto!important;min-width:max-content!important;flex:0 0 auto!important}
+          .mfo-app .mfo-content{padding:13px!important}
+        }
       `}</style>
       <header style={styles.header}>
         <div>
