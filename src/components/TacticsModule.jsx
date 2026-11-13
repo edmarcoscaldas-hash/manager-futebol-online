@@ -8,6 +8,7 @@ const styles = {
   button:{background:'#176b4b',border:'1px solid #3b9b78',borderRadius:9,color:'#fff',padding:'10px 15px',cursor:'pointer',fontWeight:700},
   muted:{color:'#9bb0c2',fontSize:13}
 };
+const normalizeMentality = value => ({'Muito defensiva':'very_defensive','muito defensiva':'very_defensive','Defensiva':'defensive','defensiva':'defensive','Normal':'normal','Ofensiva':'offensive','ofensiva':'offensive','Muito ofensiva':'very_offensive','muito ofensiva':'very_offensive'}[value] || (['very_defensive','defensive','normal','offensive','very_offensive'].includes(value) ? value : 'normal'));
 const empty = {formation:'4-3-3',tactical_style:'Equilibrado',mentality:'normal',captain_player_id:'',penalty_taker_player_id:'',free_kick_taker_player_id:'',corner_taker_player_id:'',starters:Array(11).fill(''),bench:Array(7).fill('')};
 
 export default function TacticsModule({ club }) {
@@ -34,7 +35,7 @@ export default function TacticsModule({ club }) {
       else if(settings.data){
         const {data:stored}=await supabase.from('club_default_lineups').select('starters,bench').eq('club_id',club.id).maybeSingle();
         if(!active)return;
-        setConfig({...empty,...settings.data,starters:Array.isArray(stored?.starters)?stored.starters:Array(11).fill(''),bench:Array.isArray(stored?.bench)?stored.bench:Array(7).fill('')});
+        setConfig({...empty,...settings.data,mentality:normalizeMentality(settings.data.mentality),starters:Array.isArray(stored?.starters)?stored.starters:Array(11).fill(''),bench:Array.isArray(stored?.bench)?stored.bench:Array(7).fill('')});
       } else {
         const {data:stored}=await supabase.from('club_default_lineups').select('starters,bench').eq('club_id',club.id).maybeSingle();
         if(!active)return;
@@ -66,7 +67,7 @@ export default function TacticsModule({ club }) {
       if(id&&!selectedIds.has(id)){setError('Capitão e cobradores devem estar entre os titulares ou reservas.');return;}
     }
     setSaving(true);
-    const settings={club_id:club.id,formation:config.formation,tactical_style:config.tactical_style,mentality:config.mentality,captain_player_id:config.captain_player_id||null,penalty_taker_player_id:config.penalty_taker_player_id||null,free_kick_taker_player_id:config.free_kick_taker_player_id||null,corner_taker_player_id:config.corner_taker_player_id||null};
+    const settings={club_id:club.id,formation:config.formation,tactical_style:config.tactical_style,mentality:normalizeMentality(config.mentality),captain_player_id:config.captain_player_id||null,penalty_taker_player_id:config.penalty_taker_player_id||null,free_kick_taker_player_id:config.free_kick_taker_player_id||null,corner_taker_player_id:config.corner_taker_player_id||null};
     const [a,b]=await Promise.all([
       supabase.from('club_tactical_settings').upsert(settings,{onConflict:'club_id'}),
       supabase.from('club_default_lineups').upsert({club_id:club.id,starters:config.starters,bench:config.bench},{onConflict:'club_id'})
