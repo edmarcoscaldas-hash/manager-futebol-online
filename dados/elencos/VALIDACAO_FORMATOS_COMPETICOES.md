@@ -215,3 +215,84 @@ Esta rodada acrescenta evidências para algumas competições, mas não fecha a 
 | Egypt Second Division B | 2025/26 | 89 | Oficial EFA; temporada seguinte pendente |
 
 **Nota de calendário:** a Championship sul-africana tem 16 clubes na lista da PSL, mas sua promoção inclui playoffs; a K League 2 tem 17 clubes e folgas; a K League 1 e a Premier League egípcia têm fases finais. Esses formatos exigem funções específicas no gerador, não apenas mudança do número de clubes.
+
+
+## 10. Fechamento em lote — rodada final de pesquisa e pendências objetivas (13/11/2026)
+
+### Austrália — A-League Men 2026/27
+- **12 clubes, 26 partidas por clube, 156 jogos na temporada regular e playoffs com os seis primeiros.** O regulamento oficial da A-Leagues informa os 12 participantes, 26 jogos por equipe e 156 jogos regulares. O calendário tem 28 matchweeks e cada clube enfrenta os demais pelo menos duas vezes, com alguns confrontos adicionais. Fontes oficiais:
+  - Regulamento: https://aleagues.com.au/more/official-documents/
+  - Calendário: https://aleagues.com.au/news/aleague-men-2026-2027-fixture-list-revealed-key-dates-fixture-information/
+- Correção do inventário: não modelar A-League como 10 clubes e nem como 22 partidas em turno e returno simples.
+
+### Países Baixos
+- **Eredivisie 2026/27: 18 clubes**, turno e returno (34 jogos por clube; 306 jogos na fase de liga). A KNVB confirma o formato estrutural de 18 equipes; a tabela oficial da temporada e o calendário 2026/27 corroboram a temporada. Fontes: https://www.knvb.nl/node/81 e https://www.knvb.nl/nieuws/betaald-voetbal/competitiezaken/71918/definitief-competitieprogramma-202627-vastgesteld
+- **Eerste Divisie 2026/27: 20 clubes**, com equipes B/beloften e sistema de períodos e playoffs de promoção. A KNVB confirma 20 participantes; o calendário oficial 2026/27 está publicado. Fontes: https://www.knvb.nl/node/81 e https://www.knvb.nl/nieuws/betaald-voetbal/competitiezaken/71918/definitief-competitieprogramma-202627-vastgesteld
+- A regra de promoção deve impedir que equipes B subam à Eredivisie; conferir as regras vigentes da temporada ao implementar a tabela de acesso.
+
+### Nova Zelândia — mudança entre 2026 e 2027
+- **National League Championship masculina 2026: 11 equipes**, em formato de campeonato nacional com fase final; a federação publicou as 11 participantes e os jogos da fase de Championship. Fonte oficial: https://www.nzfootball.co.nz/newsarticle/170010
+- **Nova competição nacional masculina 2027: 12 clubes**, em liga nacional de turno e returno e uma série final. A federação confirmou 222 jogos somando as competições masculina e feminina; a competição masculina tem 12 equipes. Fonte oficial: https://www.nzfootball.co.nz/newsarticle/168426
+- Portanto, 2026 e 2027 não podem compartilhar a mesma configuração de calendário. Para o escopo MFO 2026/27, definir se a temporada representada é o formato de 2026 ou o novo formato de 2027.
+
+### Tunísia — detalhamento dos formatos
+- **Ligue 1 2026/27: 16 clubes.** A Federação Tunisiana comunicou aos clubes o início da temporada e a manutenção de 16 participantes, conforme informação publicada pela Mosaïque FM. Fonte jornalística que reproduz comunicação da federação: https://www.mosaiquefm.net/mobile/fr/article/1522292
+- **Ligue 2 2026/27: 28 clubes em dois grupos de 14.** A informação foi publicada por Mosaïque FM com os grupos e a data de início indicada pela Federação Tunisiana. Fonte: https://www.mosaiquefm.net/mobile/fr/article/1523746
+- A página Footlink apresenta 56 jogos para Ligue 1 e 112 para Ligue 2, números que não correspondem ao cálculo de turno e returno simples de 16 clubes (240 jogos) ou dois grupos de 14 (182 jogos no total). Isso é sinal de que a contagem pode estar considerando apenas uma fase, partidas listadas ou outro recorte. **Não usar esses totais sem regulamento oficial completo.**
+- Para a Ligue 2, cada grupo de 14 em turno e returno geraria 182 jogos somados entre os grupos (91 por grupo), mas isso é apenas cálculo condicional, não confirmação do regulamento.
+
+### Emirados Árabes — First Division
+- **UAE First Division 2026/27: 15 clubes licenciados.** A UAE FA publicou a tabela oficial da competição 2026/27, e a comissão de licenciamento aprovou 15 clubes para a temporada. Fonte oficial de tabela: https://uaefa.ae/en/competition/2572. A lista de licenças foi divulgada por Sharjah24: https://cm.sharjah24.ae/en/Articles/2026/06/04/d41
+- A página de standings da UAE Pro League é da primeira divisão profissional e não deve ser confundida com a First Division organizada pela federação. O MFO deve manter os dois níveis como competições distintas.
+
+### Brasil — temporadas 2026
+- **Série A: 20 clubes; Série B: 20 clubes; Série C: 20 clubes.** A CBF confirma que Série C 2026 mantém 20 participantes e anuncia mudança para 24 em 2027. A lista consolidada das Séries A/B/C 2026 indica 20 participantes em cada. Fontes:
+  - CBF — calendário 2026: https://www.cbf.com.br/a-cbf/noticias/informes-cbf/a/cbf-anuncia-novo-calendario-do-futebol-profissional-masculino
+  - CBF — regulamento e tabela Série C 2026: https://www.cbf.com.br/futebol-brasileiro/noticias/selecao-masculina/gabriel-jesus-elogia-companheiro-de-selecao-brasileira/cbf-publica-documentos-tecnicos-da-serie-c-de-2026
+  - Lista de participantes A/B/C: https://ge.globo.com/google/amp/pi/futebol/noticia/2025/12/29/brasileirao-veja-os-156-clubes-das-series-a-b-c-e-d-em-2026.ghtml
+- O banco atual já tem 20 clubes em cada divisão brasileira, mas os nomes e vínculos precisam ser comparados com a lista oficial de 2026. A Série C 2027 muda para 24 equipes; não reutilizar a configuração de 2026 na próxima temporada.
+
+### Japão — transição para 2026/27
+- A Associação Japonesa de Futebol confirma a mudança de temporada: a partir de 2026/27 o campeonato passa a começar em agosto e terminar em maio/junho, com pausa de inverno de meados de dezembro a meados de fevereiro. J1, J2 e J3 têm 20 clubes cada. Fonte oficial JFA: https://jfa.jp/documents/faq/inquiry.html
+- Os calendários e partidas de 2026 ainda incluem a competição especial de transição; não presumir que a contagem de jogos e rodadas seja idêntica ao modelo antigo de ano civil. As páginas oficiais J.League mostram as partidas e matchweeks da temporada de transição: https://www.jleague.co/fixtures/j1/2026/latest/ e https://www.jleague.co/id/match/j2/2026090502/
+- Para o MFO, separar a edição especial de transição 2026 do campeonato 2026/27 regular e não gerar 380 jogos sem o regulamento específico da nova temporada.
+
+### Espanha — Segunda División
+- **LALIGA HYPERMOTION 2026/27: 22 clubes.** A tabela oficial da própria LALIGA lista 22 participantes. Fonte oficial: https://www.laliga.com/en-ES/laliga-hypermotion/standing
+- Em liga de turno e returno, a conta matemática é 42 partidas por clube e 462 jogos. Confirmar o calendário oficial antes da geração.
+
+### Matriz de status consolidada — as 39 competições previstas no MFO
+
+| País | Divisão 1 | Divisão 2 | Divisão 3 | Situação geral |
+|---|---|---|---|---|
+| África do Sul | 16 | 16 | — | Participantes confirmados; formato e playoffs a modelar |
+| Alemanha | 18 | 18 | — | Contagem confirmada; calendário de liga regular |
+| Arábia Saudita | 18 | 18 | — | Contagens confirmadas; conferir regulamento da D2 |
+| Argentina | 30 | 36 | — | D1 em grupos/Apertura-Clausura; D2 em zonas |
+| Austrália | 12 | — | — | 26 jogos por clube + finais |
+| Brasil | 20 | 20 | 20 | Confirmadas para 2026; lista de clubes deve ser reconciliada |
+| Coreia do Sul | 12 | 17 | — | K1 com fase/grupos; K2 com folgas e playoffs |
+| Egito | 20 | D2 A 18 / D2 B 89* | — | D1 em fases; D2 usa estrutura de grupos; temporada 2026/27 pendente |
+| Emirados Árabes | 14 | 15 | — | Contagens confirmadas; calendários separados por organizador |
+| Espanha | 20 | 22 | — | Contagens confirmadas; D2 com playoffs de promoção |
+| França | 18 | 18 | — | Contagens confirmadas; confirmar playoffs de acesso |
+| Países Baixos | 18 | 20 | — | Contagens confirmadas; D2 inclui equipes B e períodos |
+| Inglaterra | 20 | 24 | — | Contagens confirmadas; Championship com playoffs |
+| Itália | 20 | 20 | — | D1 confirmada; D2 requer conferência final de lista oficial |
+| Japão | 20 | 20 | — | Contagens confirmadas; transição de temporada exige regras específicas |
+| Marrocos | 16 | 16 | — | Contagens confirmadas; calendário a validar por regulamento |
+| México | 18 | 16 | — | Contagens ainda precisam de regulamento oficial da temporada |
+| Nova Zelândia | 11 (2026) / 12 (2027) | — | — | Mudança de formato entre temporadas |
+| Portugal | 18 | 18 | — | Contagens confirmadas; playoffs e equipes B |
+| Tunísia | 16 | 28 | — | D2 em dois grupos; confirmar regulamento e número de jogos |
+
+*Egito D2 A/B: os valores 18 e 89 referem-se ao regulamento publicado para 2025/26, não são aprovados automaticamente para 2026/27. A soma das divisões planejadas no MFO é 39 competições (20 países com 1 a 3 divisões); a tabela acima descreve os níveis atualmente previstos, sem adicionar divisões nacionais extras como a D2 B egípcia ou D3 japonesa.
+
+### Conclusão honesta da validação
+A pesquisa em lote já permite substituir muitas quantidades artificiais de 10 clubes por números reais de participantes, mas **a auditoria ainda não está liberada para importação automática de todos os 39 campeonatos**. Permanecem pendentes:
+1. Lista nominal oficial e IDs atuais para cada competição — a contagem de clubes, sozinha, não identifica quais registros devem ser mantidos ou substituídos.
+2. Regulamentos completos da temporada 2026/27 para Egito D2, México, Itália Serie B, Tunísia e algumas divisões secundárias.
+3. Modelagem de formatos especiais: A-League, Japão em transição, Coreia, Egito, Argentina, Tunísia, Nova Zelândia, playoffs ingleses e holandeses.
+4. Decisão de escopo sobre divisões muito grandes ou geográficas, em especial Egito D2 B (89 clubes) e níveis abaixo das duas divisões profissionais selecionadas.
+
+**Nenhum dado do Supabase foi alterado nesta rodada.** Os 420 clubes IA, 8.580 jogadores IA e 4.380 jogos pendentes permanecem como estavam na auditoria anterior. Não executar SQL de escrita com base apenas neste documento.
