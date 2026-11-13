@@ -10,8 +10,7 @@ SELECT
   l.temporada,
   c.id AS club_id,
   c.nome AS clube,
-  c.is_ai,
-  c.owner_id
+  c.is_ai
 FROM public.leagues AS l
 LEFT JOIN public.clubs AS c
   ON c.league_id = l.id
@@ -26,8 +25,7 @@ SELECT
   c.id AS club_id,
   c.nome AS clube,
   c.pais,
-  c.is_ai,
-  c.owner_id
+  c.is_ai
 FROM public.clubs AS c
 WHERE c.league_id IS NULL
 ORDER BY c.pais, c.nome;
