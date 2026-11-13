@@ -9,7 +9,9 @@ const styles = {
   muted:{color:'#9bb0c2',fontSize:13}
 };
 const normalizeMentality = value => ({'Muito defensiva':'very_defensive','muito defensiva':'very_defensive','Defensiva':'defensive','defensiva':'defensive','Normal':'normal','Ofensiva':'offensive','ofensiva':'offensive','Muito ofensiva':'very_offensive','muito ofensiva':'very_offensive'}[value] || (['very_defensive','defensive','normal','offensive','very_offensive'].includes(value) ? value : 'normal'));
-const empty = {formation:'4-3-3',tactical_style:'Equilibrado',mentality:'normal',captain_player_id:'',penalty_taker_player_id:'',free_kick_taker_player_id:'',corner_taker_player_id:'',starters:Array(11).fill(''),bench:Array(7).fill('')};
+const normalizeTacticalStyle = value => ({'Equilibrado':'balanced','equilibrado':'balanced','Posse de bola':'balanced','posse de bola':'balanced','Contra-ataque':'defensive','contra-ataque':'defensive','Pressão alta':'offensive','pressão alta':'offensive','Jogo pelas laterais':'balanced','jogo pelas laterais':'balanced','Bolas longas':'defensive','bolas longas':'defensive'}[value] || (['defensive','balanced','offensive'].includes(value) ? value : 'balanced'));
+const TACTICAL_STYLES = [{value:'defensive',label:'Defensivo'},{value:'balanced',label:'Equilibrado'},{value:'offensive',label:'Ofensivo'}];
+const empty = {formation:'4-3-3',tactical_style:'balanced',mentality:'normal',captain_player_id:'',penalty_taker_player_id:'',free_kick_taker_player_id:'',corner_taker_player_id:'',starters:Array(11).fill(''),bench:Array(7).fill('')};
 
 export default function TacticsModule({ club }) {
   const [players,setPlayers]=useState([]);
@@ -35,7 +37,7 @@ export default function TacticsModule({ club }) {
       else if(settings.data){
         const {data:stored}=await supabase.from('club_default_lineups').select('starters,bench').eq('club_id',club.id).maybeSingle();
         if(!active)return;
-        setConfig({...empty,...settings.data,mentality:normalizeMentality(settings.data.mentality),starters:Array.isArray(stored?.starters)?stored.starters:Array(11).fill(''),bench:Array.isArray(stored?.bench)?stored.bench:Array(7).fill('')});
+        setConfig({...empty,...settings.data,mentality:normalizeMentality(settings.data.mentality),tactical_style:normalizeTacticalStyle(settings.data.tactical_style),starters:Array.isArray(stored?.starters)?stored.starters:Array(11).fill(''),bench:Array.isArray(stored?.bench)?stored.bench:Array(7).fill('')});
       } else {
         const {data:stored}=await supabase.from('club_default_lineups').select('starters,bench').eq('club_id',club.id).maybeSingle();
         if(!active)return;
@@ -67,7 +69,7 @@ export default function TacticsModule({ club }) {
       if(id&&!selectedIds.has(id)){setError('Capitão e cobradores devem estar entre os titulares ou reservas.');return;}
     }
     setSaving(true);
-    const settings={club_id:club.id,formation:config.formation,tactical_style:config.tactical_style,mentality:normalizeMentality(config.mentality),captain_player_id:config.captain_player_id||null,penalty_taker_player_id:config.penalty_taker_player_id||null,free_kick_taker_player_id:config.free_kick_taker_player_id||null,corner_taker_player_id:config.corner_taker_player_id||null};
+    const settings={club_id:club.id,formation:config.formation,tactical_style:normalizeTacticalStyle(config.tactical_style),mentality:normalizeMentality(config.mentality),captain_player_id:config.captain_player_id||null,penalty_taker_player_id:config.penalty_taker_player_id||null,free_kick_taker_player_id:config.free_kick_taker_player_id||null,corner_taker_player_id:config.corner_taker_player_id||null};
     const [a,b]=await Promise.all([
       supabase.from('club_tactical_settings').upsert(settings,{onConflict:'club_id'}),
       supabase.from('club_default_lineups').upsert({club_id:club.id,starters:config.starters,bench:config.bench},{onConflict:'club_id'})
@@ -86,7 +88,7 @@ export default function TacticsModule({ club }) {
       <section style={styles.panel}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12}}>
           <label style={styles.muted}>Formação<select style={styles.input} value={config.formation} onChange={e=>update('formation',e.target.value)}>{FORMATIONS.map(x=><option key={x}>{x}</option>)}</select></label>
-          <label style={styles.muted}>Estilo de jogo<select style={styles.input} value={config.tactical_style} onChange={e=>update('tactical_style',e.target.value)}>{['Equilibrado','Posse de bola','Contra-ataque','Pressão alta','Jogo pelas laterais','Bolas longas'].map(x=><option key={x}>{x}</option>)}</select></label>
+          <label style={styles.muted}>Estilo de jogo<select style={styles.input} value={config.tactical_style} onChange={e=>update('tactical_style',e.target.value)}>{TACTICAL_STYLES.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></label>
           <label style={styles.muted}>Mentalidade<select style={styles.input} value={config.mentality} onChange={e=>update('mentality',e.target.value)}>{[{value:'very_defensive',label:'Muito defensiva'},{value:'defensive',label:'Defensiva'},{value:'normal',label:'Normal'},{value:'offensive',label:'Ofensiva'},{value:'very_offensive',label:'Muito ofensiva'}].map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></label>
         </div>
       </section>
