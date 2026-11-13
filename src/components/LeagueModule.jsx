@@ -151,7 +151,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       <div style={card}><span style={small}>JOGOS FINALIZADOS</span><h2 style={{margin:'8px 0'}}>{partidasFinalizadas}</h2></div>
       <div style={card}><span style={small}>RODADAS</span><h2 style={{margin:'8px 0'}}>{rodadas.length}</h2></div>
     </div>
-    {proximaPartida && <section className="mfo-match-hero">
+    {abaInterna==='jogos' && proximaPartida && <section className="mfo-match-hero">
       <div className="mfo-match-team">
         <div className="mfo-match-crest">{nomeClube(proximaPartida.home_club_id).slice(0,3).toUpperCase()}</div>
         <strong>{nomeClube(proximaPartida.home_club_id)}</strong>
