@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 
 const FORMATIONS = ['4-4-2','4-3-3','4-2-3-1','3-5-2','5-3-2'];
+const FORMATION_POSITIONS = {
+  '4-4-2': [{x:50,y:90},{x:15,y:70},{x:38,y:73},{x:62,y:73},{x:85,y:70},{x:15,y:48},{x:38,y:50},{x:62,y:50},{x:85,y:48},{x:38,y:24},{x:62,y:24}],
+  '4-3-3': [{x:50,y:90},{x:15,y:70},{x:38,y:73},{x:62,y:73},{x:85,y:70},{x:28,y:49},{x:50,y:54},{x:72,y:49},{x:18,y:24},{x:50,y:20},{x:82,y:24}],
+  '4-2-3-1': [{x:50,y:90},{x:15,y:70},{x:38,y:73},{x:62,y:73},{x:85,y:70},{x:38,y:55},{x:62,y:55},{x:18,y:34},{x:50,y:32},{x:82,y:34},{x:50,y:17}],
+  '3-5-2': [{x:50,y:90},{x:25,y:72},{x:50,y:74},{x:75,y:72},{x:12,y:49},{x:32,y:53},{x:50,y:48},{x:68,y:53},{x:88,y:49},{x:38,y:23},{x:62,y:23}],
+  '5-3-2': [{x:50,y:90},{x:10,y:68},{x:30,y:72},{x:50,y:74},{x:70,y:72},{x:90,y:68},{x:28,y:48},{x:50,y:53},{x:72,y:48},{x:38,y:24},{x:62,y:24}]
+};
 const styles = {
   panel:{background:'#102236',border:'1px solid #29445a',borderRadius:14,padding:18,marginTop:14},
   input:{width:'100%',background:'#0b1725',border:'1px solid #35516a',borderRadius:8,color:'#edf5ff',padding:'10px 11px',boxSizing:'border-box'},
@@ -50,6 +57,7 @@ export default function TacticsModule({ club }) {
 
   const playerMap=useMemo(()=>new Map(players.map(p=>[p.id,p])),[players]);
   const selected=[...config.starters,...config.bench].filter(Boolean);
+  const pitchPositions = FORMATION_POSITIONS[config.formation] || FORMATION_POSITIONS['4-3-3'];
   const duplicates=selected.length!==new Set(selected).size;
   const update=(key,value)=>setConfig(old=>({...old,[key]:value}));
   const playerSelect=(value,onChange,exclude=[],source=players)=>(
@@ -91,6 +99,31 @@ export default function TacticsModule({ club }) {
           <label style={styles.muted}>Estilo de jogo<select style={styles.input} value={config.tactical_style} onChange={e=>update('tactical_style',e.target.value)}>{TACTICAL_STYLES.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></label>
           <label style={styles.muted}>Mentalidade<select style={styles.input} value={config.mentality} onChange={e=>update('mentality',e.target.value)}>{[{value:'very_defensive',label:'Muito defensiva'},{value:'defensive',label:'Defensiva'},{value:'normal',label:'Normal'},{value:'offensive',label:'Ofensiva'},{value:'very_offensive',label:'Muito ofensiva'}].map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></label>
         </div>
+      </section>
+      <section style={styles.panel}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+          <h3 style={{margin:0}}>Prévia tática • ${config.formation}</h3>
+          <span style={styles.muted}>A posição dos jogadores segue a ordem dos titulares</span>
+        </div>
+        <div role="img" aria-label="Campo de futebol com a prévia da formação" style={{position:'relative',height:440,maxWidth:560,margin:'16px auto 0',overflow:'hidden',border:'2px solid #b6d7bd',borderRadius:12,background:'repeating-linear-gradient(0deg,#17613f 0px,#17613f 54px,#1b6b46 54px,#1b6b46 108px)'}}>
+          <div style={{position:'absolute',inset:8,border:'1px solid rgba(255,255,255,.75)',pointerEvents:'none'}}/>
+          <div style={{position:'absolute',left:8,right:8,top:'50%',borderTop:'1px solid rgba(255,255,255,.75)'}}/>
+          <div style={{position:'absolute',width:94,height:94,border:'1px solid rgba(255,255,255,.75)',borderRadius:'50%',left:'50%',top:'50%',transform:'translate(-50%,-50%)'}}/>
+          <div style={{position:'absolute',width:'54%',height:58,border:'1px solid rgba(255,255,255,.75)',borderTop:0,left:'23%',top:8}}/>
+          <div style={{position:'absolute',width:'54%',height:58,border:'1px solid rgba(255,255,255,.75)',borderBottom:0,left:'23%',bottom:8}}/>
+          <div style={{position:'absolute',width:'20%',height:8,border:'1px solid rgba(255,255,255,.75)',borderBottom:0,left:'40%',top:8}}/>
+          <div style={{position:'absolute',width:'20%',height:8,border:'1px solid rgba(255,255,255,.75)',borderTop:0,left:'40%',bottom:8}}/>
+          {config.starters.map((id,i)=>{
+            const p=playerMap.get(id);
+            const point=pitchPositions[i];
+            if(!point)return null;
+            return <div key={i} title={p? p.nome+' • '+p.overall : 'Titular '+(i+1)} style={{position:'absolute',left:point.x+'%',top:point.y+'%',transform:'translate(-50%,-50%)',width:76,maxWidth:'18%',textAlign:'center',zIndex:2}}>
+              <div style={{width:34,height:34,margin:'0 auto 3px',display:'grid',placeItems:'center',borderRadius:'50%',background:p?'#f5c542':'#64748b',border:'2px solid #fff',color:'#172033',fontSize:12,fontWeight:900,boxShadow:'0 2px 8px #0008'}}>{p?.overall ?? '—'}</div>
+              <div style={{fontSize:10,fontWeight:800,color:'#fff',textShadow:'0 1px 3px #000',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p?.nome || 'Vaga '+(i+1)}</div>
+            </div>;
+          })}
+        </div>
+        <p style={{...styles.muted,textAlign:'center',marginBottom:0}}>Campo ilustrativo: ajuste os titulares abaixo para atualizar a prévia.</p>
       </section>
       <section style={styles.panel}>
         <h3 style={{marginTop:0}}>Time titular ({config.starters.filter(Boolean).length}/11)</h3>
