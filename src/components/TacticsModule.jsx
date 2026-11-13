@@ -49,10 +49,10 @@ export default function TacticsModule({ club }) {
   const selected=[...config.starters,...config.bench].filter(Boolean);
   const duplicates=selected.length!==new Set(selected).size;
   const update=(key,value)=>setConfig(old=>({...old,[key]:value}));
-  const playerSelect=(value,onChange,exclude=[])=>(
+  const playerSelect=(value,onChange,exclude=[],source=players)=>(
     <select style={styles.input} value={value||''} onChange={e=>onChange(e.target.value)}>
       <option value="">Selecionar jogador</option>
-      {players.filter(p=>p.id===value||!exclude.includes(p.id)).map(p=><option key={p.id} value={p.id}>{p.nome} • {p.posicao||'Sem posição'} • {p.overall}{p.is_star?' ★':''}</option>)}
+      {source.filter(p=>p.id===value||!exclude.includes(p.id)).map(p=><option key={p.id} value={p.id}>{p.nome} • {p.posicao||'Sem posição'} • {p.overall}{p.is_star?' ★':''}</option>)}
     </select>
   );
   async function save(){
@@ -104,7 +104,7 @@ export default function TacticsModule({ club }) {
       <section style={styles.panel}>
         <h3 style={{marginTop:0}}>Responsáveis</h3>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:12}}>
-          {[[ 'captain_player_id','Capitão'],['penalty_taker_player_id','Pênaltis'],['free_kick_taker_player_id','Faltas'],['corner_taker_player_id','Escanteios']].map(([key,label])=><label key={key} style={styles.muted}>{label}{playerSelect(config[key],v=>update(key,v),selected.filter(x=>x!==config[key]))}</label>)}
+          {[[ 'captain_player_id','Capitão'],['penalty_taker_player_id','Pênaltis'],['free_kick_taker_player_id','Faltas'],['corner_taker_player_id','Escanteios']].map(([key,label])=><label key={key} style={styles.muted}>{label}{playerSelect(config[key],v=>update(key,v),[],players.filter(p=>selected.includes(p.id)))}</label>)}
         </div>
       </section>
       <button style={styles.button} disabled={saving} onClick={save}>{saving?'Salvando...':'Salvar tática e escalação'}</button>
