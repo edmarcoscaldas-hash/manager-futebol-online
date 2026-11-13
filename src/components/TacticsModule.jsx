@@ -2,6 +2,36 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 
 const FORMATIONS = ['4-4-2','4-3-3','4-2-3-1','3-5-2','5-3-2'];
+
+const FORMATION_ROLES = {
+  '4-4-2': [['Goleiro'],['Lateral'],['Zagueiro'],['Zagueiro'],['Lateral'],['Volante','Meia'],['Volante','Meia'],['Meia','Ponta'],['Meia','Ponta'],['Atacante','Ponta'],['Atacante','Ponta']],
+  '4-3-3': [['Goleiro'],['Lateral'],['Zagueiro'],['Zagueiro'],['Lateral'],['Volante'],['Meia','Volante'],['Meia'],['Ponta'],['Atacante','Ponta'],['Ponta']],
+  '4-2-3-1': [['Goleiro'],['Lateral'],['Zagueiro'],['Zagueiro'],['Lateral'],['Volante'],['Volante','Meia'],['Ponta','Meia'],['Meia'],['Ponta','Meia'],['Atacante']],
+  '3-5-2': [['Goleiro'],['Zagueiro'],['Zagueiro'],['Zagueiro'],['Lateral','Ponta'],['Volante'],['Meia','Volante'],['Meia'],['Lateral','Ponta'],['Atacante'],['Atacante']],
+  '5-3-2': [['Goleiro'],['Lateral'],['Zagueiro'],['Zagueiro'],['Zagueiro'],['Lateral'],['Volante','Meia'],['Meia'],['Meia','Volante'],['Atacante'],['Atacante']]
+};
+const RESERVE_ROLES = [['Goleiro'],['Lateral','Zagueiro'],['Zagueiro','Lateral'],['Volante','Meia'],['Meia','Volante'],['Atacante','Ponta'],['Ponta','Atacante']];
+const autoPickLineup = (roster, formation, criterion) => {
+  const remaining = [...roster];
+  const pick = roles => {
+    const ranked = remaining.map((p,index) => {
+      const position = (p.posicao || '').toLowerCase();
+      const fitIndex = roles.findIndex(role => position.includes(role.toLowerCase()));
+      const fit = fitIndex === -1 ? 0 : (roles.length - fitIndex) * 8 + 18;
+      const base = criterion === 'energy'
+        ? (Number(p.energia ?? 100) * 2) + (Number(p.overall || 0) * 0.35)
+        : (Number(p.overall || 0) * 2) + (Number(p.energia ?? 100) * 0.08);
+      return {p,index,score:base+fit};
+    }).sort((a,b)=>b.score-a.score || Number(b.p.overall||0)-Number(a.p.overall||0));
+    const chosen = ranked[0]?.p;
+    if (chosen) remaining.splice(remaining.findIndex(p=>p.id===chosen.id),1);
+    return chosen?.id || '';
+  };
+  const starters = (FORMATION_ROLES[formation] || FORMATION_ROLES['4-3-3']).map(pick);
+  const bench = RESERVE_ROLES.map(pick);
+  return {starters,bench};
+};
+
 const FORMATION_POSITIONS = {
   '4-4-2': [{x:50,y:90},{x:15,y:70},{x:38,y:73},{x:62,y:73},{x:85,y:70},{x:15,y:48},{x:38,y:50},{x:62,y:50},{x:85,y:48},{x:38,y:24},{x:62,y:24}],
   '4-3-3': [{x:50,y:90},{x:15,y:70},{x:38,y:73},{x:62,y:73},{x:85,y:70},{x:28,y:49},{x:50,y:54},{x:72,y:49},{x:18,y:24},{x:50,y:20},{x:82,y:24}],
@@ -22,6 +52,7 @@ const empty = {formation:'4-3-3',tactical_style:'balanced',mentality:'normal',ca
 
 export default function TacticsModule({ club }) {
   const [players,setPlayers]=useState([]);
+  const [criterion,setCriterion]=useState('overall');
   const [config,setConfig]=useState(empty);
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
@@ -34,7 +65,7 @@ export default function TacticsModule({ club }) {
       if(!club?.id || !supabase){setLoading(false);return;}
       setLoading(true);setError('');
       const [roster,settings]=await Promise.all([
-        supabase.from('players').select('id,nome,posicao,overall,is_star,is_youth').eq('club_id',club.id).eq('is_youth',false).order('overall',{ascending:false}),
+        supabase.from('players').select('id,nome,posicao,overall,energia,is_star,is_youth').eq('club_id',club.id).eq('is_youth',false).order('overall',{ascending:false}),
         supabase.from('club_tactical_settings').select('*').eq('club_id',club.id).maybeSingle()
       ]);
       if(!active)return;
@@ -60,10 +91,16 @@ export default function TacticsModule({ club }) {
   const pitchPositions = FORMATION_POSITIONS[config.formation] || FORMATION_POSITIONS['4-3-3'];
   const duplicates=selected.length!==new Set(selected).size;
   const update=(key,value)=>setConfig(old=>({...old,[key]:value}));
+  const generateLineup=(formation=config.formation,mode=criterion)=>{
+    const lineup=autoPickLineup(players,formation,mode);
+    setConfig(old=>({...old,formation,starters:lineup.starters,bench:lineup.bench}));
+    setMessage('Escalação montada automaticamente. Você pode ajustar qualquer jogador antes de salvar.');
+    setError('');
+  };
   const playerSelect=(value,onChange,exclude=[],source=players)=>(
     <select style={styles.input} value={value||''} onChange={e=>onChange(e.target.value)}>
       <option value="">Selecionar jogador</option>
-      {source.filter(p=>p.id===value||!exclude.includes(p.id)).map(p=><option key={p.id} value={p.id}>{p.nome} • {p.posicao||'Sem posição'} • {p.overall}{p.is_star?' ★':''}</option>)}
+      {source.filter(p=>p.id===value||!exclude.includes(p.id)).map(p=><option key={p.id} value={p.id}>{p.nome} • {p.posicao||'Sem posição'} • OVR {p.overall} • EN {p.energia ?? 100}{p.is_star?' ★':''}</option>)}
     </select>
   );
   async function save(){
@@ -95,7 +132,8 @@ export default function TacticsModule({ club }) {
     {players.length<11?<section style={styles.panel}><h3>Elenco insuficiente</h3><p style={styles.muted}>Você precisa ter pelo menos 11 jogadores profissionais no clube para montar a escalação.</p></section>:<>
       <section style={styles.panel}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12}}>
-          <label style={styles.muted}>Formação<select style={styles.input} value={config.formation} onChange={e=>update('formation',e.target.value)}>{FORMATIONS.map(x=><option key={x}>{x}</option>)}</select></label>
+          <label style={styles.muted}>Formação<select style={styles.input} value={config.formation} onChange={e=>{setCriterion('overall');generateLineup(e.target.value,'overall')}}>{FORMATIONS.map(x=><option key={x}>{x}</option>)}</select></label>
+          <label style={styles.muted}>Critério de escalação<select style={styles.input} value={criterion} onChange={e=>setCriterion(e.target.value)}><option value="overall">Maior overall</option><option value="energy">Maior energia</option></select></label>
           <label style={styles.muted}>Estilo de jogo<select style={styles.input} value={config.tactical_style} onChange={e=>update('tactical_style',e.target.value)}>{TACTICAL_STYLES.map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></label>
           <label style={styles.muted}>Mentalidade<select style={styles.input} value={config.mentality} onChange={e=>update('mentality',e.target.value)}>{[{value:'very_defensive',label:'Muito defensiva'},{value:'defensive',label:'Defensiva'},{value:'normal',label:'Normal'},{value:'offensive',label:'Ofensiva'},{value:'very_offensive',label:'Muito ofensiva'}].map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></label>
         </div>
@@ -143,7 +181,7 @@ export default function TacticsModule({ club }) {
           {[[ 'captain_player_id','Capitão'],['penalty_taker_player_id','Pênaltis'],['free_kick_taker_player_id','Faltas'],['corner_taker_player_id','Escanteios']].map(([key,label])=><label key={key} style={styles.muted}>{label}{playerSelect(config[key],v=>update(key,v),[],players.filter(p=>selected.includes(p.id)))}</label>)}
         </div>
       </section>
-      <button style={styles.button} disabled={saving} onClick={save}>{saving?'Salvando...':'Salvar tática e escalação'}</button>
+      <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:14}}><button style={styles.button} type="button" onClick={()=>generateLineup(config.formation,criterion)}>Montar automaticamente • {criterion==='energy'?'Energia':'Overall'}</button><button style={styles.button} disabled={saving} onClick={save}>{saving?'Salvando...':'Salvar tática e escalação'}</button></div>
     </>}
   </div>;
 }
