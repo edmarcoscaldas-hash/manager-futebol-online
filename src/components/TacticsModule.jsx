@@ -8,7 +8,7 @@ const styles = {
   button:{background:'#176b4b',border:'1px solid #3b9b78',borderRadius:9,color:'#fff',padding:'10px 15px',cursor:'pointer',fontWeight:700},
   muted:{color:'#9bb0c2',fontSize:13}
 };
-const empty = {formation:'4-3-3',tactical_style:'Equilibrado',mentality:'Normal',captain_player_id:'',penalty_taker_player_id:'',free_kick_taker_player_id:'',corner_taker_player_id:'',starters:Array(11).fill(''),bench:Array(7).fill('')};
+const empty = {formation:'4-3-3',tactical_style:'Equilibrado',mentality:'normal',captain_player_id:'',penalty_taker_player_id:'',free_kick_taker_player_id:'',corner_taker_player_id:'',starters:Array(11).fill(''),bench:Array(7).fill('')};
 
 export default function TacticsModule({ club }) {
   const [players,setPlayers]=useState([]);
@@ -86,7 +86,7 @@ export default function TacticsModule({ club }) {
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12}}>
           <label style={styles.muted}>Formação<select style={styles.input} value={config.formation} onChange={e=>update('formation',e.target.value)}>{FORMATIONS.map(x=><option key={x}>{x}</option>)}</select></label>
           <label style={styles.muted}>Estilo de jogo<select style={styles.input} value={config.tactical_style} onChange={e=>update('tactical_style',e.target.value)}>{['Equilibrado','Posse de bola','Contra-ataque','Pressão alta','Jogo pelas laterais','Bolas longas'].map(x=><option key={x}>{x}</option>)}</select></label>
-          <label style={styles.muted}>Mentalidade<select style={styles.input} value={config.mentality} onChange={e=>update('mentality',e.target.value)}>{['Muito defensiva','Defensiva','Normal','Ofensiva','Muito ofensiva'].map(x=><option key={x}>{x}</option>)}</select></label>
+          <label style={styles.muted}>Mentalidade<select style={styles.input} value={config.mentality} onChange={e=>update('mentality',e.target.value)}>{[{value:'very_defensive',label:'Muito defensiva'},{value:'defensive',label:'Defensiva'},{value:'normal',label:'Normal'},{value:'offensive',label:'Ofensiva'},{value:'very_offensive',label:'Muito ofensiva'}].map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></label>
         </div>
       </section>
       <section style={styles.panel}>
