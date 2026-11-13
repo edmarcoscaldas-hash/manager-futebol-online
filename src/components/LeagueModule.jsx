@@ -75,6 +75,9 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
   const nomeClube = id => clubes.find(c => c.id === id)?.nome || 'Clube';
   const rodadas = useMemo(() => [...new Set(partidas.map(p => p.round_number))].sort((a,b)=>a-b), [partidas]);
   const partidasFinalizadas = partidas.filter(p => p.status === 'finished').length;
+  const proximasPartidas = partidas.filter(p => p.status === 'scheduled' && (p.home_club_id === clubeAtual?.id || p.away_club_id === clubeAtual?.id));
+  const proximaPartida = [...proximasPartidas].sort((a,b) => new Date(a.match_date || 0) - new Date(b.match_date || 0))[0] || null;
+
 
   async function simularPartida(partida) {
     if (!partida?.id || simulando) return;
@@ -104,7 +107,34 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     setSimulando('');
   }
 
-  return <div>
+  return <div className="mfo-matches">
+    <style>{`
+      .mfo-matches{color:#edf7f0}
+      .mfo-matches .mfo-match-hero{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:18px;padding:22px;background:radial-gradient(ellipse at 50% 0%,rgba(33,135,82,.23),transparent 65%),linear-gradient(125deg,#102c23,#0b1b20);border:1px solid #285540;border-radius:16px;margin:16px 0}
+      .mfo-match-team{text-align:center;min-width:0}
+      .mfo-match-team strong{display:block;font-size:clamp(14px,2vw,19px);overflow-wrap:anywhere}
+      .mfo-match-crest{width:56px;height:56px;margin:0 auto 10px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,#1c6845,#122b28);border:1px solid #4c9367;color:#dfffea;font-size:17px;font-weight:900}
+      .mfo-match-vs{text-align:center;min-width:110px}
+      .mfo-match-vs strong{display:block;font-size:26px;letter-spacing:1px;color:#e8f6ec}
+      .mfo-match-vs span{font-size:10px;color:#83a995;letter-spacing:1.4px;font-weight:800}
+      .mfo-match-date{font-size:12px;color:#91a99c;margin-top:6px}
+      .mfo-match-status{display:inline-block;padding:5px 9px;border-radius:99px;background:#183e2c;color:#8df0ae;font-size:10px;font-weight:800;letter-spacing:.7px}
+      .mfo-fixture-list{display:grid;gap:8px}
+      .mfo-fixture-card{display:grid;grid-template-columns:minmax(0,1fr) 90px minmax(0,1fr);align-items:center;gap:12px;padding:13px 15px;background:linear-gradient(100deg,#10241f,#0d1b20);border:1px solid #244536;border-radius:11px}
+      .mfo-fixture-club{font-size:13px;font-weight:750;overflow-wrap:anywhere}
+      .mfo-fixture-score{text-align:center;background:#071412;border:1px solid #274839;border-radius:9px;padding:8px 5px;font-weight:900;white-space:nowrap}
+      .mfo-fixture-meta{grid-column:1/-1;text-align:center;color:#81998d;font-size:11px}
+      .mfo-fixture-actions{grid-column:1/-1;text-align:center}
+      .mfo-matches button{cursor:pointer}
+      @media(max-width:560px){
+        .mfo-matches .mfo-match-hero{gap:8px;padding:15px 8px}
+        .mfo-match-crest{width:42px;height:42px;font-size:14px}
+        .mfo-match-vs{min-width:65px}
+        .mfo-match-vs strong{font-size:20px}
+        .mfo-fixture-card{grid-template-columns:minmax(0,1fr) 65px minmax(0,1fr);gap:6px;padding:11px 8px}
+        .mfo-fixture-club{font-size:11px}
+      }
+    `}</style>
     <p style={muted}>Acompanhe os campeonatos cadastrados no MFO, a classificação calculada pelos resultados e a agenda de partidas.</p>
     {erro && <p style={{background:'#3a1e25',color:'#fecaca',padding:12,borderRadius:9}}>{erro}</p>}
     <div style={{...card, marginTop:16}}>
@@ -121,6 +151,24 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       <div style={card}><span style={small}>JOGOS FINALIZADOS</span><h2 style={{margin:'8px 0'}}>{partidasFinalizadas}</h2></div>
       <div style={card}><span style={small}>RODADAS</span><h2 style={{margin:'8px 0'}}>{rodadas.length}</h2></div>
     </div>
+    {proximaPartida && <section className="mfo-match-hero">
+      <div className="mfo-match-team">
+        <div className="mfo-match-crest">{nomeClube(proximaPartida.home_club_id).slice(0,3).toUpperCase()}</div>
+        <strong>{nomeClube(proximaPartida.home_club_id)}</strong>
+        <div className="mfo-match-date">MANDANTE</div>
+      </div>
+      <div className="mfo-match-vs">
+        <span>PRÓXIMO JOGO</span>
+        <strong>VS</strong>
+        <div className="mfo-match-date">{proximaPartida.match_date?new Date(proximaPartida.match_date).toLocaleString('pt-BR'):'Data a definir'}</div>
+        <div style={{marginTop:10}}><button onClick={()=>simularPartida(proximaPartida)} disabled={Boolean(simulando)} style={{background:'linear-gradient(110deg,#15965b,#20c86b)',color:'#04170d',border:'1px solid #55e58a',borderRadius:8,padding:'9px 12px',fontWeight:900,fontSize:12}}>{simulando===proximaPartida.id?'Simulando...':'SIMULAR PARTIDA'}</button></div>
+      </div>
+      <div className="mfo-match-team">
+        <div className="mfo-match-crest">{nomeClube(proximaPartida.away_club_id).slice(0,3).toUpperCase()}</div>
+        <strong>{nomeClube(proximaPartida.away_club_id)}</strong>
+        <div className="mfo-match-date">VISITANTE</div>
+      </div>
+    </section>}
     <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'18px 0 12px'}}>
       <button style={{background:abaInterna==='classificacao'?'#176b4b':'#26364d',color:'#fff',border:0,borderRadius:8,padding:'10px 14px',cursor:'pointer'}} onClick={()=>setAbaInterna('classificacao')}>Classificação</button>
       <button style={{background:abaInterna==='jogos'?'#176b4b':'#26364d',color:'#fff',border:0,borderRadius:8,padding:'10px 14px',cursor:'pointer'}} onClick={()=>setAbaInterna('jogos')}>Calendário e jogos</button>
@@ -144,17 +192,17 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       {partidas.length===0 ? <p style={muted}>O calendário desta liga ainda não foi gerado. Nenhuma partida foi criada automaticamente para não alterar a composição atual dos campeonatos.</p> :
         rodadas.map(r=><div key={r} style={{marginTop:16}}>
           <h4 style={{color:'#67e8a5',borderBottom:'1px solid #34465f',paddingBottom:8}}>RODADA {r}</h4>
-          {partidas.filter(p=>p.round_number===r).map(p=><div key={p.id} style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:10,padding:'12px 4px',borderBottom:'1px solid #26364d'}}>
-            <strong style={{textAlign:'right',fontSize:13}}>{nomeClube(p.home_club_id)}</strong>
-            <span style={{background:'#17263b',borderRadius:8,padding:'7px 10px',fontWeight:800,whiteSpace:'nowrap'}}>{p.status==='finished'?p.home_score+' × '+p.away_score:'VS'}</span>
-            <strong style={{fontSize:13}}>{nomeClube(p.away_club_id)}</strong>
-            <span style={{...small,gridColumn:'1 / -1',textAlign:'center'}}>{p.match_date?new Date(p.match_date).toLocaleString('pt-BR'):'Data a definir'} • {p.status==='finished'?'Finalizado':p.status==='live'?'Em andamento':p.status==='cancelled'?'Cancelado':'Agendado'}</span>
-            {p.status==='scheduled' && (p.home_club_id===clubeAtual?.id || p.away_club_id===clubeAtual?.id) && <div style={{gridColumn:'1 / -1',textAlign:'center',marginTop:4}}>
-              <button onClick={()=>simularPartida(p)} disabled={Boolean(simulando)} style={{background:'#176b4b',color:'#fff',border:0,borderRadius:8,padding:'8px 13px',cursor:'pointer',fontWeight:700}}>
-                {simulando===p.id?'Simulando...':'⚽ Simular partida'}
+          <div className="mfo-fixture-list">{partidas.filter(p=>p.round_number===r).map(p=><article className="mfo-fixture-card" key={p.id}>
+            <strong className="mfo-fixture-club" style={{textAlign:'right'}}>{nomeClube(p.home_club_id)}</strong>
+            <div className="mfo-fixture-score">{p.status==='finished'?p.home_score+' × '+p.away_score:p.status==='live'?'AO VIVO':'VS'}</div>
+            <strong className="mfo-fixture-club">{nomeClube(p.away_club_id)}</strong>
+            <div className="mfo-fixture-meta">{p.match_date?new Date(p.match_date).toLocaleString('pt-BR'):'Data a definir'} • {p.status==='finished'?'FINALIZADO':p.status==='live'?'EM ANDAMENTO':p.status==='cancelled'?'CANCELADO':'AGENDADO'}</div>
+            {p.status==='scheduled' && (p.home_club_id===clubeAtual?.id || p.away_club_id===clubeAtual?.id) && <div className="mfo-fixture-actions">
+              <button onClick={()=>simularPartida(p)} disabled={Boolean(simulando)} style={{background:'linear-gradient(110deg,#15965b,#20c86b)',color:'#04170d',border:'1px solid #55e58a',borderRadius:8,padding:'8px 13px',fontWeight:900,fontSize:11}}>
+                {simulando===p.id?'SIMULANDO...':'⚽ SIMULAR PARTIDA'}
               </button>
             </div>}
-          </div>)}
+          </article>)}</div>
         </div>)}
     </section>}
     <p style={{...small,marginTop:14}}>A classificação é calculada diretamente a partir das partidas finalizadas. Os campeonatos existentes e seus clubes não são modificados por esta tela.</p>
