@@ -180,3 +180,38 @@ Esta rodada acrescenta evidências para algumas competições, mas não fecha a 
 | South Africa Championship | — | Calendário confirmado; contagem a fechar | Oficial PSL |
 
 **Decisão de implementação:** estes dados entram no inventário de validação, não diretamente no banco. O MFO deverá suportar competições com grupos, fases Apertura/Clausura, playoffs, ligas de turno único e divisões geográficas. Só depois de validar o regulamento e a lista de participantes de cada temporada será seguro gerar calendários específicos.
+
+
+## 9. Complemento — confirmação de participantes e correções de contagem (13/11/2026)
+
+### África do Sul — correção importante
+- **Betway Premiership 2026/27: 16 clubes.** A PSL declara expressamente que a primeira divisão tem 16 clubes. Fonte oficial: https://www.psl.co.za/content/125534
+- **Motsepe Foundation Championship / National First Division 2026/27: 16 clubes.** A lista oficial de clubes publicada pela PSL contém 16 participantes nesta divisão. Fonte oficial: https://psl.co.za/content/16337
+- A temporada inclui playoffs de promoção/rebaixamento. A PSL informa calendário específico para os playoffs entre 23 de maio e 9 de junho de 2027. Portanto, a segunda divisão não deve ser modelada como promoção automática simples sem a fase de playoffs. Fonte oficial: https://www.psl.co.za/news/article/5615294-psl-confirms-the-202627-season-calend
+
+### Coreia do Sul — K League 2
+- **K League 2 2026: 17 clubes e 34 rodadas.** A própria K League confirmou a entrada de três novos clubes, totalizando 17, e descreve o formato de duas voltas (2 round-robin), com 34 rodadas e folgas em razão do número ímpar de participantes. Fonte oficial: https://www.kleague.com/news_view.do?category=notice&orderBy=seq&page=1&seq=94436&viewOption=list
+- A K League 2 exige tratamento de calendário com um clube de folga por rodada; não é possível aplicar o gerador atual de liga par sem ajuste.
+- **K League 1:** permanece a referência de 12 clubes e formato especial de divisão em grupos após a fase regular, já registrada na seção 1; manter o formato oficial e não converter para turno/returno simples.
+
+### Emirados Árabes Unidos — confirmação institucional
+- A UAE Pro League declara possuir **14 clubes profissionais** como membros da liga. Fonte oficial: https://www.uaeproleague.ae/en/about
+- A lista de clubes é publicada pela própria liga. Fonte oficial: https://www.uaeproleague.ae/en/clubs
+- A licença AFC concedida a 13 clubes para o ciclo 2026/27 não significa que a liga tenha apenas 13 participantes; licenciamento AFC e número de participantes são métricas distintas. Fonte oficial: https://uaeproleague.ae/en/news-and-gallery/adnoc-pro-league-938
+
+### Egito — divisões abaixo da Premier League
+- A Federação Egípcia publicou para 2025/26 a Segunda Divisão A com **18 clubes** e a Segunda Divisão B com **89 clubes**, distribuídos em três grupos principais subdivididos geograficamente. Fonte oficial EFA: https://efa.eg/ar/الأخبار/اعتماد-نظام-المسابقات-بالموسم-الجديد-2025-2026/
+- Esses números são do regulamento 2025/26. Não transferir automaticamente para 2026/27 sem a publicação do novo regulamento.
+- Isso confirma que o modelo atual de 10 clubes fictícios na segunda divisão egípcia não representa a pirâmide nacional.
+
+### Atualização do quadro de contagens confirmadas
+| Competição | Temporada | Clubes | Fonte / status |
+|---|---|---:|---|
+| South Africa Betway Premiership | 2026/27 | 16 | Oficial PSL |
+| South Africa Motsepe Foundation Championship | 2026/27 | 16 | Lista oficial PSL |
+| K League 2 | 2026 | 17 | Oficial K League; 34 rodadas |
+| UAE ADNOC Pro League | 2026/27 | 14 | Oficial UAE Pro League |
+| Egypt Second Division A | 2025/26 | 18 | Oficial EFA; temporada seguinte pendente |
+| Egypt Second Division B | 2025/26 | 89 | Oficial EFA; temporada seguinte pendente |
+
+**Nota de calendário:** a Championship sul-africana tem 16 clubes na lista da PSL, mas sua promoção inclui playoffs; a K League 2 tem 17 clubes e folgas; a K League 1 e a Premier League egípcia têm fases finais. Esses formatos exigem funções específicas no gerador, não apenas mudança do número de clubes.
