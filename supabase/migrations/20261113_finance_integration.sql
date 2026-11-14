@@ -472,77 +472,72 @@ declare
   v_club_id uuid;
   v_payroll numeric(15,2);
   v_capacity integer;
+  v_ticket numeric(10,2);
   v_avg_overall numeric;
   v_stars integer;
-  v_ticket numeric(10,2);
-  v_form numeric;
   v_attendance integer;
   v_gate numeric(15,2);
   v_shirts numeric(15,2);
-  v_seed integer;
 begin
-  if new.status <> 'finished' or old.status = 'finished' then return new; end if;
-  v_month := date_trunc('month',coalesce(new.match_date::date,current_date)::timestamp)::date;
+  if new.status <> 'finished' or old.status = 'finished' then
+    return new;
+  end if;
 
-  foreach v_club_id in array array[new.home_club_id,new.away_club_id]
+  v_month := date_trunc('month', coalesce(new.match_date::date, current_date)::timestamp)::date;
+
+  foreach v_club_id in array array[new.home_club_id, new.away_club_id]
   loop
-    select coalesce(sum(coalesce(nullif(p.salario_mensal,0),p.salario,0)),0)
-    into v_payroll
+    select coalesce(sum(coalesce(nullif(p.salario_mensal, 0), p.salario, 0)), 0)
+      into v_payroll
     from public.players p
-    where p.club_id=v_club_id and coalesce(p.is_youth,false)=false
-      and p.status_contrato in ('ativo','emprestado');
+    where p.club_id = v_club_id
+      and coalesce(p.is_youth, false) = false
+      and p.status_contrato in ('ativo', 'emprestado');
 
     perform public.mfo_post_financial_event(
       v_club_id,
-      'payroll:'||to_char(v_month,'YYYY-MM'),
-      'despesa','Salários',
-      'Folha salarial mensal - '||to_char(v_month,'MM/YYYY'),
+      'payroll:' || to_char(v_month, 'YYYY-MM'),
+      'despesa',
+      'Salários',
+      'Folha salarial mensal - ' || to_char(v_month, 'MM/YYYY'),
       v_payroll
     );
   end loop;
 
-  select coalesce(c.capacidade,10000),coalesce(s.ticket_price,50)
-  into v_capacity,v_ticket
+  select coalesce(c.capacidade, 10000), coalesce(s.ticket_price, 50)
+    into v_capacity, v_ticket
   from public.clubs c
-  left join public.club_financial_settings s on s.club_id=c.id
-  where c.id=new.home_club_id;
+  left join public.club_financial_settings s on s.club_id = c.id
+  where c.id = new.home_club_id;
 
-  select coalesce(avg(overall),50),count(*) filter(where coalesce(is_star,false))
-  into v_avg_overall,v_stars
-  from public.players where club_id=new.home_club_id and coalesce(is_youth,false)=false;
+  select coalesce(avg(p.overall), 50),
+         count(*) filter (where coalesce(p.is_star, false))
+    into v_avg_overall, v_stars
+  from public.players p
+  where p.club_id = new.home_club_id
+    and coalesce(p.is_youth, false) = false;
 
-  select coalesce(avg(case
-    when (m.home_club_id=new.home_club_id and m.home_score>m.away_score)
-      or (m.away_club_id=new.home_club_id and m.away_score>m.home_score) then 1.0
-    when m.home_score=m.away_score then 0.5 else 0.0 end),0.5)
-  into v_form
-  from (
-    select * from public.matches m
-    where m.status='finished' and m.id<>new.id
-      and (m.home_club_id=new.home_club_id or m.away_club_id=new.home_club_id)
-    order by m.played_at desc nulls last limit 5
-  ) m;
+  v_attendance := least(v_capacity, greatest(0, (v_capacity * 0.55)::integer));
+  v_gate := round(v_attendance * v_ticket, 2);
 
-  v_seed:=abs(hashtext(new.id::text));
-  v_attendance:=least(v_capacity,greatest(0,round(v_capacity * (
-    0.30 + least(100,greatest(0,v_avg_overall))/250.0
-    + least(1,greatest(0,v_form))*0.12
-    + (v_seed % 16)/100.0
-  ))::integer));
-  v_gate:=round(v_attendance*v_ticket,2);
   perform public.mfo_post_financial_event(
-    new.home_club_id,'match-gate:'||new.id::text,
-    'receita','Bilheteria',
-    'Bilheteria - partida em '||to_char(v_month,'MM/YYYY')||
-      ' ('||v_attendance||' torcedores)',v_gate
+    new.home_club_id,
+    'match-gate:' || new.id::text,
+    'receita',
+    'Bilheteria',
+    'Bilheteria - partida em ' || to_char(v_month, 'MM/YYYY') ||
+      ' (' || v_attendance || ' torcedores)',
+    v_gate
   );
 
-  v_shirts:=round((v_capacity*0.0015 + v_stars*180 + v_avg_overall*18)
-    * (0.75 + least(1,greatest(0,v_form))*0.35),2);
+  v_shirts := round((v_capacity * 0.0015 + v_stars * 180 + v_avg_overall * 18), 2);
   perform public.mfo_post_financial_event(
-    new.home_club_id,'match-shirts:'||new.id::text,
-    'receita','Venda de camisas',
-    'Comercialização de camisas - partida em '||to_char(v_month,'MM/YYYY)',v_shirts
+    new.home_club_id,
+    'match-shirts:' || new.id::text,
+    'receita',
+    'Venda de camisas',
+    'Comercialização de camisas - partida em ' || to_char(v_month, 'MM/YYYY'),
+    v_shirts
   );
 
   return new;
