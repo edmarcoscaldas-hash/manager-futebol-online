@@ -31,6 +31,9 @@ export default function App() {
   const [mensagemEstadio, setMensagemEstadio] = useState('');
   const [carregandoEstadio, setCarregandoEstadio] = useState(false);
   const [movimentacoesFinanceiras, setMovimentacoesFinanceiras] = useState([]);
+  const [resumoFinanceiro, setResumoFinanceiro] = useState({ receitas: 0, despesas: 0, total_movimentacoes: 0, ticket_price: 50 });
+  const [precoIngressoInput, setPrecoIngressoInput] = useState('50');
+  const [salvandoPrecoIngresso, setSalvandoPrecoIngresso] = useState(false);
   const [carregandoFinancas, setCarregandoFinancas] = useState(false);
   const [erroFinancas, setErroFinancas] = useState('');
   const [mensagemFinancas, setMensagemFinancas] = useState('');
@@ -227,23 +230,29 @@ export default function App() {
         if (erroOfertas) setErroFinancas('Não foi possível consultar as propostas: ' + erroOfertas.message);
         else setPropostasPatrocinio(ofertas || []);
       }
-      const { data, error } = await supabase
-        .from('financial_transactions')
-        .select('*')
-        .eq('club_id', clubeAtual.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const [summaryRes, transactionsRes] = await Promise.all([
+        supabase.rpc('get_financial_summary', { p_club_id: clubeAtual.id }),
+        supabase.from('financial_transactions').select('*').eq('club_id', clubeAtual.id)
+          .order('created_at', { ascending: false }).limit(100)
+      ]);
       if (!ativo) return;
-      if (error) setErroFinancas('Não foi possível carregar o financeiro: ' + error.message);
-      else setMovimentacoesFinanceiras(data || []);
+      if (summaryRes.error) setErroFinancas('Não foi possível carregar o resumo financeiro: ' + summaryRes.error.message);
+      else {
+        const summary = summaryRes.data || { receitas: 0, despesas: 0, total_movimentacoes: 0, ticket_price: 50 };
+        setResumoFinanceiro(summary);
+        setPrecoIngressoInput(String(summary.ticket_price || 50));
+      }
+      if (transactionsRes.error) setErroFinancas('Não foi possível carregar o histórico: ' + transactionsRes.error.message);
+      else setMovimentacoesFinanceiras(transactionsRes.data || []);
       setCarregandoFinancas(false);
     }
     carregarFinancas();
     return () => { ativo = false; };
   }, [session, clubeAtual?.id, aba]);
 
-  const receitasFinanceiras = movimentacoesFinanceiras.filter(m => m.tipo === 'receita').reduce((s, m) => s + Number(m.valor || 0), 0);
-  const despesasFinanceiras = movimentacoesFinanceiras.filter(m => m.tipo === 'despesa').reduce((s, m) => s + Number(m.valor || 0), 0);
+  const receitasFinanceiras = Number(resumoFinanceiro.receitas || 0);
+  const despesasFinanceiras = Number(resumoFinanceiro.despesas || 0);
+
   const clubesDisponiveisNoFiltro = filtroLiga === 'Todas'
     ? clubesMercado
     : clubesMercado.filter(c => c.league_id === filtroLiga);
@@ -539,8 +548,12 @@ export default function App() {
       setMensagemFinancas(data?.message || 'Patrocínio contratado.');
       const { data: ofertas } = await supabase.from('sponsorship_offers').select('*').eq('club_id', clubeAtual.id).eq('temporada', temporadaPatrocinio).order('valor', { ascending: false });
       setPropostasPatrocinio(ofertas || []);
-      const { data: transacoes } = await supabase.from('financial_transactions').select('*').eq('club_id', clubeAtual.id).order('created_at', { ascending: false }).limit(100);
+      const [{ data: transacoes }, { data: resumo }] = await Promise.all([
+        supabase.from('financial_transactions').select('*').eq('club_id', clubeAtual.id).order('created_at', { ascending: false }).limit(100),
+        supabase.rpc('get_financial_summary', { p_club_id: clubeAtual.id })
+      ]);
       setMovimentacoesFinanceiras(transacoes || []);
+      if (resumo) setResumoFinanceiro(resumo);
       const { data: clubesAtualizados } = await supabase.from('clubs').select('*').order('created_at', { ascending: true });
       if (clubesAtualizados) setClubes(clubesAtualizados);
     }
@@ -712,33 +725,42 @@ export default function App() {
   ];
 
   async function iniciarAmpliacao() {
-    if (!clubeAtual?.id || !supabase) return;
-    const nivelAtual = Number(clubeAtual.stadium_level || 1);
-    const proximo = niveisEstadio.find(n => n.nivel === nivelAtual + 1);
-    if (!proximo) return;
-    const saldo = Number(clubeAtual.orcamento || 0);
-    if (saldo < proximo.custo) {
-      setMensagemEstadio('Saldo insuficiente. O clube precisa acumular mais receitas antes de iniciar a obra.');
-      return;
-    }
+    if (!clubeAtual?.id || !supabase || carregandoEstadio) return;
     setCarregandoEstadio(true);
     setMensagemEstadio('');
-    const inicio = new Date();
-    const fim = new Date(inicio.getTime() + proximo.dias * 24 * 60 * 60 * 1000);
-    const { data, error } = await supabase.from('clubs').update({
-      orcamento: saldo - proximo.custo,
-      stadium_target_capacity: proximo.capacidade,
-      stadium_upgrade_started_at: inicio.toISOString(),
-      stadium_upgrade_finishes_at: fim.toISOString()
-    }).eq('id', clubeAtual.id).select().single();
+    const { data, error } = await supabase.rpc('start_stadium_upgrade', { p_club_id: clubeAtual.id });
     if (error) setMensagemEstadio('Não foi possível iniciar a obra: ' + error.message);
     else {
-      setClubes(lista => lista.map(clube => clube.id === data.id ? data : clube));
-      setMensagemEstadio('Obra iniciada! O estádio ficará em ampliação por ' + proximo.dias + ' dias.');
+      const { data: atualizado, error: erroClube } = await supabase.from('clubs').select('*').eq('id', clubeAtual.id).single();
+      if (erroClube) setMensagemEstadio('Obra iniciada, mas não foi possível atualizar os dados exibidos: ' + erroClube.message);
+      else {
+        setClubes(lista => lista.map(clube => clube.id === atualizado.id ? atualizado : clube));
+        setMensagemEstadio('Obra iniciada! Investimento de R$ ' + Number(data?.cost || 0).toLocaleString('pt-BR') + '. Conclusão prevista para ' + new Date(data.finishes_at).toLocaleDateString('pt-BR') + '.');
+      }
     }
     setCarregandoEstadio(false);
   }
 
+  async function salvarPrecoIngresso() {
+    if (!clubeAtual?.id || !supabase || salvandoPrecoIngresso) return;
+    const valor = Number(precoIngressoInput);
+    if (!Number.isFinite(valor) || valor < 10 || valor > 1000) {
+      setMensagemFinancas('O preço do ingresso deve ficar entre R$ 10 e R$ 1.000.');
+      return;
+    }
+    setSalvandoPrecoIngresso(true);
+    setMensagemFinancas('');
+    const { data, error } = await supabase.rpc('set_club_ticket_price', {
+      p_club_id: clubeAtual.id,
+      p_ticket_price: valor
+    });
+    if (error) setMensagemFinancas('Não foi possível atualizar o ingresso: ' + error.message);
+    else {
+      setResumoFinanceiro(resumo => ({ ...resumo, ticket_price: Number(data?.ticket_price || valor) }));
+      setMensagemFinancas('Preço do ingresso atualizado com sucesso.');
+    }
+    setSalvandoPrecoIngresso(false);
+  }
   useEffect(() => {
     async function concluirObra() {
       if (!clubeAtual?.id || !clubeAtual.stadium_upgrade_finishes_at || !supabase) return;
@@ -1172,7 +1194,7 @@ export default function App() {
                 <p style={styles.mutedSmall}>As propostas são processadas pelo banco de dados. Contratações livres não têm taxa; compras e empréstimos verificam disponibilidade e orçamento. Empréstimos vencidos retornam ao clube de origem quando o mercado é carregado.</p>
               </div> :
               aba === 'Finanças' ? <div>
-                <p style={styles.muted}>Controle o caixa do clube, registre receitas e despesas e acompanhe o histórico financeiro.</p>
+                <p style={styles.muted}>Acompanhe o caixa, as receitas e despesas automáticas, o patrocínio e a movimentação do clube.</p>
                 {erroFinancas && <p style={styles.error}>{erroFinancas}</p>}
                 <section style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:16}}>
                   <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap'}}>
@@ -1195,9 +1217,18 @@ export default function App() {
                 </section>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:16}}>
                   <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}><span style={styles.eyebrow}>SALDO DISPONÍVEL</span><h3 style={{fontSize:25,color:'#67e8a5',margin:'10px 0'}}>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Caixa atual do clube</p></div>
-                  <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}><span style={styles.eyebrow}>RECEITAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#67e8a5',margin:'10px 0'}}>R$ {receitasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Últimas 100 movimentações</p></div>
-                  <div style={{background:'#0b1220',border:'1px solid #6b3b45',borderRadius:12,padding:18}}><span style={{...styles.eyebrow,color:'#fca5a5'}}>DESPESAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#fca5a5',margin:'10px 0'}}>R$ {despesasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Últimas 100 movimentações</p></div>
+                  <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}><span style={styles.eyebrow}>RECEITAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#67e8a5',margin:'10px 0'}}>R$ {receitasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Total de {Number(resumoFinanceiro.total_movimentacoes || 0).toLocaleString('pt-BR')} movimentações</p></div>
+                  <div style={{background:'#0b1220',border:'1px solid #6b3b45',borderRadius:12,padding:18}}><span style={{...styles.eyebrow,color:'#fca5a5'}}>DESPESAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#fca5a5',margin:'10px 0'}}>R$ {despesasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Total de {Number(resumoFinanceiro.total_movimentacoes || 0).toLocaleString('pt-BR')} movimentações</p></div>
                 </div>
+                <section style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18,marginTop:16}}>
+                  <span style={styles.eyebrow}>BILHETERIA</span>
+                  <h3 style={{margin:'8px 0'}}>Preço do ingresso</h3>
+                  <p style={styles.mutedSmall}>A arrecadação será calculada automaticamente conforme capacidade do estádio, força do elenco, fase do clube e público estimado.</p>
+                  <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginTop:12}}>
+                    <span>R$</span><input type="number" min="10" max="1000" step="1" value={precoIngressoInput} onChange={e=>setPrecoIngressoInput(e.target.value)} style={{...styles.input,maxWidth:160,marginTop:0}} />
+                    <button style={styles.primary} onClick={salvarPrecoIngresso} disabled={salvandoPrecoIngresso}>{salvandoPrecoIngresso?'Salvando...':'Salvar preço'}</button>
+                  </div>
+                </section>
                 <div style={{display:'grid',gridTemplateColumns:'1fr',gap:16,marginTop:20}}>
 
                   <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18}}>
@@ -1375,7 +1406,7 @@ export default function App() {
                   </div> : null; })()}
                 </div>}
                 {mensagemEstadio && <p style={styles.notice}>{mensagemEstadio}</p>}
-                <p style={styles.mutedSmall}>Os custos e prazos são valores iniciais de balanceamento. A integração com bilheteria e outras receitas será feita no módulo financeiro.</p>
+                <p style={styles.mutedSmall}>O investimento é debitado uma única vez e registrado no histórico financeiro. A bilheteria e a venda de camisas são calculadas quando uma partida é finalizada.</p>
               </div> :
               (aba === 'Liga' || aba === 'Partidas' || aba === 'Competições') ? <LeagueModule supabase={supabase} clubeAtual={clubeAtual} initialTab={aba === 'Partidas' ? 'jogos' : 'classificacao'} />
               : aba === 'Táticas' ? <TacticsModule club={clubeAtual} />
