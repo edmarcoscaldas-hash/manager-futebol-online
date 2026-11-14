@@ -153,7 +153,7 @@ export default function MultiplayerLobby({ supabase, user, club }) {
   const myMembership = members.find(member => member.user_id === user?.id);
   const coachCount = members.filter(member => member.role === 'coach').length;
   const readyCount = members.filter(member => member.role === 'coach' && member.ready).length;
-  const roomStatus = activeRoom?.status === 'waiting' ? 'AGUARDANDO' : activeRoom?.status === 'in_progress' ? 'EM ANDAMENTO' : 'FINALIZADA';
+  const roomStatus = activeRoom?.status === 'waiting' && coachCount === 2 && readyCount === 2 ? 'AMBOS PRONTOS' : activeRoom?.status === 'waiting' ? 'AGUARDANDO' : activeRoom?.status === 'in_progress' ? 'EM ANDAMENTO' : 'FINALIZADA';
 
   return (
     <div style={{ display:'grid', gap:18 }}>
