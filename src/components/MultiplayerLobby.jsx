@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import MultiplayerSetup from './MultiplayerSetup.jsx';
 
 const panel = { background:'#0b1220', border:'1px solid #263b32', borderRadius:14, padding:18 };
 const input = { width:'100%', boxSizing:'border-box', padding:12, borderRadius:9, border:'1px solid #34465f', background:'#07110d', color:'#fff', fontSize:14 };
@@ -191,6 +192,8 @@ export default function MultiplayerLobby({ supabase, user, club }) {
             </div>
           </div>
 
+          <MultiplayerSetup supabase={supabase} room={activeRoom} members={members} user={user} membership={myMembership} />
+
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:14 }}>
             <div style={panel}>
               <span style={eyebrow}>PARTICIPANTES DA SALA</span>
@@ -206,12 +209,7 @@ export default function MultiplayerLobby({ supabase, user, club }) {
                 ))}
                 {members.length < activeRoom.max_participants && <div style={{ border:'1px dashed #40536d', borderRadius:9, padding:13, color:'#8492a6', fontSize:12 }}>Aguardando novos participantes…</div>}
               </div>
-              {myMembership?.role === 'coach' && activeRoom.status === 'waiting' && (
-                <button type="button" style={{ ...primary, width:'100%', marginTop:14 }} onClick={() => changeReady(!myMembership.ready)}>
-                  {myMembership.ready ? 'Retirar confirmação' : 'Confirmar que estou pronto'}
-                </button>
-              )}
-              <p style={{ ...muted, fontSize:11, marginTop:12 }}>A confirmação apenas registra que você terminou a preparação. O início da partida online será conectado na próxima etapa.</p>
+              {myMembership?.role === 'coach' && <p style={{ ...muted, fontSize:11, marginTop:12 }}>Confirme sua escalação no painel de pré-jogo. A partida só poderá avançar quando os dois treinadores estiverem prontos.</p>}
             </div>
 
             <div style={{ ...panel, display:'flex', flexDirection:'column', minHeight:320 }}>
