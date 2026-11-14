@@ -413,7 +413,7 @@ begin
     end if;
     v_minimo:=greatest(1,coalesce(v_player.valor_mercado,0)*0.85);
     if p_valor<v_minimo then
-      raise exception 'A proposta está abaixo do valor mínimo aceito pelo clube vendedor (85% do valor de mercado).';
+      raise exception 'A proposta está abaixo do valor mínimo aceito pelo clube vendedor (85%% do valor de mercado).';
     end if;
     if coalesce(v_buyer.orcamento,0)<p_valor then
       raise exception 'Orçamento insuficiente para fazer essa contratação.';
