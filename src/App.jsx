@@ -1233,9 +1233,9 @@ export default function App() {
 
                   <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18}}>
                     <span style={styles.eyebrow}>VISÃO FINANCEIRA</span><h3>Resumo do clube</h3>
-                    <p style={styles.muted}>Resultado das movimentações carregadas: <strong style={{color:receitasFinanceiras-despesasFinanceiras>=0?'#67e8a5':'#fca5a5'}}>R$ {(receitasFinanceiras-despesasFinanceiras).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></p>
+                    <p style={styles.muted}>Resultado acumulado de todas as movimentações: <strong style={{color:receitasFinanceiras-despesasFinanceiras>=0?'#67e8a5':'#fca5a5'}}>R$ {(receitasFinanceiras-despesasFinanceiras).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></p>
                     <p style={styles.muted}>Orçamento disponível: <strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></p>
-                    <p style={styles.mutedSmall}>O saldo inicial já existente no clube é preservado. As movimentações automáticas do clube serão registradas aqui conforme as funcionalidades financeiras forem integradas.</p>
+                    <p style={styles.mutedSmall}>Os totais consideram todo o histórico financeiro. A tabela abaixo exibe as 100 movimentações mais recentes.</p>
                   </div>
                 </div>
                 <div style={{marginTop:22}}>
