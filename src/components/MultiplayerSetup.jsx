@@ -152,8 +152,8 @@ export default function MultiplayerSetup({supabase,room,members,user,membership}
     <div style={{display:'flex',gap:9,flexWrap:'wrap'}}>
       <button type="button" style={styles.button} disabled={!canEdit||saving||players.length<11} onClick={save}>{saving?'Salvando...':'Salvar escalação'}</button>
       {!isReady&&<button type="button" style={{...styles.button,background:'#225b8a'}} disabled={!hasSaved||saving} onClick={async()=>{setError('');const {error:e}=await supabase.rpc('set_mfo_room_ready',{p_room_id:room.id,p_ready:true});if(e)setError(e.message);else setMessage('Escalação confirmada! Aguardando o outro treinador.');}}>{hasSaved?'Confirmar escalação':'Salve a escalação para confirmar'}</button>}
-      {isReady&&!opponentReady&&<button type="button" style={{...styles.button,background:'#8a5a22'}} onClick={async()=>{const {error:e}=await supabase.rpc('set_mfo_room_ready',{p_room_id:room.id,p_ready:false});if(e)setError(e.message);else setMessage('Confirmação retirada. Você pode ajustar sua escalação novamente.');}}>Reabrir escalação</button>}
-      {isReady&&opponentReady&&<span style={styles.muted}>Os dois treinadores estão prontos. A sala está aguardando a etapa de início da partida.</span>}
+      {isReady&&(!opponentReady||!opponentLineup)&&<button type="button" style={{...styles.button,background:'#8a5a22'}} onClick={async()=>{const {error:e}=await supabase.rpc('set_mfo_room_ready',{p_room_id:room.id,p_ready:false});if(e)setError(e.message);else setMessage('Confirmação retirada. Você pode ajustar sua escalação novamente.');}}>Reabrir escalação</button>}
+      {isReady&&opponentReady&&opponentLineup&&<span style={styles.muted}>Os dois treinadores estão prontos. A sala está aguardando a etapa de início da partida.</span>}
     </div>
     {opponent&&<div style={{borderTop:'1px solid #263b32',paddingTop:12}}>
       <strong style={{fontSize:13}}>Adversário</strong>
