@@ -728,17 +728,47 @@ export default function App() {
     if (!clubeAtual?.id || !supabase || carregandoEstadio) return;
     setCarregandoEstadio(true);
     setMensagemEstadio('');
-    const { data, error } = await supabase.rpc('start_stadium_upgrade', { p_club_id: clubeAtual.id });
-    if (error) setMensagemEstadio('Não foi possível iniciar a obra: ' + error.message);
-    else {
-      const { data: atualizado, error: erroClube } = await supabase.from('clubs').select('*').eq('id', clubeAtual.id).single();
-      if (erroClube) setMensagemEstadio('Obra iniciada, mas não foi possível atualizar os dados exibidos: ' + erroClube.message);
-      else {
-        setClubes(lista => lista.map(clube => clube.id === atualizado.id ? atualizado : clube));
-        setMensagemEstadio('Obra iniciada! Investimento de R$ ' + Number(data?.cost || 0).toLocaleString('pt-BR') + '. Conclusão prevista para ' + new Date(data.finishes_at).toLocaleDateString('pt-BR') + '.');
+    try {
+      const { data, error } = await supabase.rpc('start_stadium_upgrade', { p_club_id: clubeAtual.id });
+      const resultado = Array.isArray(data) ? data[0] : data;
+
+      // Algumas versões da função podem concluir a atualização no banco,
+      // mas o PostgREST falhar ao converter o retorno em objeto único.
+      if (error) {
+        const { data: estado, error: erroConsulta } = await supabase
+          .from('clubs')
+          .select('id,stadium_target_capacity,stadium_upgrade_started_at,stadium_upgrade_finishes_at,orcamento')
+          .eq('id', clubeAtual.id)
+          .maybeSingle();
+
+        if (!erroConsulta && estado?.stadium_upgrade_finishes_at) {
+          setClubes(lista => lista.map(clube => clube.id === estado.id ? { ...clube, ...estado } : clube));
+          setMensagemEstadio('A obra já consta como iniciada no banco. Atualizei o estado do estádio; confira a data de conclusão.');
+        } else {
+          setMensagemEstadio('Não foi possível iniciar a obra: ' + error.message +
+            (erroConsulta ? ' | Também não consegui confirmar o estado do clube: ' + erroConsulta.message : ''));
+        }
+      } else {
+        const { data: atualizado, error: erroClube } = await supabase
+          .from('clubs').select('*').eq('id', clubeAtual.id).maybeSingle();
+        if (erroClube) {
+          setMensagemEstadio('A obra foi solicitada, mas não consegui atualizar a tela: ' + erroClube.message);
+        } else if (!atualizado) {
+          setMensagemEstadio('A obra foi solicitada, mas o clube não retornou na consulta. Verifique a permissão de leitura do clube.');
+        } else {
+          setClubes(lista => lista.map(clube => clube.id === atualizado.id ? atualizado : clube));
+          setMensagemEstadio('Obra iniciada! Investimento de R$ ' +
+            Number(resultado?.cost || 0).toLocaleString('pt-BR') +
+            '. Conclusão prevista para ' +
+            (resultado?.finishes_at ? new Date(resultado.finishes_at).toLocaleDateString('pt-BR') :
+              new Date(atualizado.stadium_upgrade_finishes_at).toLocaleDateString('pt-BR')) + '.');
+        }
       }
+    } catch (e) {
+      setMensagemEstadio('Falha inesperada ao iniciar a obra: ' + (e?.message || String(e)));
+    } finally {
+      setCarregandoEstadio(false);
     }
-    setCarregandoEstadio(false);
   }
 
   async function salvarPrecoIngresso() {
