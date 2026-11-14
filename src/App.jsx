@@ -3,6 +3,7 @@ import { supabase, supabaseConfigured } from './lib/supabase.js';
 import LeagueModule from './components/LeagueModule.jsx';
 import TacticsModule from './components/TacticsModule.jsx';
 import DashboardModule from './components/DashboardModule.jsx';
+import MultiplayerLobby from './components/MultiplayerLobby.jsx';
 
 export default function App() {
   const [aba, setAba] = useState('Início');
@@ -1304,31 +1305,7 @@ export default function App() {
                 </div>}
                 <p style={styles.mutedSmall}>As reputações são registradas no clube e variam conforme sua declaração. Nesta etapa, os efeitos ainda não são calculados automaticamente pelo resultado real da partida.</p>
               </div> :
-              aba === 'Amistosos' ? <div>
-                <div style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:14,padding:20}}>
-                  <span style={styles.eyebrow}>MODO MULTIPLAYER</span>
-                  <h3 style={{marginTop:8}}>Amistosos Online</h3>
-                  <p style={styles.muted}>Jogue contra amigos em salas privadas, desafie outro treinador mesmo quando ele estiver offline ou participe como espectador em partidas simultâneas.</p>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:12,marginTop:18}}>
-                    <div style={{background:'#17263b',borderRadius:10,padding:16}}>
-                      <strong>Desafio entre amigos</strong>
-                      <p style={styles.mutedSmall}>Convide outro treinador por código e prepare sua escalação no seu próprio horário.</p>
-                      <span style={{color:'#facc15',fontSize:12,fontWeight:700}}>EM IMPLEMENTAÇÃO</span>
-                    </div>
-                    <div style={{background:'#17263b',borderRadius:10,padding:16}}>
-                      <strong>Sala simultânea</strong>
-                      <p style={styles.mutedSmall}>Crie uma sala privada para 2 a 4 participantes, com partida ao vivo e espectadores.</p>
-                      <span style={{color:'#facc15',fontSize:12,fontWeight:700}}>EM IMPLEMENTAÇÃO</span>
-                    </div>
-                    <div style={{background:'#17263b',borderRadius:10,padding:16}}>
-                      <strong>Histórico e classificação</strong>
-                      <p style={styles.mutedSmall}>Acompanhe resultados, confrontos e mini campeonatos entre amigos.</p>
-                      <span style={{color:'#facc15',fontSize:12,fontWeight:700}}>EM IMPLEMENTAÇÃO</span>
-                    </div>
-                  </div>
-                  <p style={{...styles.mutedSmall,marginTop:18}}>Esta área já está no menu, mas os convites, salas, confirmações de escalação, simulação compartilhada e chat ainda precisam ser conectados ao banco de dados.</p>
-                </div>
-              </div> :
+              aba === 'Amistosos' ? <MultiplayerLobby supabase={supabase} user={session?.user} club={clubeAtual} /> :
               aba === 'Rankings' ? <div>
                 <p style={styles.muted}>Os rankings serão alimentados pelos resultados oficiais das partidas e temporadas do MFO. Para não apresentar informações falsas, esta tela não exibe posições ou artilheiros demonstrativos.</p>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:14,marginTop:18}}>
