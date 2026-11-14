@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase, supabaseConfigured } from './lib/supabase.js';
 import LeagueModule from './components/LeagueModule.jsx';
+import RankingsModule from './components/RankingsModule.jsx';
 import TacticsModule from './components/TacticsModule.jsx';
 import DashboardModule from './components/DashboardModule.jsx';
 import MultiplayerLobby from './components/MultiplayerLobby.jsx';
@@ -1306,30 +1307,7 @@ export default function App() {
                 <p style={styles.mutedSmall}>As reputações são registradas no clube e variam conforme sua declaração. Nesta etapa, os efeitos ainda não são calculados automaticamente pelo resultado real da partida.</p>
               </div> :
               aba === 'Amistosos' ? <MultiplayerLobby supabase={supabase} user={session?.user} club={clubeAtual} /> :
-              aba === 'Rankings' ? <div>
-                <p style={styles.muted}>Os rankings serão alimentados pelos resultados oficiais das partidas e temporadas do MFO. Para não apresentar informações falsas, esta tela não exibe posições ou artilheiros demonstrativos.</p>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:14,marginTop:18}}>
-                  {[
-                    ['RANKING MUNDIAL DE CLUBES','Será calculado a partir do desempenho dos clubes nas competições.'],
-                    ['RANKING MUNDIAL DE SELEÇÕES','Aguardando a integração dos torneios entre seleções.'],
-                    ['ARTILHARIA GERAL','Será preenchida com os gols registrados nas partidas finalizadas.']
-                  ].map(([titulo,descricao])=><div key={titulo} style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:16}}>
-                    <span style={styles.eyebrow}>{titulo}</span>
-                    <p style={styles.muted}>{descricao}</p>
-                    <strong style={{color:'#facc15'}}>Aguardando dados oficiais</strong>
-                  </div>)}
-                </div>
-                <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
-                  <span style={styles.eyebrow}>CLASSIFICAÇÃO POR LIGA</span>
-                  <h3>Classificação oficial</h3>
-                  <p style={styles.muted}>Consulte a tabela calculada pelos resultados registrados em cada campeonato.</p>
-                  <button style={styles.primary} onClick={()=>setAba('Competições')}>Abrir competições</button>
-                </div>
-                <div style={{background:'#17263b',borderRadius:10,padding:16,marginTop:16}}>
-                  <strong>Premiações e recordes históricos</strong>
-                  <p style={styles.muted}>Bola de Ouro, melhor treinador, melhor goleiro, revelação, artilheiros e maiores campeões serão liberados quando os dados históricos estiverem integrados.</p>
-                </div>
-              </div> :
+              aba === 'Rankings' ? <RankingsModule supabase={supabase} clubeAtual={clubeAtual} /> :
               aba === 'Base' ? <div>
                 <p style={styles.muted}>Revele novos talentos para o clube. A base recebe jogadores de 15 a 18 anos, com evolução baseada no potencial. Os jovens ficam separados do elenco profissional até serem promovidos.</p>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginTop:16}}>
