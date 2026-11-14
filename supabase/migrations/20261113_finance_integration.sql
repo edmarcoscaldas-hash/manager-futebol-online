@@ -556,6 +556,19 @@ for each row
 when (new.status='finished' and old.status is distinct from new.status)
 execute function public.mfo_process_match_finances();
 
+drop policy if exists mfo_financial_transactions_select on public.financial_transactions;
+create policy mfo_financial_transactions_select
+on public.financial_transactions for select to authenticated
+using (public.mfo_user_can_manage_club(club_id));
+
+drop policy if exists mfo_sponsorship_offers_select on public.sponsorship_offers;
+create policy mfo_sponsorship_offers_select
+on public.sponsorship_offers for select to authenticated
+using (public.mfo_user_can_manage_club(club_id));
+
+revoke all on function public.mfo_post_financial_event(uuid,text,text,text,text,numeric) from public, anon, authenticated;
+revoke all on function public.mfo_process_match_finances() from public, anon, authenticated;
+
 grant execute on function public.mfo_user_can_manage_club(uuid) to authenticated;
 grant execute on function public.set_club_ticket_price(uuid,numeric) to authenticated;
 grant execute on function public.get_financial_summary(uuid) to authenticated;
