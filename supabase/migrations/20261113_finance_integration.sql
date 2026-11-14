@@ -182,8 +182,7 @@ begin
   end if;
 
   update public.clubs
-  set orcamento=coalesce(orcamento,0)-v_cost,
-      stadium_target_capacity=v_capacity,
+  set stadium_target_capacity=v_capacity,
       stadium_upgrade_started_at=v_now,
       stadium_upgrade_finishes_at=v_now + interval '10 days'
   where id=p_club_id;
@@ -419,8 +418,6 @@ begin
     if coalesce(v_buyer.orcamento,0)<p_valor then
       raise exception 'Orçamento insuficiente para fazer essa contratação.';
     end if;
-    update public.clubs set orcamento=coalesce(orcamento,0)-p_valor where id=v_buyer.id;
-    update public.clubs set orcamento=coalesce(orcamento,0)+p_valor where id=v_seller.id;
     update public.players set club_id=v_buyer.id,status_contrato='ativo',
       disponivel_transferencia=false,disponivel_emprestimo=false,
       emprestado_por_club_id=null,emprestimo_ate=null
@@ -436,8 +433,6 @@ begin
     if coalesce(v_buyer.orcamento,0)<p_valor then
       raise exception 'Orçamento insuficiente para essa proposta de empréstimo.';
     end if;
-    update public.clubs set orcamento=coalesce(orcamento,0)-p_valor where id=v_buyer.id;
-    update public.clubs set orcamento=coalesce(orcamento,0)+p_valor where id=v_seller.id;
     update public.players set club_id=v_buyer.id,status_contrato='emprestado',
       disponivel_transferencia=false,disponivel_emprestimo=false,
       emprestado_por_club_id=v_seller.id,
@@ -517,8 +512,8 @@ begin
   from public.players where club_id=new.home_club_id and coalesce(is_youth,false)=false;
 
   select coalesce(avg(case
-    when (m.home_club_id=v_club_id and m.home_score>m.away_score)
-      or (m.away_club_id=v_club_id and m.away_score>m.home_score) then 1.0
+    when (m.home_club_id=new.home_club_id and m.home_score>m.away_score)
+      or (m.away_club_id=new.home_club_id and m.away_score>m.home_score) then 1.0
     when m.home_score=m.away_score then 0.5 else 0.0 end),0.5)
   into v_form
   from (
