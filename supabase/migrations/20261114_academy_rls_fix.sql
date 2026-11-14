@@ -7,7 +7,7 @@ language sql
 stable
 security definer
 set search_path = public, pg_temp
-as $
+as $$
   select exists (
     select 1 from public.clubs c
     where c.id=p_club_id and c.owner_id=auth.uid()
@@ -21,7 +21,7 @@ as $
       and me.status='active'
       and me.ended_at is null
   );
-$;
+$$;
 
 grant execute on function public.mfo_user_can_manage_club(uuid) to authenticated;
 
