@@ -28,6 +28,7 @@ export default function MultiplayerSetup({supabase,room,members,user,membership}
   const [message,setMessage]=useState('');
   const [error,setError]=useState('');
   const [opponentLineup,setOpponentLineup]=useState(null);
+  const [hasSaved,setHasSaved]=useState(false);
 
   useEffect(()=>{
     let active=true;
@@ -46,6 +47,7 @@ export default function MultiplayerSetup({supabase,room,members,user,membership}
       setPlayers(roster);
       const saved=savedRes.data;
       const defaults=defaultsRes.data;
+      setHasSaved(!!saved);
       const auto=getAutoLineup(roster);
       const initialStarters=saved?.starters || defaults?.starters || auto.starters;
       const initialBench=saved?.bench || defaults?.bench || auto.bench;
@@ -77,8 +79,7 @@ export default function MultiplayerSetup({supabase,room,members,user,membership}
   const opponent=members.find(m=>m.role==='coach'&&m.user_id!==user?.id);
   const opponentReady=!!opponent?.ready;
   const isReady=!!membership?.ready;
-  const locked=opponentReady;
-  const canEdit=!isReady&&!opponentReady;
+  const canEdit=!isReady;
   const uniqueCount=new Set(selected).size;
   const goalkeeper=playerMap.get(starters[0]);
 
@@ -104,6 +105,7 @@ export default function MultiplayerSetup({supabase,room,members,user,membership}
     });
     setSaving(false);
     if(rpcError){setError(rpcError.message);return;}
+    setHasSaved(true);
     setMessage('Escalação e tática salvas na sala. Agora você pode confirmar que está pronto.');
   }
 
@@ -117,7 +119,7 @@ export default function MultiplayerSetup({supabase,room,members,user,membership}
     </div>
     {error&&<div role="alert" style={{background:'#3a1e25',color:'#fecaca',padding:10,borderRadius:8,fontSize:12}}>{error}</div>}
     {message&&<div role="status" style={{background:'#123d32',color:'#b9f6d3',padding:10,borderRadius:8,fontSize:12}}>{message}</div>}
-    {opponentReady&&<div style={{background:'#332b18',border:'1px solid #8b6b2c',padding:11,borderRadius:9,fontSize:12,color:'#f8e7b0'}}>O adversário já confirmou. As escalações estão bloqueadas para edição.</div>}
+    {opponentReady&&<div style={{background:'#332b18',border:'1px solid #8b6b2c',padding:11,borderRadius:9,fontSize:12,color:'#f8e7b0'}}>{isReady?'Os dois treinadores confirmaram. As escalações estão bloqueadas.':'O adversário já confirmou. Você ainda pode concluir e confirmar sua escalação.'}</div>}
     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
       <label style={styles.muted}>Formação<select disabled={!canEdit} style={{...styles.input,marginTop:5}} value={formation} onChange={e=>setFormation(e.target.value)}>{FORMATIONS.map(f=><option key={f}>{f}</option>)}</select></label>
       <label style={styles.muted}>Estilo de jogo<select disabled={!canEdit} style={{...styles.input,marginTop:5}} value={style} onChange={e=>setStyle(e.target.value)}><option value="defensive">Defensivo</option><option value="balanced">Equilibrado</option><option value="offensive">Ofensivo</option></select></label>
@@ -149,8 +151,9 @@ export default function MultiplayerSetup({supabase,room,members,user,membership}
     </>}
     <div style={{display:'flex',gap:9,flexWrap:'wrap'}}>
       <button type="button" style={styles.button} disabled={!canEdit||saving||players.length<11} onClick={save}>{saving?'Salvando...':'Salvar escalação'}</button>
+      {!isReady&&<button type="button" style={{...styles.button,background:'#225b8a'}} disabled={!hasSaved||saving} onClick={async()=>{setError('');const {error:e}=await supabase.rpc('set_mfo_room_ready',{p_room_id:room.id,p_ready:true});if(e)setError(e.message);else setMessage('Escalação confirmada! Aguardando o outro treinador.');}}>{hasSaved?'Confirmar escalação':'Salve a escalação para confirmar'}</button>}
       {isReady&&!opponentReady&&<button type="button" style={{...styles.button,background:'#8a5a22'}} onClick={async()=>{const {error:e}=await supabase.rpc('set_mfo_room_ready',{p_room_id:room.id,p_ready:false});if(e)setError(e.message);else setMessage('Confirmação retirada. Você pode ajustar sua escalação novamente.');}}>Reabrir escalação</button>}
-      {isReady&&opponentReady&&<span style={styles.muted}>Aguardando o início da partida online.</span>}
+      {isReady&&opponentReady&&<span style={styles.muted}>Os dois treinadores estão prontos. A sala está aguardando a etapa de início da partida.</span>}
     </div>
     {opponent&&<div style={{borderTop:'1px solid #263b32',paddingTop:12}}>
       <strong style={{fontSize:13}}>Adversário</strong>
