@@ -74,6 +74,8 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
   const ligaSelecionada = ligas.find(l => l.id === ligaId);
   const nomeClube = id => clubes.find(c => c.id === id)?.nome || 'Clube';
   const rodadas = useMemo(() => [...new Set(partidas.map(p => p.round_number))].sort((a,b)=>a-b), [partidas]);
+  const proximaRodadaPendente = rodadas.find(r => partidas.some(p => p.round_number === r && p.status === 'scheduled'));
+  const partidaBaseRodada = partidas.find(p => p.round_number === proximaRodadaPendente && p.status === 'scheduled');
   const partidasFinalizadas = partidas.filter(p => p.status === 'finished').length;
   const proximasPartidas = partidas.filter(p => p.status === 'scheduled' && (p.home_club_id === clubeAtual?.id || p.away_club_id === clubeAtual?.id));
   const proximaPartida = [...proximasPartidas].sort((a,b) => new Date(a.match_date || 0) - new Date(b.match_date || 0))[0] || null;
@@ -105,7 +107,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       for (const jogo of ordem) {
         const { error } = await supabase.rpc('simulate_match', { p_match_id: jogo.id });
         if (error) {
-          // Partidas de clubes comandados por outros usuários permanecem intactas.
+          // Partidas sem autorização ou sem elenco válido permanecem intactas.
           preservadas += 1;
         } else {
           concluidas += 1;
@@ -128,7 +130,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       setPartidas(matchesRes.data || []);
       setMensagemJogo(
         'Rodada ' + rodada + ' processada: ' + concluidas + ' partida(s) simulada(s).' +
-        (preservadas ? ' ' + preservadas + ' partida(s) preservada(s) por envolverem outro treinador.' : '') +
+        (preservadas ? ' ' + preservadas + ' partida(s) não processada(s), por proteção de acesso ou falta de escalação.' : '') +
         ' Classificação atualizada.'
       );
     } catch (error) {
@@ -268,11 +270,11 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     </section> : <section style={card}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
         <h3 style={{marginTop:0}}>Calendário de partidas</h3>
-        {proximaPartida && <button
-          onClick={()=>simularRodadaCompleta(proximaPartida)}
+        {partidaBaseRodada && <button
+          onClick={()=>simularRodadaCompleta(partidaBaseRodada)}
           disabled={Boolean(simulando)}
           style={{background:'linear-gradient(110deg,#15965b,#20c86b)',color:'#04170d',border:'1px solid #55e58a',borderRadius:8,padding:'9px 12px',fontWeight:900,fontSize:11,opacity:simulando?0.6:1}}
-        >{simulando==='rodada-'+proximaPartida.round_number?'SIMULANDO RODADA...':'⚽ SIMULAR RODADA COMPLETA'}</button>}
+        >{simulando==='rodada-'+proximaRodadaPendente?'SIMULANDO RODADA...':'⚽ SIMULAR RODADA '+proximaRodadaPendente}</button>}
       </div>
       {partidas.length===0 ? <p style={muted}>O calendário desta liga ainda não foi gerado. Nenhuma partida foi criada automaticamente para não alterar a composição atual dos campeonatos.</p> :
         rodadas.map(r=><div key={r} style={{marginTop:16}}>
