@@ -79,6 +79,65 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
   const proximaPartida = [...proximasPartidas].sort((a,b) => new Date(a.match_date || 0) - new Date(b.match_date || 0))[0] || null;
 
 
+  async function simularRodadaCompleta(partidaBase) {
+    if (!partidaBase?.round_number || simulando) return;
+    const rodada = partidaBase.round_number;
+    const pendentes = partidas.filter(p => p.round_number === rodada && p.status === 'scheduled');
+    if (!pendentes.length) {
+      setMensagemJogo('Esta rodada não possui partidas pendentes.');
+      return;
+    }
+
+    const jogoDoUsuario = pendentes.find(p =>
+      p.home_club_id === clubeAtual?.id || p.away_club_id === clubeAtual?.id
+    );
+    const ordem = [
+      ...(jogoDoUsuario ? [jogoDoUsuario] : []),
+      ...pendentes.filter(p => p.id !== jogoDoUsuario?.id)
+    ];
+
+    setSimulando('rodada-' + rodada);
+    setMensagemJogo('Simulando os jogos da rodada ' + rodada + '...');
+    let concluidas = 0;
+    let preservadas = 0;
+
+    try {
+      for (const jogo of ordem) {
+        const { error } = await supabase.rpc('simulate_match', { p_match_id: jogo.id });
+        if (error) {
+          // Partidas de clubes comandados por outros usuários permanecem intactas.
+          preservadas += 1;
+        } else {
+          concluidas += 1;
+        }
+      }
+
+      const [standingsRes, matchesRes] = await Promise.all([
+        supabase.from('league_standings').select('*').eq('league_id', ligaId)
+          .order('points', { ascending:false })
+          .order('goal_difference', { ascending:false })
+          .order('goals_for', { ascending:false }),
+        supabase.from('matches').select('*').eq('league_id', ligaId)
+          .order('round_number').order('match_date')
+      ]);
+
+      if (standingsRes.error) throw new Error('Jogos processados, mas a classificação não pôde ser atualizada: ' + standingsRes.error.message);
+      if (matchesRes.error) throw new Error('Jogos processados, mas o calendário não pôde ser atualizado: ' + matchesRes.error.message);
+
+      setClassificacao(standingsRes.data || []);
+      setPartidas(matchesRes.data || []);
+      setMensagemJogo(
+        'Rodada ' + rodada + ' processada: ' + concluidas + ' partida(s) simulada(s).' +
+        (preservadas ? ' ' + preservadas + ' partida(s) preservada(s) por envolverem outro treinador.' : '') +
+        ' Classificação atualizada.'
+      );
+    } catch (error) {
+      setMensagemJogo('A rodada foi parcialmente processada: ' + (error?.message || 'Erro inesperado.'));
+    } finally {
+      setSimulando('');
+    }
+  }
+
   async function simularPartida(partida) {
     if (!partida?.id || simulando) return;
     if (partida.status !== 'scheduled') {
@@ -207,7 +266,14 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
         </tr>)}</tbody>
       </table></div>}
     </section> : <section style={card}>
-      <h3 style={{marginTop:0}}>Calendário de partidas</h3>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+        <h3 style={{marginTop:0}}>Calendário de partidas</h3>
+        {proximaPartida && <button
+          onClick={()=>simularRodadaCompleta(proximaPartida)}
+          disabled={Boolean(simulando)}
+          style={{background:'linear-gradient(110deg,#15965b,#20c86b)',color:'#04170d',border:'1px solid #55e58a',borderRadius:8,padding:'9px 12px',fontWeight:900,fontSize:11,opacity:simulando?0.6:1}}
+        >{simulando==='rodada-'+proximaPartida.round_number?'SIMULANDO RODADA...':'⚽ SIMULAR RODADA COMPLETA'}</button>}
+      </div>
       {partidas.length===0 ? <p style={muted}>O calendário desta liga ainda não foi gerado. Nenhuma partida foi criada automaticamente para não alterar a composição atual dos campeonatos.</p> :
         rodadas.map(r=><div key={r} style={{marginTop:16}}>
           <h4 style={{color:'#67e8a5',borderBottom:'1px solid #34465f',paddingBottom:8}}>RODADA {r}</h4>
