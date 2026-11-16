@@ -60,6 +60,9 @@ export default function App() {
   const [erroBase, setErroBase] = useState('');
   const [peneirasTemporada, setPeneirasTemporada] = useState(0);
   const [temporadaBase, setTemporadaBase] = useState(1);
+  const [categoriaBaseSelecionada, setCategoriaBaseSelecionada] = useState('Todas');
+  const [treinandoBase, setTreinandoBase] = useState(false);
+  const [ultimoTreinoBase, setUltimoTreinoBase] = useState(null);
   const [carregandoJogadores, setCarregandoJogadores] = useState(false);
   const [novoJogador, setNovoJogador] = useState({ nome: '', posicao: 'Atacante', data_nascimento: '', overall: 50 });
   const [erroElenco, setErroElenco] = useState('');
@@ -90,6 +93,7 @@ export default function App() {
   const [valorMax, setValorMax] = useState('100000000');
   const clubeAtual = clubes[0];
   const salarioSugerido = jogadorOferta ? Math.round(3000 * Math.pow(Math.max(40, Math.min(100, Number(jogadorOferta.overall || 50))) / 50, 3.6) * (jogadorOferta.is_star ? 1.25 : 1)) : 3000;
+  const jogadoresBaseFiltrados = jogadoresBase.filter(j => categoriaBaseSelecionada === 'Todas' || categoriaBase(j.data_nascimento) === categoriaBaseSelecionada);
 
   const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Finanças', 'Imprensa', 'Rankings'];
 
@@ -294,10 +298,11 @@ export default function App() {
       if (!clubeAtual?.id || !supabase || aba !== 'Base') return;
       setCarregandoBase(true);
       setErroBase('');
-      const [jovensRes, candidatosRes, peneirasRes] = await Promise.all([
+      const [jovensRes, candidatosRes, peneirasRes, treinoRes] = await Promise.all([
         supabase.from('players').select('*').eq('club_id', clubeAtual.id).eq('is_youth', true).order('overall', { ascending: false }),
         supabase.from('academy_trials').select('*').eq('club_id', clubeAtual.id).eq('status', 'disponivel').order('created_at', { ascending: false }),
-        supabase.from('academy_trials').select('peneira_id,temporada').eq('club_id', clubeAtual.id)
+        supabase.from('academy_trials').select('peneira_id,temporada').eq('club_id', clubeAtual.id),
+        supabase.from('academy_training_sessions').select('week_start,trained_at,players_trained,points_added').eq('club_id', clubeAtual.id).order('week_start', { ascending: false }).limit(1).maybeSingle()
       ]);
       if (!ativo) return;
       if (jovensRes.error) setErroBase('Não foi possível carregar a base: ' + jovensRes.error.message);
@@ -310,6 +315,7 @@ export default function App() {
         setPeneirasTemporada(new Set(registros.map(item => item.peneira_id)).size);
         setTemporadaBase(registros[0]?.temporada || 1);
       }
+      setUltimoTreinoBase(treinoRes.error ? null : (treinoRes.data || null));
       setCarregandoBase(false);
     }
     carregarBase();
@@ -323,6 +329,14 @@ export default function App() {
     let idade = hoje.getFullYear() - nascimento.getFullYear();
     if (hoje.getMonth() < nascimento.getMonth() || (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate())) idade--;
     return idade;
+  }
+
+  function categoriaBase(dataNascimento) {
+    const idade = idadeJogador(dataNascimento);
+    if (idade >= 14 && idade <= 15) return 'Sub-15';
+    if (idade >= 16 && idade <= 17) return 'Sub-17';
+    if (idade >= 18 && idade <= 20) return 'Sub-20';
+    return 'Fora da base';
   }
 
   async function abrirPeneira() {
@@ -357,10 +371,14 @@ export default function App() {
     const peneiraId = crypto.randomUUID();
     const candidatos = Array.from({ length: 5 }, (_, i) => {
       const estrela = Math.random() < 0.07;
-      const idade = 15 + Math.floor(Math.random() * 4);
-      const nascimento = new Date();
-      nascimento.setFullYear(nascimento.getFullYear() - idade);
-      nascimento.setDate(nascimento.getDate() + Math.floor(Math.random() * 365));
+      const idade = 14 + Math.floor(Math.random() * 7);
+      const hoje = new Date();
+      const limiteMaisNovo = new Date(hoje);
+      limiteMaisNovo.setFullYear(limiteMaisNovo.getFullYear() - idade);
+      const limiteMaisAntigo = new Date(hoje);
+      limiteMaisAntigo.setFullYear(limiteMaisAntigo.getFullYear() - idade - 1);
+      limiteMaisAntigo.setDate(limiteMaisAntigo.getDate() + 1);
+      const nascimento = new Date(limiteMaisAntigo.getTime() + Math.random() * (limiteMaisNovo.getTime() - limiteMaisAntigo.getTime()));
       const maximo = estrela ? tetoEstrela : tetoComum;
       const minimo = Math.min(estrela ? 48 : 35, maximo);
       const overall = minimo + Math.floor(Math.random() * Math.max(1, maximo - minimo + 1));
@@ -389,6 +407,33 @@ export default function App() {
       setMensagemBase('Peneira realizada! ' + (data || []).length + ' jovens foram avaliados. Você utilizou ' + (peneirasTemporada + 1) + ' de 2 peneiras nesta temporada.');
     }
     setGerandoPeneira(false);
+  }
+
+  async function treinarBase() {
+    if (!clubeAtual?.id || !supabase) return;
+    setTreinandoBase(true);
+    setErroBase('');
+    setMensagemBase('');
+    const { data, error } = await supabase.rpc('mfo_train_academy_week', { p_club_id: clubeAtual.id });
+    if (error) {
+      setErroBase('Não foi possível concluir o treino: ' + error.message);
+      setTreinandoBase(false);
+      return;
+    }
+    const resultado = Array.isArray(data) ? data[0] : data;
+    const { data: jovens, error: erroJovens } = await supabase
+      .from('players').select('*').eq('club_id', clubeAtual.id).eq('is_youth', true).order('overall', { ascending: false });
+    if (erroJovens) setErroBase('Treino concluído, mas não foi possível atualizar a lista: ' + erroJovens.message);
+    else setJogadoresBase(jovens || []);
+    setUltimoTreinoBase({
+      week_start: new Date().toISOString().slice(0, 10),
+      trained_at: new Date().toISOString(),
+      players_trained: Number(resultado?.players_trained || 0),
+      points_added: Number(resultado?.points_added || 0),
+      next_training_at: resultado?.next_training_at || null
+    });
+    setMensagemBase('Treino concluído: ' + Number(resultado?.players_trained || 0) + ' atleta(s) treinado(s) e ' + Number(resultado?.points_added || 0) + ' ponto(s) de evolução nesta semana.');
+    setTreinandoBase(false);
   }
 
   async function contratarDaBase(candidato) {
@@ -440,6 +485,12 @@ export default function App() {
 
   async function promoverJogador(jogador) {
     if (!jogador?.id || !supabase) return;
+    const idade = idadeJogador(jogador.data_nascimento);
+    if (idade < 18) {
+      setErroBase('Jogadores Sub-15 e Sub-17 permanecem em formação. A promoção ao profissional fica disponível a partir dos 18 anos.');
+      setMensagemBase('');
+      return;
+    }
     setCarregandoBase(true);
     const { data, error } = await supabase.from('players').update({ is_youth: false }).eq('id', jogador.id).eq('club_id', clubeAtual.id).select().single();
     if (error) setErroBase('Não foi possível promover o jogador: ' + error.message);
@@ -1309,7 +1360,7 @@ export default function App() {
               aba === 'Amistosos' ? <MultiplayerLobby supabase={supabase} user={session?.user} club={clubeAtual} /> :
               aba === 'Rankings' ? <RankingsModule supabase={supabase} clubeAtual={clubeAtual} /> :
               aba === 'Base' ? <div>
-                <p style={styles.muted}>Revele novos talentos para o clube. A base recebe jogadores de 15 a 18 anos, com evolução baseada no potencial. Os jovens ficam separados do elenco profissional até serem promovidos.</p>
+                <p style={styles.muted}>Revele e desenvolva talentos nas três categorias: Sub-15 (14 e 15 anos), Sub-17 (16 e 17 anos) e Sub-20 (18 a 20 anos). Os jovens ficam separados do elenco profissional até a promoção, liberada a partir dos 18 anos.</p>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginTop:16}}>
                   <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
                     <span style={styles.eyebrow}>JOVENS NA BASE</span><h3 style={{fontSize:26,margin:'8px 0'}}>{jogadoresBase.length}</h3><p style={styles.mutedSmall}>Atletas contratados</p>
@@ -1324,9 +1375,16 @@ export default function App() {
                 <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
                   <span style={styles.eyebrow}>CAPTAÇÃO DE TALENTOS</span>
                   <h3 style={{margin:'8px 0'}}>Peneira de novos jogadores</h3>
-                  <p style={styles.muted}>Cada peneira apresenta 5 jovens aleatórios. A maioria terá overall entre 35 e 52; de 5% a 8% poderão ser estrelas, com potencial superior. O nível geral da base é mantido abaixo da média profissional do seu clube.</p>
+                  <p style={styles.muted}>Cada peneira apresenta 5 jovens de 14 a 20 anos, distribuídos entre Sub-15, Sub-17 e Sub-20. A maioria terá overall entre 35 e 52; talentos especiais são raros e podem ter potencial superior.</p>
                   <p style={styles.muted}>Temporada {temporadaBase}: <strong>{peneirasTemporada} de 2 peneiras utilizadas</strong>.</p>
                   <button style={styles.primary} onClick={abrirPeneira} disabled={gerandoPeneira || carregandoBase || peneirasTemporada >= 2}>{gerandoPeneira?'Avaliando candidatos...':peneirasTemporada >= 2?'Limite de peneiras atingido':'⚽ Abrir peneira • 5 candidatos'}</button>
+                </div>
+                <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:14}}>
+                  <span style={styles.eyebrow}>DESENVOLVIMENTO SEMANAL</span>
+                  <h3 style={{margin:'8px 0'}}>Treinamento gradual</h3>
+                  <p style={styles.muted}>Uma sessão por clube a cada semana. Jogadores mais jovens tendem a evoluir com maior frequência; o crescimento diminui com a idade e nunca ultrapassa o potencial individual.</p>
+                  <p style={styles.mutedSmall}>{ultimoTreinoBase ? 'Último treino: ' + new Date(ultimoTreinoBase.trained_at).toLocaleString('pt-BR') + ' • ' + Number(ultimoTreinoBase.points_added || 0) + ' ponto(s) de evolução.' : 'Nenhum treino semanal registrado para este clube.'}</p>
+                  <button style={styles.primary} onClick={treinarBase} disabled={treinandoBase || carregandoBase}>{treinandoBase ? 'Treinando categoria de base...' : '🏃 Treinar base desta semana'}</button>
                 </div>
                 {erroBase && <p style={styles.error}>{erroBase}</p>}
                 {mensagemBase && <p style={styles.notice}>{mensagemBase}</p>}
@@ -1338,7 +1396,7 @@ export default function App() {
                         <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}>
                           <strong>{c.nome}</strong>{c.is_star&&<span style={{color:'#facc15'}}>★ TALENTO</span>}
                         </div>
-                        <p style={styles.muted}>{c.posicao} • {idadeJogador(c.data_nascimento)} anos • {c.nacionalidade}</p>
+                        <p style={styles.muted}>{categoriaBase(c.data_nascimento)} • {c.posicao} • {idadeJogador(c.data_nascimento)} anos • {c.nacionalidade}</p>
                         <div style={{display:'flex',gap:18,margin:'12px 0'}}>
                           <div><span style={styles.eyebrow}>OVERALL</span><div style={{fontSize:24,fontWeight:'bold'}}>{c.overall}</div></div>
                           <div><span style={styles.eyebrow}>POTENCIAL</span><div style={{fontSize:24,fontWeight:'bold',color:c.is_star?'#facc15':'#67e8a5'}}>{c.potencial}</div></div>
@@ -1352,20 +1410,26 @@ export default function App() {
                   </div>}
                   <div style={{marginTop:22}}>
                     <h3>Elenco da categoria de base</h3>
-                    {jogadoresBase.length===0 ? <p style={styles.muted}>Sua base ainda não tem jogadores. Abra uma peneira para descobrir os primeiros talentos.</p> :
+                    <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'12px 0'}}>
+                      {['Todas','Sub-15','Sub-17','Sub-20'].map(categoria => {
+                        const quantidade = categoria === 'Todas' ? jogadoresBase.length : jogadoresBase.filter(j => categoriaBase(j.data_nascimento) === categoria).length;
+                        return <button key={categoria} style={categoriaBaseSelecionada === categoria ? styles.primary : styles.secondary} onClick={() => setCategoriaBaseSelecionada(categoria)}>{categoria} ({quantidade})</button>;
+                      })}
+                    </div>
+                    {jogadoresBaseFiltrados.length===0 ? <p style={styles.muted}>{jogadoresBase.length===0 ? 'Sua base ainda não tem jogadores. Abra uma peneira para descobrir os primeiros talentos.' : 'Não há atletas nesta categoria.'}</p> :
                       <div style={{overflowX:'auto'}}><table style={styles.table}>
-                        <thead><tr><th>Jogador</th><th>Idade</th><th>Posição</th><th>Overall</th><th>Potencial</th><th>Status</th><th>Ação</th></tr></thead>
-                        <tbody>{jogadoresBase.map(j=><tr key={j.id}>
+                        <thead><tr><th>Jogador</th><th>Categoria</th><th>Idade</th><th>Posição</th><th>Overall</th><th>Potencial</th><th>Status</th><th>Ação</th></tr></thead>
+                        <tbody>{jogadoresBaseFiltrados.map(j=><tr key={j.id}>
                           <td>{j.nome} {j.is_star&&<span style={{color:'#facc15'}}>★</span>}</td>
-                          <td>{idadeJogador(j.data_nascimento)} anos</td><td>{j.posicao}</td><td>{j.overall}</td>
+                          <td>{categoriaBase(j.data_nascimento)}</td><td>{idadeJogador(j.data_nascimento)} anos</td><td>{j.posicao}</td><td>{j.overall}</td>
                           <td style={{color:j.is_star?'#facc15':'#67e8a5'}}>{j.potencial}</td>
                           <td>{j.is_star?'Jovem estrela':'Em desenvolvimento'}</td>
-                          <td><button style={styles.primary} onClick={()=>promoverJogador(j)} disabled={carregandoBase}>Promover</button></td>
+                          <td>{idadeJogador(j.data_nascimento)>=18 ? <button style={styles.primary} onClick={()=>promoverJogador(j)} disabled={carregandoBase}>Promover</button> : <span style={styles.mutedSmall}>Em formação</span>}</td>
                         </tr>)}</tbody>
                       </table></div>}
                   </div>
                 </>}
-                <p style={styles.mutedSmall}>As peneiras geram candidatos fictícios para o universo do jogo. As estrelas são raras; o potencial não garante evolução automática. A promoção transfere o atleta para o elenco profissional sem alterar seu histórico ou ID.</p>
+                <p style={styles.mutedSmall}>O catálogo profissional do MFO mantém jogadores reais quando disponíveis na base de elencos. Os nomes gerados nas peneiras desta versão ainda são fictícios; a importação de jovens reais exige uma lista Sub-15/Sub-17/Sub-20 validada e sem duplicar atletas já vinculados a clubes. A promoção preserva o ID e o histórico do jogador.</p>
               </div> :
               aba === 'Estádio' ? <div>
                 <p style={styles.muted}>Seu clube começa com um estádio de 10 mil lugares. As ampliações são financiadas pelo caixa do clube e levam tempo para ficar prontas.</p>
