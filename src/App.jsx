@@ -1396,7 +1396,7 @@ export default function App() {
                         <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}>
                           <strong>{c.nome}</strong>{c.is_star&&<span style={{color:'#facc15'}}>★ TALENTO</span>}
                         </div>
-                        <p style={styles.muted}>{c.posicao} • {idadeJogador(c.data_nascimento)} anos • {c.nacionalidade}</p>
+                        <p style={styles.muted}>{categoriaBase(c.data_nascimento)} • {c.posicao} • {idadeJogador(c.data_nascimento)} anos • {c.nacionalidade}</p>
                         <div style={{display:'flex',gap:18,margin:'12px 0'}}>
                           <div><span style={styles.eyebrow}>OVERALL</span><div style={{fontSize:24,fontWeight:'bold'}}>{c.overall}</div></div>
                           <div><span style={styles.eyebrow}>POTENCIAL</span><div style={{fontSize:24,fontWeight:'bold',color:c.is_star?'#facc15':'#67e8a5'}}>{c.potencial}</div></div>
