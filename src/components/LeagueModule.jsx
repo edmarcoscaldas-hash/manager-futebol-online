@@ -111,6 +111,13 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
           preservadas += 1;
         } else {
           concluidas += 1;
+          if (jogo.home_club_id === clubeAtual?.id || jogo.away_club_id === clubeAtual?.id) {
+            const { error: pressureError } = await supabase.rpc('apply_match_pressure_event', {
+              p_match_id: jogo.id,
+              p_club_id: clubeAtual.id
+            });
+            if (pressureError) console.warn('Não foi possível atualizar a pressão do clube:', pressureError.message);
+          }
         }
       }
 
@@ -156,6 +163,11 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     try {
       const { data, error } = await supabase.rpc('simulate_match', { p_match_id: partida.id });
       if (error) throw error;
+      const { error: pressureError } = await supabase.rpc('apply_match_pressure_event', {
+        p_match_id: partida.id,
+        p_club_id: clubeAtual.id
+      });
+      if (pressureError) console.warn('Não foi possível atualizar a pressão do clube:', pressureError.message);
 
       const [standingsRes, matchesRes] = await Promise.all([
         supabase.from('league_standings').select('*').eq('league_id', ligaId)
