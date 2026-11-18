@@ -24,6 +24,11 @@ export default function App() {
   const [clubesDisponiveis, setClubesDisponiveis] = useState([]);
   const [clubeSelecionado, setClubeSelecionado] = useState('');
   const [iniciandoCarreira, setIniciandoCarreira] = useState(false);
+  const [careerRefreshToken, setCareerRefreshToken] = useState(0);
+  const [propostasTreinador, setPropostasTreinador] = useState([]);
+  const [historicoEmpregos, setHistoricoEmpregos] = useState([]);
+  const [mensagemCarreira, setMensagemCarreira] = useState('');
+  const [carregandoCarreira, setCarregandoCarreira] = useState(false);
   const [nomeClube, setNomeClube] = useState('');
   const [sigla, setSigla] = useState('');
   const [cidade, setCidade] = useState('');
@@ -95,7 +100,7 @@ export default function App() {
   const clubeAtual = clubes[0];
   const salarioSugerido = jogadorOferta ? Math.round(3000 * Math.pow(Math.max(40, Math.min(100, Number(jogadorOferta.overall || 50))) / 50, 3.6) * (jogadorOferta.is_star ? 1.25 : 1)) : 3000;
 
-  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Finanças', 'Imprensa', 'Rankings'];
+  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Finanças', 'Imprensa', 'Rankings', 'Carreira'];
 
   useEffect(() => {
     if (!supabase) return;
@@ -127,7 +132,10 @@ export default function App() {
         setCarregandoClubes(false);
         return;
       }
-      setCarreira({ id: careerId, manager_name: nomeTreinador });
+      const { data: careerInfo } = await supabase.from('manager_careers')
+        .select('reputation,experience_seasons').eq('id', careerId).maybeSingle();
+      if (!ativo) return;
+      setCarreira({ id: careerId, manager_name: nomeTreinador, ...(careerInfo || {}) });
       const { data: empregos, error: empregoError } = await supabase
         .from('manager_employments')
         .select('id,club_id,salary,contract_end,status')
@@ -162,11 +170,35 @@ export default function App() {
           setClubeSelecionado(options[0]?.id || '');
         }
       }
+
+      const [offersRes, historyRes] = await Promise.all([
+        supabase.from('manager_job_offers')
+          .select('id,club_id,offered_salary,contract_months,offer_message,status,created_at,expires_at')
+          .eq('career_id', careerId).eq('status', 'pending')
+          .gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }),
+        supabase.from('manager_employments')
+          .select('id,club_id,salary,contract_start,contract_end,ended_at,status,termination_reason,created_at')
+          .eq('career_id', careerId).order('created_at', { ascending: false }).limit(20)
+      ]);
+      if (!ativo) return;
+      if (offersRes.error) setMensagemCarreira('Não foi possível carregar as propostas: ' + offersRes.error.message);
+      const idsClubes = [...new Set([
+        ...(offersRes.data || []).map(o => o.club_id),
+        ...(historyRes.data || []).map(e => e.club_id)
+      ])];
+      let clubesInfo = [];
+      if (idsClubes.length) {
+        const { data: info } = await supabase.from('clubs').select('id,nome,pais,cidade').in('id', idsClubes);
+        clubesInfo = info || [];
+      }
+      const nomeDoClube = id => clubesInfo.find(c => c.id === id)?.nome || 'Clube';
+      setPropostasTreinador((offersRes.data || []).map(o => ({ ...o, club_name: nomeDoClube(o.club_id), club_country: clubesInfo.find(c => c.id === o.club_id)?.pais || '' })));
+      setHistoricoEmpregos((historyRes.data || []).map(e => ({ ...e, club_name: nomeDoClube(e.club_id) })));
       setCarregandoClubes(false);
     }
     carregarCarreira();
     return () => { ativo = false; };
-  }, [session]);
+  }, [session, careerRefreshToken]);
 
   useEffect(() => {
     let ativo = true;
@@ -790,6 +822,25 @@ export default function App() {
     return true;
   }
 
+  async function responderPropostaTreinador(offerId, decision) {
+    if (!supabase || carregandoCarreira) return;
+    setCarregandoCarreira(true);
+    setMensagemCarreira('');
+    const { data, error } = await supabase.rpc('respond_manager_job_offer', {
+      p_offer_id: offerId,
+      p_decision: decision
+    });
+    if (error) {
+      setMensagemCarreira('Não foi possível processar a proposta: ' + error.message);
+    } else {
+      setMensagemCarreira(decision === 'accept'
+        ? 'Proposta aceita! Seu novo vínculo foi registrado. Carregando o novo clube...'
+        : 'Proposta recusada.');
+      setCareerRefreshToken(value => value + 1);
+    }
+    setCarregandoCarreira(false);
+  }
+
   async function criarClube(event) {
     event.preventDefault();
     if (!session) return;
@@ -979,6 +1030,13 @@ export default function App() {
       setImpactoImprensa('Esta partida já possui uma entrevista registrada.');
       return;
     }
+    if (data?.job_status?.dismissed) {
+      setEntrevistaRespondida(true);
+      setRespostaImprensa(escolha.titulo);
+      setImpactoImprensa('A diretoria encerrou seu contrato: ' + (data.job_status.reason || 'pressão em nível crítico.') + ' Consulte as propostas recebidas no Mercado de Treinadores.');
+      setCareerRefreshToken(value => value + 1);
+      return;
+    }
     const { data: clubeAtualizado, error: clubeError } = await supabase
       .from('clubs').select('*').eq('id', clubeAtual.id).single();
     if (!clubeError && clubeAtualizado) setClubes(lista => lista.map(c => c.id === clubeAtualizado.id ? clubeAtualizado : c));
@@ -1161,9 +1219,32 @@ export default function App() {
         <section style={styles.panel}><p>Carregando seus clubes...</p></section>
       ) : session && !clubeAtual ? (
         <section style={styles.panel}>
-          <span style={styles.eyebrow}>MERCADO DE TREINADORES • INÍCIO DE CARREIRA</span>
-          <h2>Escolha seu primeiro desafio</h2>
-          <p style={styles.muted}>Você pode assumir um clube existente do universo do MFO ou começar do zero criando sua própria equipe. Cada treinador comanda apenas um clube por vez.</p>
+          <span style={styles.eyebrow}>MERCADO DE TREINADORES</span>
+          <h2>{historicoEmpregos.some(e => e.status === 'dismissed') ? 'Novo capítulo na carreira' : 'Escolha seu primeiro desafio'}</h2>
+          <p style={styles.muted}>{historicoEmpregos.some(e => e.status === 'dismissed')
+            ? 'Seu último vínculo foi encerrado. Analise as propostas recebidas ou procure um novo clube para continuar sua trajetória.'
+            : 'Você pode assumir um clube existente do universo do MFO ou começar do zero criando sua própria equipe. Cada treinador comanda apenas um clube por vez.'}</p>
+          {propostasTreinador.length > 0 && <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
+            <span style={styles.eyebrow}>PROPOSTAS RECEBIDAS</span>
+            <h3>Clubes interessados no seu trabalho</h3>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+              {propostasTreinador.map(p=><article key={p.id} style={{background:'#17263b',border:'1px solid #40536d',borderRadius:10,padding:15}}>
+                <strong>{p.club_name}</strong><p style={styles.mutedSmall}>{p.club_country} • Contrato de {p.contract_months} meses</p>
+                <h3 style={{color:'#67e8a5',margin:'10px 0'}}>R$ {Number(p.offered_salary).toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês</h3>
+                <p style={styles.muted}>{p.offer_message}</p>
+                <p style={styles.mutedSmall}>Válida até {new Date(p.expires_at).toLocaleDateString('pt-BR')}</p>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                  <button style={styles.primary} disabled={carregandoCarreira} onClick={()=>responderPropostaTreinador(p.id,'accept')}>Aceitar proposta</button>
+                  <button style={styles.secondary} disabled={carregandoCarreira} onClick={()=>responderPropostaTreinador(p.id,'reject')}>Recusar</button>
+                </div>
+              </article>)}
+            </div>
+          </div>}
+          {mensagemCarreira && <p style={styles.notice}>{mensagemCarreira}</p>}
+          {historicoEmpregos.length > 0 && <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16,marginTop:16}}>
+            <h3>Histórico profissional</h3>
+            {historicoEmpregos.map(e=><p key={e.id} style={styles.mutedSmall}><strong>{e.club_name}</strong> • {e.status==='dismissed'?'Demitido':e.status==='resigned'?'Saiu para outro clube':e.status==='active'?'Em atividade':'Contrato encerrado'}{e.termination_reason ? ' • '+e.termination_reason : ''}</p>)}
+          </div>}
           <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
             <h3>Assumir um clube existente</h3>
             <label style={styles.filterLabel}>Clube disponível
@@ -1211,7 +1292,7 @@ export default function App() {
               ['Partidas','Partidas','◷'],['Competições','Competições','🏆'],['Amistosos Online','Amistosos','⚔'],['Finanças','Finanças','＄']
             ].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value || (value === 'Competições' && aba === 'Liga') ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
             <button className="mfo-more-toggle" onClick={() => setMaisModulosAbertos(value => !value)}><span className="mfo-nav-dot">＋</span>Outros módulos <span className="mfo-menu-chevron">{maisModulosAbertos ? '−' : '+'}</span></button>
-            {maisModulosAbertos && [['Mercado','Mercado','⇄'],['Base','Base','♙'],['Estádio','Estádio','▦'],['Imprensa','Imprensa','▤'],['Rankings','Rankings','★']].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
+            {maisModulosAbertos && [['Mercado','Mercado','⇄'],['Base','Base','♙'],['Estádio','Estádio','▦'],['Imprensa','Imprensa','▤'],['Rankings','Rankings','★'],['Carreira','Carreira','🧭']].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
             <div className="mfo-sidebar-foot">MANAGER<br/>FUTEBOL ONLINE</div>
           </nav>
           <section className="mfo-content" style={styles.panel}>
@@ -1406,6 +1487,55 @@ export default function App() {
                   {carregandoFinancas ? <p style={styles.muted}>Carregando movimentações...</p> : movimentacoesFinanceiras.length===0 ? <p style={styles.muted}>Nenhuma movimentação registrada ainda. As receitas e despesas aparecerão aqui quando forem geradas pelo jogo.</p> : <div style={{overflowX:'auto'}}><table style={styles.table}><thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>
                     {movimentacoesFinanceiras.map(m=><tr key={m.id}><td>{new Date(m.created_at).toLocaleDateString('pt-BR')}</td><td style={{color:m.tipo==='receita'?'#67e8a5':'#fca5a5'}}>{m.tipo==='receita'?'Entrada':'Saída'}</td><td>{m.categoria}</td><td>{m.descricao || '-'}</td><td style={{whiteSpace:'nowrap'}}>R$ {Number(m.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>)}
                   </tbody></table></div>}
+                </div>
+              </div> :
+              aba === 'Carreira' ? <div>
+                <p style={styles.muted}>Acompanhe sua trajetória profissional, a situação do cargo e as oportunidades de outros clubes.</p>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginTop:16}}>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>REPUTAÇÃO DO TREINADOR</span>
+                    <strong style={{display:'block',fontSize:28,color:'#67e8a5',marginTop:6}}>{Number(carreira?.reputation ?? 50)}/100</strong>
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>TEMPORADAS DE EXPERIÊNCIA</span>
+                    <strong style={{display:'block',fontSize:28,color:'#67e8a5',marginTop:6}}>{Number(carreira?.experience_seasons ?? 0)}</strong>
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>SITUAÇÃO DO CARGO</span>
+                    <strong style={{display:'block',fontSize:18,color:Number(clubeAtual?.pressao_diretoria ?? 0)>=90?'#fca5a5':'#67e8a5',marginTop:10}}>
+                      {!clubeAtual ? 'Sem clube' : Number(clubeAtual.pressao_diretoria ?? 0)>=95 ? 'Risco máximo' : Number(clubeAtual.pressao_diretoria ?? 0)>=90 ? 'Ultimato' : Number(clubeAtual.pressao_diretoria ?? 0)>=80 ? 'Sob pressão' : 'Estável'}
+                    </strong>
+                    {clubeAtual && <span style={styles.mutedSmall}>Pressão da diretoria: {Number(clubeAtual.pressao_diretoria ?? 50)}/100</span>}
+                  </div>
+                </div>
+                {clubeAtual && Number(clubeAtual.pressao_diretoria ?? 50)>=80 && <p style={{...styles.error,marginTop:14}}>
+                  {Number(clubeAtual.pressao_diretoria ?? 50)>=95
+                    ? 'A diretoria está prestes a encerrar seu contrato. Uma nova derrota pode provocar demissão.'
+                    : Number(clubeAtual.pressao_diretoria ?? 50)>=90
+                      ? 'Você recebeu um ultimato da diretoria. Três derrotas nas últimas cinco partidas podem resultar em demissão.'
+                      : 'A diretoria está insatisfeita. Recupere os resultados para evitar que a situação se agrave.'}
+                </p>}
+                {propostasTreinador.length>0 ? <div style={{marginTop:20}}>
+                  <h3>Propostas de outros clubes</h3>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+                    {propostasTreinador.map(p=><article key={p.id} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:10,padding:15}}>
+                      <strong>{p.club_name}</strong><p style={styles.mutedSmall}>{p.club_country} • {p.contract_months} meses</p>
+                      <h3 style={{color:'#67e8a5'}}>R$ {Number(p.offered_salary).toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês</h3>
+                      <p style={styles.muted}>{p.offer_message}</p>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                        <button style={styles.primary} disabled={carregandoCarreira} onClick={()=>responderPropostaTreinador(p.id,'accept')}>Aceitar</button>
+                        <button style={styles.secondary} disabled={carregandoCarreira} onClick={()=>responderPropostaTreinador(p.id,'reject')}>Recusar</button>
+                      </div>
+                    </article>)}
+                  </div>
+                </div> : <p style={styles.muted}>Nenhuma proposta no momento. Novos clubes podem demonstrar interesse após sequências de partidas.</p>}
+                {mensagemCarreira && <p style={styles.notice}>{mensagemCarreira}</p>}
+                <div style={{marginTop:22}}>
+                  <h3>Histórico de clubes</h3>
+                  {historicoEmpregos.length===0 ? <p style={styles.muted}>Seu histórico profissional será registrado aqui.</p> :
+                    historicoEmpregos.map(e=><div key={e.id} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:9,padding:13,marginTop:9}}>
+                      <strong>{e.club_name}</strong><p style={styles.mutedSmall}>{e.status==='active'?'Em atividade':e.status==='dismissed'?'Demitido':e.status==='resigned'?'Transferiu-se para outro clube':'Contrato encerrado'} • {e.contract_start ? new Date(e.contract_start+'T00:00:00').toLocaleDateString('pt-BR') : ''}{e.termination_reason ? ' • '+e.termination_reason : ''}</p>
+                    </div>)}
                 </div>
               </div> :
               aba === 'Imprensa' ? <div>
