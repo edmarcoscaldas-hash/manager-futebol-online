@@ -85,6 +85,13 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
   async function simularRodadaCompleta(partidaBase) {
     if (!partidaBase?.round_number || simulando) return;
     const rodada = partidaBase.round_number;
+    const primeiraRodadaPendente = partidas
+      .filter(p => p.status === 'scheduled')
+      .reduce((menor, p) => menor === null || p.round_number < menor ? p.round_number : menor, null);
+    if (primeiraRodadaPendente !== null && rodada !== primeiraRodadaPendente) {
+      setMensagemJogo('Para manter a classificação correta, conclua primeiro a rodada ' + primeiraRodadaPendente + '.');
+      return;
+    }
     const pendentes = partidas.filter(p => p.round_number === rodada && p.status === 'scheduled');
     if (!pendentes.length) {
       setMensagemJogo('Esta rodada não possui partidas pendentes.');
@@ -154,42 +161,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       setMensagemJogo('Você só pode solicitar a simulação de partidas do clube que está treinando.');
       return;
     }
-
-    setSimulando(partida.id);
-    setMensagemJogo('');
-    try {
-      const { data, error } = await supabase.rpc('simulate_match', { p_match_id: partida.id });
-      if (error) throw error;
-
-      const [standingsRes, matchesRes] = await Promise.all([
-        supabase.from('league_standings').select('*').eq('league_id', ligaId)
-          .order('points', { ascending:false })
-          .order('wins', { ascending:false })
-          .order('goal_difference', { ascending:false })
-          .order('goals_for', { ascending:false }),
-        supabase.from('matches').select('*').eq('league_id', ligaId)
-          .order('round_number').order('match_date')
-      ]);
-
-      if (standingsRes.error) throw new Error('Partida processada, mas não foi possível atualizar a classificação: ' + standingsRes.error.message);
-      if (matchesRes.error) throw new Error('Partida processada, mas não foi possível atualizar o calendário: ' + matchesRes.error.message);
-
-      setClassificacao(standingsRes.data || []);
-      setPartidas(matchesRes.data || []);
-
-      const result = Array.isArray(data) ? data[0] : data;
-      const homeScore = result?.home_score;
-      const awayScore = result?.away_score;
-      setMensagemJogo(
-        homeScore !== undefined && awayScore !== undefined
-          ? 'Partida simulada! Placar: ' + homeScore + ' × ' + awayScore
-          : 'Partida processada. Calendário e classificação atualizados.'
-      );
-    } catch (error) {
-      setMensagemJogo('Não foi possível concluir a simulação: ' + (error?.message || 'Erro inesperado.'));
-    } finally {
-      setSimulando('');
-    }
+    await simularRodadaCompleta(partida);
   }
 
   return <div className="mfo-matches">
