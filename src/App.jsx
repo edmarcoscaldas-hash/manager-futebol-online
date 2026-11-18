@@ -271,7 +271,7 @@ export default function App() {
         .from('matches').select('*')
         .or(`home_club_id.eq.${clubeAtual.id},away_club_id.eq.${clubeAtual.id}`)
         .eq('status', 'finished')
-        .order('played_at', { ascending: true })
+        .order('played_at', { ascending: false })
         .limit(100);
 
       if (!ativo) return;
@@ -281,20 +281,11 @@ export default function App() {
         return;
       }
 
-      // Processa cada resultado uma única vez: a própria função do banco impede duplicidade.
-      for (const jogo of (jogos || [])) {
-        const { error } = await supabase.rpc('apply_match_pressure_event', {
-          p_match_id: jogo.id,
-          p_club_id: clubeAtual.id
-        });
-        if (error) console.warn('Não foi possível aplicar pressão da partida:', error.message);
-      }
-
       const { data: clubeAtualizado } = await supabase.from('clubs').select('*').eq('id', clubeAtual.id).maybeSingle();
       if (!ativo) return;
       if (clubeAtualizado) setClubes(lista => lista.map(c => c.id === clubeAtualizado.id ? clubeAtualizado : c));
 
-      const ultimoJogo = jogos?.[jogos.length - 1];
+      const ultimoJogo = jogos?.[0];
       if (ultimoJogo) {
         const ids = [ultimoJogo.home_club_id, ultimoJogo.away_club_id];
         const [clubesRes, ligaRes, tabelaRes, ultimaRodadaRes] = await Promise.all([
