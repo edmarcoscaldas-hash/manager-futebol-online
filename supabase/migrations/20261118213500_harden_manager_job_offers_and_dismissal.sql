@@ -177,3 +177,42 @@ end;
 $$;
 revoke all on function public.respond_manager_job_offer(uuid,text) from public,anon;
 grant execute on function public.respond_manager_job_offer(uuid,text) to authenticated;
+
+-- Reinicia a contagem de cinco partidas a cada novo vínculo do treinador.
+create or replace function public.generate_manager_job_offers(p_club_id uuid,p_match_id uuid,p_force boolean default false)
+returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
+declare v_career public.manager_careers%rowtype; v_started_at timestamptz; v_match_count integer; v_created integer:=0; v_salary numeric;
+begin
+  if auth.uid() is null then raise exception 'Autenticação necessária.'; end if;
+  select mc.* into v_career from public.manager_careers mc join public.manager_employments me on me.career_id=mc.id
+  where mc.user_id=auth.uid() and me.club_id=p_club_id and me.status in ('active','dismissed')
+  order by me.ended_at desc nulls first limit 1;
+  if not found then raise exception 'Carreira não encontrada para este clube.'; end if;
+  select me.created_at into v_started_at from public.manager_employments me
+  where me.career_id=v_career.id and me.club_id=p_club_id and me.status in ('active','dismissed')
+  order by me.ended_at desc nulls first limit 1;
+  if not exists(select 1 from public.matches where id=p_match_id and status='finished' and (home_club_id=p_club_id or away_club_id=p_club_id)) then
+    raise exception 'Partida de referência inválida.';
+  end if;
+  select count(*) into v_match_count from public.club_pressure_events where club_id=p_club_id and created_at>=v_started_at;
+  if not p_force and (v_match_count=0 or mod(v_match_count,5)<>0) then return jsonb_build_object('created',0,'reason','not_offer_round'); end if;
+  if exists(select 1 from public.manager_job_offers where career_id=v_career.id and source_match_id=p_match_id) then
+    return jsonb_build_object('created',0,'reason','already_generated');
+  end if;
+  v_salary:=greatest(2200,2200+(v_career.reputation*115)+(v_career.experience_seasons*300));
+  insert into public.manager_job_offers(career_id,club_id,source_match_id,offered_salary,contract_months,offer_message)
+  select v_career.id,c.id,p_match_id,round(v_salary*(0.85+random()*0.55),2),
+    case when v_career.reputation>=75 then 24 when v_career.reputation>=35 then 12 else 6 end,
+    case when v_career.reputation>=80 then 'A diretoria acredita que sua experiência pode levar o clube a disputar títulos.'
+      when v_career.reputation>=35 then 'O clube acompanha seu trabalho e gostaria de contar com você em um novo projeto.'
+      else 'O clube oferece uma oportunidade para você mostrar seu potencial e construir uma trajetória no futebol.' end
+  from public.clubs c where c.is_ai=true
+    and not exists(select 1 from public.manager_employments me where me.club_id=c.id and me.status='active')
+    and not exists(select 1 from public.manager_job_offers old where old.career_id=v_career.id and old.club_id=c.id and old.status='pending' and old.expires_at>now())
+  order by random() limit 3 on conflict(career_id,source_match_id,club_id) do nothing;
+  get diagnostics v_created=row_count;
+  return jsonb_build_object('created',v_created,'career_id',v_career.id);
+end;
+$$;
+revoke all on function public.generate_manager_job_offers(uuid,uuid,boolean) from public,anon,authenticated;
+grant execute on function public.generate_manager_job_offers(uuid,uuid,boolean) to postgres,service_role;
