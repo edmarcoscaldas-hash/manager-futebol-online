@@ -52,6 +52,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       const [standingsRes, matchesRes, clubsRes] = await Promise.all([
         supabase.from('league_standings').select('*').eq('league_id', ligaId)
           .order('points', { ascending:false })
+          .order('wins', { ascending:false })
           .order('goal_difference', { ascending:false })
           .order('goals_for', { ascending:false }),
         supabase.from('matches').select('*').eq('league_id', ligaId)
@@ -102,13 +103,14 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     setMensagemJogo('Simulando os jogos da rodada ' + rodada + '...');
     let concluidas = 0;
     let preservadas = 0;
+    const falhas = [];
 
     try {
       for (const jogo of ordem) {
         const { error } = await supabase.rpc('simulate_match', { p_match_id: jogo.id });
         if (error) {
-          // Partidas sem autorização ou sem elenco válido permanecem intactas.
           preservadas += 1;
+          falhas.push(nomeClube(jogo.home_club_id) + ' x ' + nomeClube(jogo.away_club_id) + ': ' + error.message);
         } else {
           concluidas += 1;
         }
@@ -117,6 +119,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       const [standingsRes, matchesRes] = await Promise.all([
         supabase.from('league_standings').select('*').eq('league_id', ligaId)
           .order('points', { ascending:false })
+          .order('wins', { ascending:false })
           .order('goal_difference', { ascending:false })
           .order('goals_for', { ascending:false }),
         supabase.from('matches').select('*').eq('league_id', ligaId)
@@ -130,7 +133,8 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       setPartidas(matchesRes.data || []);
       setMensagemJogo(
         'Rodada ' + rodada + ' processada: ' + concluidas + ' partida(s) simulada(s).' +
-        (preservadas ? ' ' + preservadas + ' partida(s) não processada(s), por proteção de acesso ou falta de escalação.' : '') +
+        (preservadas ? ' ' + preservadas + ' partida(s) não processada(s).' : '') +
+        (falhas.length ? ' Detalhes: ' + falhas.slice(0, 3).join(' | ') + (falhas.length > 3 ? ' | +' + (falhas.length - 3) + ' falha(s).' : '') : '') +
         ' Classificação atualizada.'
       );
     } catch (error) {
@@ -160,6 +164,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       const [standingsRes, matchesRes] = await Promise.all([
         supabase.from('league_standings').select('*').eq('league_id', ligaId)
           .order('points', { ascending:false })
+          .order('wins', { ascending:false })
           .order('goal_difference', { ascending:false })
           .order('goals_for', { ascending:false }),
         supabase.from('matches').select('*').eq('league_id', ligaId)
