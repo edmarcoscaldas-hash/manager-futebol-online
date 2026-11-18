@@ -138,3 +138,42 @@ create policy "Treinador consulta eventos de pressao do proprio clube" on public
 using (exists(select 1 from public.clubs c where c.id=club_pressure_events.club_id and c.owner_id=(select auth.uid()))
  or exists(select 1 from public.manager_employments me join public.manager_careers mc on mc.id=me.career_id
   where me.club_id=club_pressure_events.club_id and mc.user_id=(select auth.uid())));
+
+create or replace function public.respond_manager_job_offer(p_offer_id uuid,p_decision text)
+returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
+declare v_offer public.manager_job_offers%rowtype; v_career public.manager_careers%rowtype; v_employment_id uuid;
+begin
+  if auth.uid() is null then raise exception 'Autenticação necessária.'; end if;
+  if p_decision is null or p_decision not in ('accept','reject') then raise exception 'Decisão inválida.'; end if;
+  select o.* into v_offer from public.manager_job_offers o
+  join public.manager_careers c on c.id=o.career_id
+  where o.id=p_offer_id and c.user_id=auth.uid() for update of o;
+  if not found then raise exception 'Proposta não encontrada.'; end if;
+  if v_offer.status<>'pending' then raise exception 'Esta proposta já foi respondida.'; end if;
+  if v_offer.expires_at<=now() then
+    update public.manager_job_offers set status='expired',responded_at=now() where id=v_offer.id;
+    raise exception 'Esta proposta expirou.';
+  end if;
+  select * into v_career from public.manager_careers where id=v_offer.career_id and user_id=auth.uid() for update;
+  if not found then raise exception 'Carreira não encontrada.'; end if;
+  if p_decision='reject' then
+    update public.manager_job_offers set status='rejected',responded_at=now() where id=v_offer.id;
+    return jsonb_build_object('status','rejected');
+  end if;
+  if exists(select 1 from public.manager_employments where club_id=v_offer.club_id and status='active') then
+    raise exception 'Este clube já contratou outro treinador.';
+  end if;
+  update public.manager_employments set status='resigned',ended_at=now(),
+    termination_reason='Saída para aceitar uma proposta de outro clube.'
+  where career_id=v_career.id and status='active';
+  insert into public.manager_employments(career_id,club_id,salary,contract_start,contract_end,status)
+  values(v_career.id,v_offer.club_id,v_offer.offered_salary,current_date,
+    (current_date+make_interval(months=>v_offer.contract_months))::date,'active')
+  returning id into v_employment_id;
+  update public.manager_job_offers set status=case when id=v_offer.id then 'accepted' else 'expired' end,
+    responded_at=now() where career_id=v_career.id and status='pending';
+  return jsonb_build_object('status','accepted','employment_id',v_employment_id,'club_id',v_offer.club_id,'salary',v_offer.offered_salary);
+end;
+$$;
+revoke all on function public.respond_manager_job_offer(uuid,text) from public,anon;
+grant execute on function public.respond_manager_job_offer(uuid,text) to authenticated;
