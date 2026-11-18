@@ -1678,7 +1678,7 @@ export default function App() {
                 {mensagemEstadio && <p style={styles.notice}>{mensagemEstadio}</p>}
                 <p style={styles.mutedSmall}>O investimento é debitado uma única vez e registrado no histórico financeiro. A bilheteria e a venda de camisas são calculadas quando uma partida é finalizada.</p>
               </div> :
-              (aba === 'Liga' || aba === 'Partidas' || aba === 'Competições') ? <LeagueModule supabase={supabase} clubeAtual={clubeAtual} initialTab={aba === 'Partidas' ? 'jogos' : 'classificacao'} />
+              (aba === 'Liga' || aba === 'Partidas' || aba === 'Competições') ? <LeagueModule supabase={supabase} clubeAtual={clubeAtual} initialTab={aba === 'Partidas' ? 'jogos' : 'classificacao'} onCareerChange={() => setCareerRefreshToken(value => value + 1)} />
               : aba === 'Táticas' ? <TacticsModule club={clubeAtual} />
               : <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
           </section>
