@@ -102,13 +102,15 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     setMensagemJogo('Simulando os jogos da rodada ' + rodada + '...');
     let concluidas = 0;
     let preservadas = 0;
+    const falhasSimulacao = [];
 
     try {
       for (const jogo of ordem) {
         const { error } = await supabase.rpc('simulate_match', { p_match_id: jogo.id });
         if (error) {
-          // Partidas sem autorização ou sem elenco válido permanecem intactas.
+          // Mantém a partida intacta e registra a causa real para diagnóstico.
           preservadas += 1;
+          falhasSimulacao.push({ partida: jogo.id, motivo: error.message || 'Erro sem mensagem retornada.' });
         } else {
           concluidas += 1;
         }
@@ -130,7 +132,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       setPartidas(matchesRes.data || []);
       setMensagemJogo(
         'Rodada ' + rodada + ' processada: ' + concluidas + ' partida(s) simulada(s).' +
-        (preservadas ? ' ' + preservadas + ' partida(s) não processada(s), por proteção de acesso ou falta de escalação.' : '') +
+        (preservadas ? ' ' + preservadas + ' partida(s) não processada(s). Motivos: ' + falhasSimulacao.slice(0, 3).map(f => f.motivo).join(' | ') : '') +
         ' Classificação atualizada.'
       );
     } catch (error) {
