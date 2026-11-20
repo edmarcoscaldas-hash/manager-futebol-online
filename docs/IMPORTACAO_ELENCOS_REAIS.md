@@ -11,7 +11,9 @@ As variáveis `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` 
 
 ## Operações (POST autenticado)
 - `{"action":"list_leagues","country":"Brazil","season":2026}`
-- `{"action":"stage_league","league_id":71,"season":2026}` (o ID é ilustrativo; consulte list_leagues primeiro)
-- `{"action":"stage_squads","team_ids":["127","128"]}` (máximo 10 times por chamada)
+- `{"action":"stage_league","league_id":71,"season":2026}` (ID ilustrativo; consulte list_leagues primeiro)
+- `{"action":"stage_squads","team_ids":["127","128"],"run_id":"UUID_DA_PREVIA"}` (máximo 10 times por chamada)
 
-Use o JWT do usuário administrativo no header Authorization. Os resultados ficam em `private.football_import_runs`, `private.football_import_teams` e `private.football_import_players`. A função SQL `mfo_stage_football_import` só pode ser executada pelo service_role.
+O retorno de `stage_league` contém `staging.run_id`. Reutilize esse identificador em cada lote de `stage_squads` para manter clubes e jogadores na mesma execução de importação.
+
+Use o JWT do usuário administrativo no header Authorization. Os resultados ficam em `private.football_import_runs`, `private.football_import_teams` e `private.football_import_players`. A RPC `mfo_stage_football_import` só pode ser executada pelo service_role.
