@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 
-const countries = ['Brasil', 'England', 'Spain', 'Germany', 'Italy', 'France', 'Argentina', 'United States', 'Saudi Arabia'];
+const countries = [{ label: 'Brasil', value: 'Brazil' }, { label: 'Inglaterra', value: 'England' }, { label: 'Espanha', value: 'Spain' }, { label: 'Alemanha', value: 'Germany' }, { label: 'Itália', value: 'Italy' }, { label: 'França', value: 'France' }, { label: 'Argentina', value: 'Argentina' }, { label: 'Estados Unidos', value: 'USA' }, { label: 'Arábia Saudita', value: 'Saudi Arabia' }];
 const panel = { background: '#0b1918', border: '1px solid #29483e', borderRadius: 12, padding: 16 };
 const primary = { background: 'linear-gradient(110deg,#15965b,#20c86b)', color: '#04170d', border: '1px solid #55e58a', borderRadius: 9, padding: '11px 15px', fontWeight: 800, cursor: 'pointer' };
 const secondary = { background: '#132820', color: '#d9f5e4', border: '1px solid #315b43', borderRadius: 9, padding: '10px 13px', cursor: 'pointer' };
 const field = { width: '100%', boxSizing: 'border-box', background: '#0b1920', color: '#eef8f1', border: '1px solid #29483e', borderRadius: 8, padding: 11, marginTop: 6 };
 
 export default function FootballImportModule({ supabase }) {
-  const [country, setCountry] = useState('Brasil');
+  const [country, setCountry] = useState('Brazil');
   const [season, setSeason] = useState('2026');
   const [leagues, setLeagues] = useState([]);
   const [leagueId, setLeagueId] = useState('');
@@ -98,7 +98,7 @@ export default function FootballImportModule({ supabase }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
         <label style={{ color: '#b8cdbf', fontSize: 13 }}>País
           <select style={field} value={country} onChange={e => setCountry(e.target.value)} disabled={busy}>
-            {countries.map(item => <option key={item} value={item}>{item}</option>)}
+            {countries.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
         </label>
         <label style={{ color: '#b8cdbf', fontSize: 13 }}>Temporada
