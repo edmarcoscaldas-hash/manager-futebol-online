@@ -91,7 +91,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === "reset_complete_individual") {
       if (body.confirm_reset !== true) return json({ error: "explicit_reset_confirmation_required" }, 400);
-      const { data, error } = await db.rpc("mfo_admin_reset_user_game_data", { p_target_user_id: targetId });
+      const { data, error } = await db.rpc("mfo_admin_reset_user_game_data", { p_target_user_id: targetId, p_admin_user_id: adminId });
       if (error) throw error;
       return json({ success: true, action, result: data });
     }
