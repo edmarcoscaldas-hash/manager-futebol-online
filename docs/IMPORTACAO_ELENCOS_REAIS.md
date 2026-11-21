@@ -17,3 +17,7 @@ As variáveis `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` 
 O retorno de `stage_league` contém `staging.run_id`. Reutilize esse identificador em cada lote de `stage_squads` para manter clubes e jogadores na mesma execução de importação.
 
 Use o JWT do usuário administrativo no header Authorization. Os resultados ficam em `private.football_import_runs`, `private.football_import_teams` e `private.football_import_players`. A RPC `mfo_stage_football_import` só pode ser executada pelo service_role.
+
+
+## Painel administrativo no MFO
+A navegação inclui a tela **Importação API**, que chama a Edge Function com a sessão autenticada do Supabase. O operador autorizado pode testar a conexão, listar competições por país/temporada, selecionar uma liga, armazenar os clubes em staging e importar elencos em lotes de até 10 clubes. A autorização continua sendo validada no servidor pelo UUID configurado em `MFO_IMPORT_ADMIN_USER_ID`; a presença da tela no frontend não concede permissão.
