@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import FileRosterImportModule from './FileRosterImportModule.jsx';
+import ImportReviewModule from './ImportReviewModule.jsx';
 
 export default function MasterAdminModule({ supabase }) {
   const [users, setUsers] = useState([]);
@@ -9,6 +10,7 @@ export default function MasterAdminModule({ supabase }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [showFileImport, setShowFileImport] = useState(false);
+  const [showImportReview, setShowImportReview] = useState(false);
 
   const selected = useMemo(() => users.find((u) => u.id === selectedId) ?? null, [users, selectedId]);
 
@@ -65,6 +67,8 @@ export default function MasterAdminModule({ supabase }) {
 
   const date = (value) => value ? new Date(value).toLocaleString('pt-BR') : 'Nunca acessou';
 
+  if (showImportReview) return <div style={{ color: '#f8fafc' }}><button onClick={() => setShowImportReview(false)} style={{ ...buttonStyle, marginBottom: 16 }}>← Voltar ao Painel Master</button><ImportReviewModule supabase={supabase} /></div>;
+
   if (showFileImport) return <div style={{ color: '#f8fafc' }}>
     <button onClick={() => setShowFileImport(false)} style={{ ...buttonStyle, marginBottom: 16 }}>← Voltar ao Painel Master</button>
     <FileRosterImportModule supabase={supabase} />
@@ -80,6 +84,7 @@ export default function MasterAdminModule({ supabase }) {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={() => setShowFileImport(true)} style={buttonStyle}>Central de Importação de Elencos</button>
+          <button onClick={() => setShowImportReview(true)} style={buttonStyle}>Revisar importações</button>
           <button onClick={loadUsers} disabled={loading || working} style={buttonStyle}>{loading ? 'Atualizando...' : 'Atualizar dados'}</button>
         </div>
       </div>
