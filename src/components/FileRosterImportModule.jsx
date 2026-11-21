@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import pdfjsWorker from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import mammoth from 'mammoth/mammoth.browser';
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/legacy/build/pdf.worker.mjs', import.meta.url).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const box = { background: '#0b1220', border: '1px solid #34465f', borderRadius: 12, padding: 16, color: '#f8fafc' };
 const field = { width: '100%', boxSizing: 'border-box', padding: 11, borderRadius: 8, border: '1px solid #34465f', background: '#101b2b', color: '#fff' };
@@ -126,6 +127,11 @@ export default function FileRosterImportModule({ supabase }) {
   const [source, setSource] = useState('Arquivo enviado pelo administrador'), [runId, setRunId] = useState('');
   const total = useMemo(() => (preview?.teams?.length || 0) + (preview?.players?.length || 0), [preview]);
 
+  function downloadTemplate() {
+    const csv = '\uFEFFpaís;liga;clube;seleção;jogador;idade;nacionalidade;posição;overall;valor_mercado;pé_dominante\\nBrasil;Série A;Palmeiras;;Nome do Jogador;25;Brasil;Atacante;78;12000000;Direito\\nBrasil;; ;Brasil;Nome do Jogador da Seleção;27;Brasil;Meia;82;25000000;Esquerdo';
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a'); link.href = url; link.download = 'modelo_importacao_mfo.csv'; link.click(); URL.revokeObjectURL(url);
+  }
   async function analyze() {
     if (!file) return;
     setBusy(true); setError(''); setNotice(''); setPreview(null); setRunId('');
@@ -165,6 +171,7 @@ export default function FileRosterImportModule({ supabase }) {
       <h3 style={{ marginTop: 0 }}>1. Enviar arquivo</h3>
       <p style={{ color: '#a7b3c5', fontSize: 13 }}>Formatos: XLSX, XLS, CSV, PDF com texto, DOCX, TXT e JSON. Tamanho máximo: 15 MB.</p>
       <input type="file" accept=".xlsx,.xls,.csv,.pdf,.docx,.txt,.json" onChange={e => { setFile(e.target.files?.[0] || null); setPreview(null); setRunId(''); setError(''); setNotice(''); }} style={{ ...field, padding: 9 }} />
+      <button type="button" onClick={downloadTemplate} style={{ ...primary, marginTop: 10, background: '#26364d' }}>Baixar modelo de planilha CSV</button>
       <label style={{ display: 'block', color: '#a7b3c5', fontSize: 13, marginTop: 14 }}>Origem / observação
         <input value={source} onChange={e => setSource(e.target.value)} maxLength={120} style={{ ...field, marginTop: 6 }} />
       </label>
@@ -175,6 +182,11 @@ export default function FileRosterImportModule({ supabase }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 10 }}>
         <Metric label="CLUBES / SELEÇÕES" value={preview.teams.length} /><Metric label="JOGADORES" value={preview.players.length} />
         <Metric label="DUPLICADOS IGNORADOS" value={preview.duplicates} /><Metric label="LINHAS NÃO IDENTIFICADAS" value={preview.skipped} />
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <strong style={{ fontSize: 13 }}>Clubes e seleções identificados</strong>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>{preview.teams.slice(0, 20).map(team => <span key={team.external_id} style={{ border: '1px solid #34465f', borderRadius: 20, padding: '5px 9px', color: '#cbd5e1', fontSize: 12 }}>{team.team_name}{team.payload.team_type === 'selection' ? ' • Seleção' : ''}</span>)}</div>
+        {preview.teams.length > 20 && <p style={{ color: '#8291a6', fontSize: 12 }}>Mais {preview.teams.length - 20} clubes/seleções identificados.</p>}
       </div>
       <div style={{ overflowX: 'auto', marginTop: 14 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620, fontSize: 13 }}>
