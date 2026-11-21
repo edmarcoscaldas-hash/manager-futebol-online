@@ -63,7 +63,7 @@ function normalizeSheets(sheets) {
           nationality: value('nationality') || country || null,
           overall: value('overall') ? Number(value('overall')) : null,
           market_value: value('value') || null, preferred_foot: value('foot') || null,
-          source_sheet: sheet.name, source_row: i + 1
+          shirt_number: value('shirt') || null, season: value('season') || null, reference_date: value('referenceDate') || null, source_url: value('sourceUrl') || null, source_status: value('sourceStatus') || null, notes: value('notes') || null, source_sheet: sheet.name, source_row: i + 1
         }
       });
     }
