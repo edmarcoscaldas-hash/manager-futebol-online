@@ -128,7 +128,7 @@ export default function FileRosterImportModule({ supabase }) {
   const total = useMemo(() => (preview?.teams?.length || 0) + (preview?.players?.length || 0), [preview]);
 
   function downloadTemplate() {
-    const csv = '\uFEFFpaís;liga;clube;seleção;jogador;idade;nacionalidade;posição;overall;valor_mercado;pé_dominante\\nBrasil;Série A;Palmeiras;;Nome do Jogador;25;Brasil;Atacante;78;12000000;Direito\\nBrasil;; ;Brasil;Nome do Jogador da Seleção;27;Brasil;Meia;82;25000000;Esquerdo';
+    const csv = '\uFEFFpaís;liga;clube;seleção;jogador;idade;nacionalidade;posição;overall;valor_mercado;pé_dominante\nBrasil;Série A;Palmeiras;;Nome do Jogador;25;Brasil;Atacante;78;12000000;Direito\nBrasil;; ;Brasil;Nome do Jogador da Seleção;27;Brasil;Meia;82;25000000;Esquerdo';
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a'); link.href = url; link.download = 'modelo_importacao_mfo.csv'; link.click(); URL.revokeObjectURL(url);
   }
