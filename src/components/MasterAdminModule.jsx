@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import FileRosterImportModule from './FileRosterImportModule.jsx';
 
 export default function MasterAdminModule({ supabase }) {
   const [users, setUsers] = useState([]);
@@ -7,6 +8,7 @@ export default function MasterAdminModule({ supabase }) {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [showFileImport, setShowFileImport] = useState(false);
 
   const selected = useMemo(() => users.find((u) => u.id === selectedId) ?? null, [users, selectedId]);
 
@@ -63,6 +65,11 @@ export default function MasterAdminModule({ supabase }) {
 
   const date = (value) => value ? new Date(value).toLocaleString('pt-BR') : 'Nunca acessou';
 
+  if (showFileImport) return <div style={{ color: '#f8fafc' }}>
+    <button onClick={() => setShowFileImport(false)} style={{ ...buttonStyle, marginBottom: 16 }}>← Voltar ao Painel Master</button>
+    <FileRosterImportModule supabase={supabase} />
+  </div>;
+
   return (
     <div style={{ color: '#f8fafc' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -71,7 +78,10 @@ export default function MasterAdminModule({ supabase }) {
           <h2 style={{ margin: '8px 0' }}>Painel Master</h2>
           <p style={{ color: '#a7b3c5', margin: 0 }}>Controle de cadastros, acessos e dados de jogo dos participantes.</p>
         </div>
-        <button onClick={loadUsers} disabled={loading || working} style={buttonStyle}>{loading ? 'Atualizando...' : 'Atualizar dados'}</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => setShowFileImport(true)} style={buttonStyle}>Central de Importação de Elencos</button>
+          <button onClick={loadUsers} disabled={loading || working} style={buttonStyle}>{loading ? 'Atualizando...' : 'Atualizar dados'}</button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, margin: '20px 0' }}>
