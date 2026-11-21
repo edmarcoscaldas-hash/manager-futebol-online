@@ -12,10 +12,10 @@ const primary = { background: '#176b4b', color: '#fff', border: 0, borderRadius:
 function clean(value) { return String(value ?? '').trim(); }
 function key(value) { return clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); }
 const aliases = {
-  player: ['jogador','atleta','player','nome','nome_jogador','nome_do_jogador','athlete'],
-  team: ['clube','time','equipe','team','club','nome_clube','nome_do_clube'],
+  player: ['jogador','atleta','player','player_name','nome','nome_jogador','nome_do_jogador','athlete'],
+  team: ['clube','time','equipe','team','club','team_name','nome_clube','nome_do_clube'],
   country: ['pais','country','nacao'], competition: ['liga','campeonato','competicao','competition','divisao'],
-  selection: ['selecao','selecao_nacional','national_team','national_selection'],
+  selection: ['selecao','selecao_nacional','national_team','national_selection','national_team_name'],
   position: ['posicao','position','role'], age: ['idade','age'], birth: ['data_nascimento','nascimento','birth_date','date_of_birth'],
   nationality: ['nacionalidade','nationality'], overall: ['overall','nota','nivel','rating','ovr'],
   value: ['valor_mercado','valor','market_value','value'], foot: ['pe_dominante','pe','foot','preferred_foot']
@@ -83,16 +83,32 @@ async function readFile(file) {
   }
   if (extension === 'json') {
     const parsed = JSON.parse(await file.text());
-    const data = Array.isArray(parsed) ? parsed : (parsed.players || parsed.jogadores || parsed.teams || parsed.clubes || []);
-    if (!Array.isArray(data) || !data.length) throw new Error('O JSON precisa conter uma lista de jogadores ou clubes.');
-    const headers = [...new Set(data.flatMap(item => Object.keys(item || {})))];
-    return [{ name: 'JSON', rows: [headers, ...data.map(item => headers.map(header => item?.[header] ?? ''))] }];
+    const toSheet = (name, data) => {
+      if (!Array.isArray(data) || !data.length) return null;
+      const headers = [...new Set(data.flatMap(item => Object.keys(item || {})))];
+      return { name, rows: [headers, ...data.map(item => headers.map(header => item?.[header] ?? ''))] };
+    };
+    if (Array.isArray(parsed)) return [toSheet('JSON', parsed)].filter(Boolean);
+    const sheets = [
+      toSheet('Clubes', parsed.teams || parsed.clubes || parsed.clubs),
+      toSheet('Jogadores', parsed.players || parsed.jogadores)
+    ].filter(Boolean);
+    if (!sheets.length) throw new Error('O JSON precisa conter uma lista de jogadores ou clubes.');
+    return sheets;
   }
   if (extension === 'pdf') {
     const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise, lines = [];
     for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
       const page = await pdf.getPage(pageNo), content = await page.getTextContent();
-      lines.push(content.items.map(item => item.str || '').join('  '));
+      const grouped = new Map();
+      for (const item of content.items) {
+        const y = Math.round(item.transform?.[5] || 0);
+        if (!grouped.has(y)) grouped.set(y, []);
+        grouped.get(y).push({ x: item.transform?.[4] || 0, text: item.str || '' });
+      }
+      [...grouped.entries()].sort((a, b) => b[0] - a[0]).forEach(([, items]) => {
+        lines.push(items.sort((a, b) => a.x - b.x).map(item => item.text).join('\t'));
+      });
     }
     return [{ name: 'PDF', rows: rowsFromText(lines.join('\n')) }];
   }
