@@ -5,6 +5,7 @@ import RankingsModule from './components/RankingsModule.jsx';
 import TacticsModule from './components/TacticsModule.jsx';
 import DashboardModule from './components/DashboardModule.jsx';
 import MultiplayerLobby from './components/MultiplayerLobby.jsx';
+import FootballImportModule from './components/FootballImportModule.jsx';
 
 export default function App() {
   const [aba, setAba] = useState('Início');
@@ -1077,15 +1078,16 @@ export default function App() {
             <span className="mfo-nav-label">MENU PRINCIPAL</span>
             {[
               ['Visão Geral','Início','⌂'],['Elenco','Elenco','♟'],['Escalação','Táticas','⚽'],
-              ['Partidas','Partidas','◷'],['Competições','Competições','🏆'],['Amistosos Online','Amistosos','⚔'],['Finanças','Finanças','＄']
+              ['Partidas','Partidas','◷'],['Competições','Competições','🏆'],['Amistosos Online','Amistosos','⚔'],['Finanças','Finanças','＄'],['Importação API','Importação API','⇩']
             ].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value || (value === 'Competições' && aba === 'Liga') ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
             <button className="mfo-more-toggle" onClick={() => setMaisModulosAbertos(value => !value)}><span className="mfo-nav-dot">＋</span>Outros módulos <span className="mfo-menu-chevron">{maisModulosAbertos ? '−' : '+'}</span></button>
             {maisModulosAbertos && [['Mercado','Mercado','⇄'],['Base','Base','♙'],['Estádio','Estádio','▦'],['Imprensa','Imprensa','▤'],['Rankings','Rankings','★']].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
             <div className="mfo-sidebar-foot">MANAGER<br/>FUTEBOL ONLINE</div>
           </nav>
           <section className="mfo-content" style={styles.panel}>
-            <h2>{aba === 'Início' ? 'Visão Geral' : aba === 'Táticas' ? 'Escalação' : aba}</h2>
+            <h2>{aba === 'Início' ? 'Visão Geral' : aba === 'Táticas' ? 'Escalação' : aba === 'Importação API' ? 'Central de Importação' : aba}</h2>
             {aba === 'Início' ? <DashboardModule supabase={supabase} club={clubeAtual} onNavigate={setAba} /> :
+              aba === 'Importação API' ? <FootballImportModule supabase={supabase} /> :
               aba === 'Elenco' ? <div>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
                   <div>
