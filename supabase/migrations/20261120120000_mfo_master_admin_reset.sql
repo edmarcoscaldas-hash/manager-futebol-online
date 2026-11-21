@@ -127,4 +127,4 @@ end;
 $$;
 
 revoke all on function public.mfo_admin_reset_user_game_data(uuid,uuid) from public, anon, authenticated;
-grant execute on function public.mfo_admin_reset_user_game_data(uuid) to service_role;
+grant execute on function public.mfo_admin_reset_user_game_data(uuid,uuid) to service_role;
