@@ -11,7 +11,7 @@ alter table public.mfo_admin_audit enable row level security;
 revoke all on public.mfo_admin_audit from public, anon, authenticated;
 grant all on public.mfo_admin_audit to service_role;
 
-create or replace function public.mfo_admin_reset_user_game_data(p_target_user_id uuid)
+create or replace function public.mfo_admin_reset_user_game_data(p_target_user_id uuid, p_admin_user_id uuid)
 returns jsonb
 language plpgsql
 security invoker
@@ -29,6 +29,7 @@ begin
     raise exception 'service_role_required';
   end if;
   if p_target_user_id is null then raise exception 'target_user_required'; end if;
+  if p_admin_user_id is null then raise exception 'admin_user_required'; end if;
   if not exists (select 1 from auth.users where id = p_target_user_id and deleted_at is null) then
     raise exception 'target_user_not_found';
   end if;
@@ -117,8 +118,7 @@ begin
   get diagnostics v_count = row_count; v_deleted := v_deleted || jsonb_build_object('manager_careers', v_count);
 
   insert into public.mfo_admin_audit(admin_user_id, target_user_id, action, details)
-  values (nullif(current_setting('request.jwt.claim.sub', true), '')::uuid,
-          p_target_user_id, 'reset_complete_individual',
+  values (p_admin_user_id, p_target_user_id, 'reset_complete_individual',
           jsonb_build_object('deleted_counts', v_deleted, 'preserved_account', true));
 
   return jsonb_build_object('success', true, 'target_user_id', p_target_user_id,
@@ -126,5 +126,5 @@ begin
 end;
 $$;
 
-revoke all on function public.mfo_admin_reset_user_game_data(uuid) from public, anon, authenticated;
+revoke all on function public.mfo_admin_reset_user_game_data(uuid,uuid) from public, anon, authenticated;
 grant execute on function public.mfo_admin_reset_user_game_data(uuid) to service_role;
