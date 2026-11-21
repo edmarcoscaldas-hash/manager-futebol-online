@@ -22,8 +22,34 @@ Deno.serve(async (req: Request) => {
     const { data, error } = await authClient.auth.getUser();
     if (error || !data.user || data.user.id !== adminId) return json({ error: "not_authorized_for_import" }, 403);
     const body = await req.json(), action = body.action;
-    if (!["list_leagues", "stage_league", "stage_squads", "stage_file_import"].includes(action)) return json({ error: "invalid_action" }, 400);
+    if (!["list_leagues", "stage_league", "stage_squads", "stage_file_import", "list_staging", "set_review_status"].includes(action)) return json({ error: "invalid_action" }, 400);
     const db = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+
+    if (action === "list_staging") {
+      const runId = body.run_id ? String(body.run_id) : null;
+      const { data: staging, error: stagingError } = await db.rpc("mfo_list_import_staging", {
+        p_run_id: runId,
+        p_team_offset: Math.max(0, Number(body.team_offset) || 0),
+        p_player_offset: Math.max(0, Number(body.player_offset) || 0),
+        p_page_size: Math.min(100, Math.max(1, Number(body.page_size) || 50))
+      });
+      if (stagingError) throw stagingError;
+      return json({ action, ...staging });
+    }
+    if (action === "set_review_status") {
+      const entityType = String(body.entity_type ?? "");
+      const recordId = Number(body.record_id);
+      const reviewStatus = String(body.review_status ?? "");
+      if (!["team", "player"].includes(entityType) || !Number.isSafeInteger(recordId) || recordId <= 0 ||
+          !["new", "ignored", "conflict", "matched"].includes(reviewStatus)) {
+        return json({ error: "invalid_review_update" }, 400);
+      }
+      const { data: updated, error: updateError } = await db.rpc("mfo_set_import_review_status", {
+        p_entity_type: entityType, p_record_id: recordId, p_review_status: reviewStatus
+      });
+      if (updateError) throw updateError;
+      return json({ action, ...updated });
+    }
     if (action === "stage_file_import") {
       const teamsInput = Array.isArray(body.teams) ? body.teams : [], playersInput = Array.isArray(body.players) ? body.players : [];
       if (teamsInput.length > 3000 || playersInput.length > 3000) return json({ error: "file_import_limit_exceeded", detail: "Limite por envio: 3.000 clubes/seleções e 3.000 jogadores." }, 413);
