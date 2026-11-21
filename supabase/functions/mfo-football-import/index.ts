@@ -15,7 +15,6 @@ Deno.serve(async (req: Request) => {
     const url = Deno.env.get("SUPABASE_URL"), anon = Deno.env.get("SUPABASE_ANON_KEY"), service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const apiKey = Deno.env.get("API_FOOTBALL_KEY"), adminId = Deno.env.get("MFO_IMPORT_ADMIN_USER_ID");
     if (!url || !anon || !service) return json({ error: "supabase_environment_missing" }, 500);
-    if (!apiKey) return json({ error: "API_FOOTBALL_KEY_not_configured" }, 503);
     if (!adminId) return json({ error: "MFO_IMPORT_ADMIN_USER_ID_not_configured" }, 503);
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "authentication_required" }, 401);
@@ -23,7 +22,32 @@ Deno.serve(async (req: Request) => {
     const { data, error } = await authClient.auth.getUser();
     if (error || !data.user || data.user.id !== adminId) return json({ error: "not_authorized_for_import" }, 403);
     const body = await req.json(), action = body.action;
-    if (!["list_leagues", "stage_league", "stage_squads"].includes(action)) return json({ error: "invalid_action" }, 400);
+    if (!["list_leagues", "stage_league", "stage_squads", "stage_file_import"].includes(action)) return json({ error: "invalid_action" }, 400);
+    const db = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
+    if (action === "stage_file_import") {
+      const teamsInput = Array.isArray(body.teams) ? body.teams : [], playersInput = Array.isArray(body.players) ? body.players : [];
+      if (teamsInput.length > 3000 || playersInput.length > 3000) return json({ error: "file_import_limit_exceeded", detail: "Limite por envio: 3.000 clubes/seleções e 3.000 jogadores." }, 413);
+      const serialized = JSON.stringify({ teams: teamsInput, players: playersInput });
+      if (new TextEncoder().encode(serialized).length > 3_500_000) return json({ error: "file_import_payload_too_large", detail: "O arquivo convertido ultrapassou 3,5 MB. Divida a planilha em arquivos menores." }, 413);
+      const teams = teamsInput.map((item: any) => ({
+        external_id: String(item.external_id ?? "").slice(0, 160), country: item.country ? String(item.country).slice(0, 100) : null,
+        competition: item.competition ? String(item.competition).slice(0, 160) : null,
+        team_name: String(item.team_name ?? "").trim().slice(0, 160),
+        payload: { ...(item.payload && typeof item.payload === "object" ? item.payload : {}), source: "uploaded_file", file_name: String(body.file_name ?? "arquivo").slice(0, 180), source_name: String(body.source_name ?? "").slice(0, 120) }
+      })).filter((item: any) => item.external_id && item.team_name);
+      const players = playersInput.map((item: any) => ({
+        external_player_id: String(item.external_player_id ?? "").slice(0, 160),
+        external_team_id: String(item.external_team_id ?? "").slice(0, 160),
+        player_name: String(item.player_name ?? "").trim().slice(0, 160),
+        payload: { ...(item.payload && typeof item.payload === "object" ? item.payload : {}), source: "uploaded_file", file_name: String(body.file_name ?? "arquivo").slice(0, 180), source_name: String(body.source_name ?? "").slice(0, 120) }
+      })).filter((item: any) => item.external_player_id && item.external_team_id && item.player_name);
+      if (!teams.length && !players.length) return json({ error: "no_valid_records" }, 400);
+      const staged = await db.rpc("mfo_stage_football_import", { p_provider: "manual_file", p_teams: teams, p_players: players });
+      if (staged.error) throw staged.error;
+      return json({ action, run_id: staged.data?.run_id, teams_staged: staged.data?.teams_added ?? 0, players_staged: staged.data?.players_added ?? 0,
+        note: "Arquivo armazenado somente na área privada de revisão; nenhum dado ativo do jogo foi alterado." });
+    }
+    if (!apiKey) return json({ error: "API_FOOTBALL_KEY_not_configured" }, 503);
     if (action === "list_leagues") {
       const country = String(body.country ?? "").trim(), season = Number(body.season ?? 2026);
       if (!country || country.length > 80 || !Number.isInteger(season)) return json({ error: "country_and_valid_season_required" }, 400);
@@ -33,7 +57,6 @@ Deno.serve(async (req: Request) => {
         seasons: item.seasons?.map((s: any) => ({ year: s.year, current: s.current, coverage: s.coverage })),
       })) });
     }
-    const db = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
     if (action === "stage_league") {
       const leagueId = Number(body.league_id), season = Number(body.season ?? 2026);
       if (!Number.isInteger(leagueId) || leagueId <= 0 || !Number.isInteger(season)) return json({ error: "valid_league_id_and_season_required" }, 400);
