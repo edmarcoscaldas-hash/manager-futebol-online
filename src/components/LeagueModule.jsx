@@ -7,7 +7,7 @@ const input = { width:'100%', boxSizing:'border-box', padding:12, borderRadius:9
 const th = { textAlign:'left', padding:'11px 9px', borderBottom:'1px solid #34465f', color:'#67e8a5', fontSize:12, whiteSpace:'nowrap' };
 const td = { padding:'11px 9px', borderBottom:'1px solid #26364d', fontSize:13, whiteSpace:'nowrap' };
 
-export default function LeagueModule({ supabase, clubeAtual, initialTab = 'classificacao' }) {
+export default function LeagueModule({ supabase, clubeAtual, initialTab = 'classificacao', onCareerChange }) {
   const [ligas, setLigas] = useState([]);
   const [ligaId, setLigaId] = useState(clubeAtual?.league_id || '');
   const [classificacao, setClassificacao] = useState([]);
@@ -111,6 +111,14 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
           preservadas += 1;
         } else {
           concluidas += 1;
+          if (jogo.home_club_id === clubeAtual?.id || jogo.away_club_id === clubeAtual?.id) {
+            const { data: pressureData, error: pressureError } = await supabase.rpc('apply_match_pressure_event', {
+              p_match_id: jogo.id,
+              p_club_id: clubeAtual.id
+            });
+            if (pressureError) console.warn('Não foi possível atualizar a pressão do clube:', pressureError.message);
+            else onCareerChange?.(pressureData);
+          }
         }
       }
 
@@ -156,6 +164,12 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     try {
       const { data, error } = await supabase.rpc('simulate_match', { p_match_id: partida.id });
       if (error) throw error;
+      const { data: pressureData, error: pressureError } = await supabase.rpc('apply_match_pressure_event', {
+        p_match_id: partida.id,
+        p_club_id: clubeAtual.id
+      });
+      if (pressureError) console.warn('Não foi possível atualizar a pressão do clube:', pressureError.message);
+      else onCareerChange?.(pressureData);
 
       const [standingsRes, matchesRes] = await Promise.all([
         supabase.from('league_standings').select('*').eq('league_id', ligaId)

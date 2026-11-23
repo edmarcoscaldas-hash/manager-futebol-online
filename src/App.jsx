@@ -5,6 +5,7 @@ import RankingsModule from './components/RankingsModule.jsx';
 import TacticsModule from './components/TacticsModule.jsx';
 import DashboardModule from './components/DashboardModule.jsx';
 import MultiplayerLobby from './components/MultiplayerLobby.jsx';
+import { buildManagerInterviewContext, getManagerInterviewChoices } from './domain/managerInterviews.js';
 
 export default function App() {
   const [aba, setAba] = useState('Início');
@@ -24,6 +25,11 @@ export default function App() {
   const [clubesDisponiveis, setClubesDisponiveis] = useState([]);
   const [clubeSelecionado, setClubeSelecionado] = useState('');
   const [iniciandoCarreira, setIniciandoCarreira] = useState(false);
+  const [careerRefreshToken, setCareerRefreshToken] = useState(0);
+  const [propostasTreinador, setPropostasTreinador] = useState([]);
+  const [historicoEmpregos, setHistoricoEmpregos] = useState([]);
+  const [mensagemCarreira, setMensagemCarreira] = useState('');
+  const [carregandoCarreira, setCarregandoCarreira] = useState(false);
   const [nomeClube, setNomeClube] = useState('');
   const [sigla, setSigla] = useState('');
   const [cidade, setCidade] = useState('');
@@ -49,6 +55,10 @@ export default function App() {
   const [aceitandoPatrocinio, setAceitandoPatrocinio] = useState(false);
   const [respostaImprensa, setRespostaImprensa] = useState('');
   const [impactoImprensa, setImpactoImprensa] = useState(null);
+  const [contextoImprensa, setContextoImprensa] = useState(null);
+  const [historicoEntrevistas, setHistoricoEntrevistas] = useState([]);
+  const [carregandoImprensa, setCarregandoImprensa] = useState(false);
+  const [entrevistaRespondida, setEntrevistaRespondida] = useState(false);
   const [jogadores, setJogadores] = useState([]);
   const [buscaElenco, setBuscaElenco] = useState('');
   const [posicaoElenco, setPosicaoElenco] = useState('Todas');
@@ -91,7 +101,7 @@ export default function App() {
   const clubeAtual = clubes[0];
   const salarioSugerido = jogadorOferta ? Math.round(3000 * Math.pow(Math.max(40, Math.min(100, Number(jogadorOferta.overall || 50))) / 50, 3.6) * (jogadorOferta.is_star ? 1.25 : 1)) : 3000;
 
-  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Finanças', 'Imprensa', 'Rankings'];
+  const abas = ['Início', 'Elenco', 'Táticas', 'Liga', 'Mercado', 'Base', 'Estádio', 'Finanças', 'Imprensa', 'Rankings', 'Carreira'];
 
   useEffect(() => {
     if (!supabase) return;
@@ -123,7 +133,10 @@ export default function App() {
         setCarregandoClubes(false);
         return;
       }
-      setCarreira({ id: careerId, manager_name: nomeTreinador });
+      const { data: careerInfo } = await supabase.from('manager_careers')
+        .select('reputation,experience_seasons').eq('id', careerId).maybeSingle();
+      if (!ativo) return;
+      setCarreira({ id: careerId, manager_name: nomeTreinador, ...(careerInfo || {}) });
       const { data: empregos, error: empregoError } = await supabase
         .from('manager_employments')
         .select('id,club_id,salary,contract_end,status')
@@ -158,11 +171,35 @@ export default function App() {
           setClubeSelecionado(options[0]?.id || '');
         }
       }
+
+      const [offersRes, historyRes] = await Promise.all([
+        supabase.from('manager_job_offers')
+          .select('id,club_id,offered_salary,contract_months,offer_message,status,created_at,expires_at')
+          .eq('career_id', careerId).eq('status', 'pending')
+          .gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }),
+        supabase.from('manager_employments')
+          .select('id,club_id,salary,contract_start,contract_end,ended_at,status,termination_reason,created_at')
+          .eq('career_id', careerId).order('created_at', { ascending: false }).limit(20)
+      ]);
+      if (!ativo) return;
+      if (offersRes.error) setMensagemCarreira('Não foi possível carregar as propostas: ' + offersRes.error.message);
+      const idsClubes = [...new Set([
+        ...(offersRes.data || []).map(o => o.club_id),
+        ...(historyRes.data || []).map(e => e.club_id)
+      ])];
+      let clubesInfo = [];
+      if (idsClubes.length) {
+        const { data: info } = await supabase.from('clubs').select('id,nome,pais,cidade').in('id', idsClubes);
+        clubesInfo = info || [];
+      }
+      const nomeDoClube = id => clubesInfo.find(c => c.id === id)?.nome || 'Clube';
+      setPropostasTreinador((offersRes.data || []).map(o => ({ ...o, club_name: nomeDoClube(o.club_id), club_country: clubesInfo.find(c => c.id === o.club_id)?.pais || '' })));
+      setHistoricoEmpregos((historyRes.data || []).map(e => ({ ...e, club_name: nomeDoClube(e.club_id) })));
       setCarregandoClubes(false);
     }
     carregarCarreira();
     return () => { ativo = false; };
-  }, [session]);
+  }, [session, careerRefreshToken]);
 
   useEffect(() => {
     let ativo = true;
@@ -249,6 +286,75 @@ export default function App() {
       setCarregandoFinancas(false);
     }
     carregarFinancas();
+    return () => { ativo = false; };
+  }, [session, clubeAtual?.id, aba]);
+
+
+  useEffect(() => {
+    let ativo = true;
+    async function carregarCentralImprensa() {
+      if (!session || !clubeAtual?.id || !supabase || aba !== 'Imprensa') return;
+      setCarregandoImprensa(true);
+      setRespostaImprensa('');
+      setImpactoImprensa(null);
+      setContextoImprensa(null);
+      setEntrevistaRespondida(false);
+
+      const { data: jogos, error: jogosError } = await supabase
+        .from('matches').select('*')
+        .or(`home_club_id.eq.${clubeAtual.id},away_club_id.eq.${clubeAtual.id}`)
+        .eq('status', 'finished')
+        .order('played_at', { ascending: false })
+        .limit(100);
+
+      if (!ativo) return;
+      if (jogosError) {
+        setImpactoImprensa('Não foi possível consultar as partidas: ' + jogosError.message);
+        setCarregandoImprensa(false);
+        return;
+      }
+
+      const { data: clubeAtualizado } = await supabase.from('clubs').select('*').eq('id', clubeAtual.id).maybeSingle();
+      if (!ativo) return;
+      if (clubeAtualizado) setClubes(lista => lista.map(c => c.id === clubeAtualizado.id ? clubeAtualizado : c));
+
+      const ultimoJogo = jogos?.[0];
+      if (ultimoJogo) {
+        const ids = [ultimoJogo.home_club_id, ultimoJogo.away_club_id];
+        const [clubesRes, ligaRes, tabelaRes, ultimaRodadaRes] = await Promise.all([
+          supabase.from('clubs').select('id,nome,cidade').in('id', ids),
+          supabase.from('leagues').select('id,nome,pais,divisao,temporada').eq('id', ultimoJogo.league_id).maybeSingle(),
+          supabase.from('league_standings').select('club_id,points,wins,goal_difference').eq('league_id', ultimoJogo.league_id)
+            .order('points', { ascending: false }).order('wins', { ascending: false }).order('goal_difference', { ascending: false }),
+          supabase.from('matches').select('round_number').eq('league_id', ultimoJogo.league_id)
+            .order('round_number', { ascending: false }).limit(1).maybeSingle()
+        ]);
+        if (!ativo) return;
+        const contexto = buildManagerInterviewContext({
+          match: ultimoJogo,
+          clubId: clubeAtual.id,
+          homeClub: clubesRes.data?.find(c => c.id === ultimoJogo.home_club_id),
+          awayClub: clubesRes.data?.find(c => c.id === ultimoJogo.away_club_id),
+          competitionName: ligaRes.data?.nome || 'Campeonato',
+          standings: tabelaRes.data || [],
+          maxRound: Number(ultimaRodadaRes.data?.round_number || 0)
+        });
+        setContextoImprensa(contexto);
+      }
+
+      const { data: historico, error: historicoError } = await supabase
+        .from('manager_interviews').select('*').eq('club_id', clubeAtual.id)
+        .order('created_at', { ascending: false }).limit(8);
+      if (!ativo) return;
+      if (!historicoError) {
+        setHistoricoEntrevistas(historico || []);
+        setEntrevistaRespondida(Boolean(ultimoJogo && historico?.some(item => item.match_id === ultimoJogo.id)));
+      } else {
+        setImpactoImprensa('Não foi possível carregar o histórico de entrevistas: ' + historicoError.message);
+      }
+      setCarregandoImprensa(false);
+    }
+    carregarCentralImprensa();
     return () => { ativo = false; };
   }, [session, clubeAtual?.id, aba]);
 
@@ -685,6 +791,25 @@ export default function App() {
     return true;
   }
 
+  async function responderPropostaTreinador(offerId, decision) {
+    if (!supabase || carregandoCarreira) return;
+    setCarregandoCarreira(true);
+    setMensagemCarreira('');
+    const { data, error } = await supabase.rpc('respond_manager_job_offer', {
+      p_offer_id: offerId,
+      p_decision: decision
+    });
+    if (error) {
+      setMensagemCarreira('Não foi possível processar a proposta: ' + error.message);
+    } else {
+      setMensagemCarreira(decision === 'accept'
+        ? 'Proposta aceita! Seu novo vínculo foi registrado. Carregando o novo clube...'
+        : 'Proposta recusada.');
+      setCareerRefreshToken(value => value + 1);
+    }
+    setCarregandoCarreira(false);
+  }
+
   async function criarClube(event) {
     event.preventDefault();
     if (!session) return;
@@ -812,62 +937,61 @@ export default function App() {
   }, [clubeAtual?.id, clubeAtual?.stadium_upgrade_finishes_at]);
 
   async function responderImprensa(tipo) {
-    if (!clubeAtual?.id || !supabase) {
-      setRespostaImprensa(tipo);
-      setImpactoImprensa('Entre com seu clube conectado para registrar a resposta e atualizar as reputações.');
-      return;
-    }
-
-    const reputacaoAtual = {
-      reputacao_diretoria: Number(clubeAtual.reputacao_diretoria ?? 50),
-      reputacao_jogadores: Number(clubeAtual.reputacao_jogadores ?? 50),
-      reputacao_torcida: Number(clubeAtual.reputacao_torcida ?? 50)
-    };
-    const escolhas = {
-      elogiar: {
-        titulo: 'Elogiar a entrega da equipe',
-        fala: '“O resultado é doloroso, mas não vou deixar de reconhecer o esforço dos jogadores. Competimos, tivemos momentos em que controlamos a partida e criamos situações para sair com outro placar. Claro que precisamos melhorar a concentração nos momentos decisivos. Agora é levantar a cabeça, corrigir os detalhes e trabalhar. Não tenho dúvida de que esse grupo pode dar uma resposta.”',
-        delta: { reputacao_diretoria: 1, reputacao_jogadores: 4, reputacao_torcida: 2 }
-      },
-      reconhecer: {
-        titulo: 'Reconhecer que o time jogou mal',
-        fala: '“Hoje não estivemos no nosso nível. Erramos passes simples, perdemos duelos importantes e demos espaços que um adversário desse nível não costuma desperdiçar. Não adianta procurar desculpas: precisamos jogar mais e melhor. A responsabilidade é de todos, começando por mim, e vamos trabalhar para corrigir isso.”',
-        delta: { reputacao_diretoria: 3, reputacao_jogadores: 0, reputacao_torcida: 3 }
-      },
-      criticar: {
-        titulo: 'Criticar duramente a atuação',
-        fala: '“Foi uma atuação muito abaixo do que a camisa deste clube exige. Faltou intensidade, concentração e personalidade em momentos importantes. Não podemos entrar em campo esperando que o jogo se resolva sozinho. Vou conversar com o elenco, porque algumas atitudes precisam mudar. Ninguém tem lugar garantido se não corresponder.”',
-        delta: { reputacao_diretoria: 2, reputacao_jogadores: -4, reputacao_torcida: 4 }
-      },
-      proteger: {
-        titulo: 'Assumir a responsabilidade e proteger o elenco',
-        fala: '“A responsabilidade maior é minha. Sou eu quem prepara a equipe, escolhe a estratégia e toma as decisões. Não vou apontar o dedo para um jogador depois de uma derrota. Temos um grupo trabalhador e vamos resolver nossas questões internamente. Peço ao torcedor que continue apoiando, porque precisamos estar unidos neste momento.”',
-        delta: { reputacao_diretoria: 2, reputacao_jogadores: 5, reputacao_torcida: 3 }
-      },
-      cobrar: {
-        titulo: 'Cobrar uma reação imediata',
-        fala: '“Não podemos tratar essa derrota como se fosse normal. O torcedor espera entrega e competitividade, e nós temos a obrigação de oferecer isso. A conversa no vestiário será franca. Quero ver mais atitude nos treinamentos e uma resposta dentro de campo já na próxima rodada. O discurso precisa virar resultado.”',
-        delta: { reputacao_diretoria: 4, reputacao_jogadores: -2, reputacao_torcida: 4 }
-      }
-    };
-    const escolha = escolhas[tipo];
+    if (!clubeAtual?.id || !supabase || !contextoImprensa?.matchId || entrevistaRespondida) return;
+    const escolha = getManagerInterviewChoices(contextoImprensa).find(opcao => opcao.key === tipo);
     if (!escolha) return;
-    const atualizadas = {
-      reputacao_diretoria: Math.max(0, Math.min(100, reputacaoAtual.reputacao_diretoria + escolha.delta.reputacao_diretoria)),
-      reputacao_jogadores: Math.max(0, Math.min(100, reputacaoAtual.reputacao_jogadores + escolha.delta.reputacao_jogadores)),
-      reputacao_torcida: Math.max(0, Math.min(100, reputacaoAtual.reputacao_torcida + escolha.delta.reputacao_torcida))
-    };
-    const { data, error } = await supabase.from('clubs').update(atualizadas).eq('id', clubeAtual.id).select().single();
+
+    const fanDelta = escolha.pressureDelta.fan;
+    const boardDelta = escolha.pressureDelta.board;
+    const { data, error } = await supabase.rpc('record_manager_interview', {
+      p_club_id: clubeAtual.id,
+      p_match_id: contextoImprensa.matchId,
+      p_scenario: contextoImprensa.scenario,
+      p_question: contextoImprensa.question,
+      p_answer_key: escolha.key,
+      p_answer_title: escolha.title,
+      p_answer_text: escolha.text,
+      p_fan_pressure_delta: fanDelta,
+      p_board_pressure_delta: boardDelta,
+      p_reputation_diretoria_delta: escolha.reputationDelta.board,
+      p_reputation_jogadores_delta: escolha.reputationDelta.players,
+      p_reputation_torcida_delta: escolha.reputationDelta.fans
+    });
     if (error) {
-      setRespostaImprensa(escolha.titulo);
-      setImpactoImprensa(escolha.fala + ' (A declaração foi exibida, mas as reputações não foram salvas. Verifique se a atualização SQL foi executada.)');
+      setImpactoImprensa('Não foi possível registrar sua declaração: ' + error.message);
       return;
     }
-    setClubes(lista => lista.map(clube => clube.id === data.id ? data : clube));
-    setRespostaImprensa(escolha.titulo);
-    setImpactoImprensa(escolha.fala);
+    if (data?.status === 'already_answered') {
+      setEntrevistaRespondida(true);
+      setImpactoImprensa('Esta partida já possui uma entrevista registrada.');
+      return;
+    }
+    if (data?.job_status?.dismissed) {
+      setEntrevistaRespondida(true);
+      setRespostaImprensa(escolha.title);
+      setImpactoImprensa('A diretoria encerrou seu contrato: ' + (data.job_status.reason || 'pressão em nível crítico.') + ' Consulte as propostas recebidas no Mercado de Treinadores.');
+      setCareerRefreshToken(value => value + 1);
+      return;
+    }
+    const { data: clubeAtualizado, error: clubeError } = await supabase
+      .from('clubs').select('*').eq('id', clubeAtual.id).single();
+    if (!clubeError && clubeAtualizado) setClubes(lista => lista.map(c => c.id === clubeAtualizado.id ? clubeAtualizado : c));
+    const registro = {
+      id: data?.interview_id || contextoImprensa.matchId,
+      match_id: contextoImprensa.matchId,
+      scenario: contextoImprensa.scenario,
+      question: contextoImprensa.question,
+      answer_title: escolha.title,
+      answer_text: escolha.text,
+      fan_pressure_delta: fanDelta,
+      board_pressure_delta: boardDelta,
+      created_at: new Date().toISOString()
+    };
+    setHistoricoEntrevistas(lista => [registro, ...lista].slice(0,8));
+    setEntrevistaRespondida(true);
+    setRespostaImprensa(escolha.title);
+    setImpactoImprensa(escolha.text + ' Efeitos registrados: pressão da torcida ' + (fanDelta > 0 ? '+' : '') + fanDelta + '; pressão da diretoria ' + (boardDelta > 0 ? '+' : '') + boardDelta + '.');
   }
-
   async function sair() {
     if (supabase) await supabase.auth.signOut();
     setSession(null);
@@ -1030,9 +1154,32 @@ export default function App() {
         <section style={styles.panel}><p>Carregando seus clubes...</p></section>
       ) : session && !clubeAtual ? (
         <section style={styles.panel}>
-          <span style={styles.eyebrow}>MERCADO DE TREINADORES • INÍCIO DE CARREIRA</span>
-          <h2>Escolha seu primeiro desafio</h2>
-          <p style={styles.muted}>Você pode assumir um clube existente do universo do MFO ou começar do zero criando sua própria equipe. Cada treinador comanda apenas um clube por vez.</p>
+          <span style={styles.eyebrow}>MERCADO DE TREINADORES</span>
+          <h2>{historicoEmpregos.some(e => e.status === 'dismissed') ? 'Novo capítulo na carreira' : 'Escolha seu primeiro desafio'}</h2>
+          <p style={styles.muted}>{historicoEmpregos.some(e => e.status === 'dismissed')
+            ? 'Seu último vínculo foi encerrado. Analise as propostas recebidas ou procure um novo clube para continuar sua trajetória.'
+            : 'Você pode assumir um clube existente do universo do MFO ou começar do zero criando sua própria equipe. Cada treinador comanda apenas um clube por vez.'}</p>
+          {propostasTreinador.length > 0 && <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
+            <span style={styles.eyebrow}>PROPOSTAS RECEBIDAS</span>
+            <h3>Clubes interessados no seu trabalho</h3>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+              {propostasTreinador.map(p=><article key={p.id} style={{background:'#17263b',border:'1px solid #40536d',borderRadius:10,padding:15}}>
+                <strong>{p.club_name}</strong><p style={styles.mutedSmall}>{p.club_country} • Contrato de {p.contract_months} meses</p>
+                <h3 style={{color:'#67e8a5',margin:'10px 0'}}>R$ {Number(p.offered_salary).toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês</h3>
+                <p style={styles.muted}>{p.offer_message}</p>
+                <p style={styles.mutedSmall}>Válida até {new Date(p.expires_at).toLocaleDateString('pt-BR')}</p>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                  <button style={styles.primary} disabled={carregandoCarreira} onClick={()=>responderPropostaTreinador(p.id,'accept')}>Aceitar proposta</button>
+                  <button style={styles.secondary} disabled={carregandoCarreira} onClick={()=>responderPropostaTreinador(p.id,'reject')}>Recusar</button>
+                </div>
+              </article>)}
+            </div>
+          </div>}
+          {mensagemCarreira && <p style={styles.notice}>{mensagemCarreira}</p>}
+          {historicoEmpregos.length > 0 && <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16,marginTop:16}}>
+            <h3>Histórico profissional</h3>
+            {historicoEmpregos.map(e=><p key={e.id} style={styles.mutedSmall}><strong>{e.club_name}</strong> • {e.status==='dismissed'?'Demitido':e.status==='resigned'?'Saiu para outro clube':e.status==='active'?'Em atividade':'Contrato encerrado'}{e.termination_reason ? ' • '+e.termination_reason : ''}</p>)}
+          </div>}
           <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
             <h3>Assumir um clube existente</h3>
             <label style={styles.filterLabel}>Clube disponível
@@ -1080,7 +1227,7 @@ export default function App() {
               ['Partidas','Partidas','◷'],['Competições','Competições','🏆'],['Amistosos Online','Amistosos','⚔'],['Finanças','Finanças','＄']
             ].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value || (value === 'Competições' && aba === 'Liga') ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
             <button className="mfo-more-toggle" onClick={() => setMaisModulosAbertos(value => !value)}><span className="mfo-nav-dot">＋</span>Outros módulos <span className="mfo-menu-chevron">{maisModulosAbertos ? '−' : '+'}</span></button>
-            {maisModulosAbertos && [['Mercado','Mercado','⇄'],['Base','Base','♙'],['Estádio','Estádio','▦'],['Imprensa','Imprensa','▤'],['Rankings','Rankings','★']].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
+            {maisModulosAbertos && [['Mercado','Mercado','⇄'],['Base','Base','♙'],['Estádio','Estádio','▦'],['Imprensa','Imprensa','▤'],['Rankings','Rankings','★'],['Carreira','Carreira','🧭']].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
             <div className="mfo-sidebar-foot">MANAGER<br/>FUTEBOL ONLINE</div>
           </nav>
           <section className="mfo-content" style={styles.panel}>
@@ -1277,34 +1424,103 @@ export default function App() {
                   </tbody></table></div>}
                 </div>
               </div> :
-              aba === 'Imprensa' ? <div>
-                <p style={styles.muted}>Central de imprensa do clube. Responda às entrevistas após clássicos, semifinais, finais, decisões importantes e partidas marcantes.</p>
-                <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:20,marginTop:16}}>
-                  <span style={styles.eyebrow}>ENTREVISTA PÓS-JOGO</span>
-                  <h3 style={{marginTop:10}}>O que achou da derrota da equipe?</h3>
-                  <p style={styles.muted}>Como treinador, escolha exatamente o que você diria aos jornalistas. Cada declaração terá consequências diferentes para a relação com diretoria, jogadores e torcida.</p>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr',gap:12,marginTop:16}}>
-                    {Object.entries({
-                      reconhecer: '“Hoje não estivemos no nosso nível. Erramos passes simples, perdemos duelos importantes e demos espaços que um adversário desse nível não costuma desperdiçar. Não adianta procurar desculpas: precisamos jogar mais e melhor. A responsabilidade é de todos, começando por mim, e vamos trabalhar para corrigir isso.”',
-                      proteger: '“A responsabilidade maior é minha. Sou eu quem prepara a equipe, escolhe a estratégia e toma as decisões. Não vou apontar o dedo para um jogador depois de uma derrota. Temos um grupo trabalhador e vamos resolver nossas questões internamente. Peço ao torcedor que continue apoiando, porque precisamos estar unidos neste momento.”',
-                      cobrar: '“Não podemos tratar essa derrota como se fosse normal. O torcedor espera entrega e competitividade, e nós temos a obrigação de oferecer isso. A conversa no vestiário será franca. Quero ver mais atitude nos treinamentos e uma resposta dentro de campo já na próxima rodada. O discurso precisa virar resultado.”'
-                    }).map(([tipo, fala]) => (
-                      <button key={tipo} style={{...styles.secondary,textAlign:'left',lineHeight:1.7,padding:16,fontSize:14}} onClick={() => responderImprensa(tipo)}>{fala}</button>
-                    ))}
+              aba === 'Carreira' ? <div>
+                <p style={styles.muted}>Acompanhe sua trajetória profissional, a situação do cargo e as oportunidades de outros clubes.</p>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginTop:16}}>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>REPUTAÇÃO DO TREINADOR</span>
+                    <strong style={{display:'block',fontSize:28,color:'#67e8a5',marginTop:6}}>{Number(carreira?.reputation ?? 50)}/100</strong>
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>TEMPORADAS DE EXPERIÊNCIA</span>
+                    <strong style={{display:'block',fontSize:28,color:'#67e8a5',marginTop:6}}>{Number(carreira?.experience_seasons ?? 0)}</strong>
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>SITUAÇÃO DO CARGO</span>
+                    <strong style={{display:'block',fontSize:18,color:Number(clubeAtual?.pressao_diretoria ?? 0)>=90?'#fca5a5':'#67e8a5',marginTop:10}}>
+                      {!clubeAtual ? 'Sem clube' : Number(clubeAtual.pressao_diretoria ?? 0)>=95 ? 'Risco máximo' : Number(clubeAtual.pressao_diretoria ?? 0)>=90 ? 'Ultimato' : Number(clubeAtual.pressao_diretoria ?? 0)>=80 ? 'Sob pressão' : 'Estável'}
+                    </strong>
+                    {clubeAtual && <span style={styles.mutedSmall}>Pressão da diretoria: {Number(clubeAtual.pressao_diretoria ?? 50)}/100</span>}
                   </div>
                 </div>
-                {respostaImprensa && <div style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:16}}>
-                  <span style={styles.eyebrow}>DECLARAÇÃO À IMPRENSA</span>
-                  <h3>{respostaImprensa}</h3>
-                  <p style={{color:"#dbe7f5",fontSize:15,lineHeight:1.8,marginTop:12}}>{impactoImprensa}</p>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,marginTop:16}}>
-                    <div style={{background:'#0b1220',borderRadius:9,padding:12}}><strong>Diretoria</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_diretoria ?? 50)}/100</div></div>
-                    <div style={{background:'#0b1220',borderRadius:9,padding:12}}><strong>Jogadores</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_jogadores ?? 50)}/100</div></div>
-                    <div style={{background:'#0b1220',borderRadius:9,padding:12}}><strong>Torcida</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_torcida ?? 50)}/100</div></div>
+                {clubeAtual && Number(clubeAtual.pressao_diretoria ?? 50)>=80 && <p style={{...styles.error,marginTop:14}}>
+                  {Number(clubeAtual.pressao_diretoria ?? 50)>=95
+                    ? 'A diretoria está prestes a encerrar seu contrato. Uma nova derrota pode provocar demissão.'
+                    : Number(clubeAtual.pressao_diretoria ?? 50)>=90
+                      ? 'Você recebeu um ultimato da diretoria. Três derrotas nas últimas cinco partidas podem resultar em demissão.'
+                      : 'A diretoria está insatisfeita. Recupere os resultados para evitar que a situação se agrave.'}
+                </p>}
+                {propostasTreinador.length>0 ? <div style={{marginTop:20}}>
+                  <h3>Propostas de outros clubes</h3>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+                    {propostasTreinador.map(p=><article key={p.id} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:10,padding:15}}>
+                      <strong>{p.club_name}</strong><p style={styles.mutedSmall}>{p.club_country} • {p.contract_months} meses</p>
+                      <h3 style={{color:'#67e8a5'}}>R$ {Number(p.offered_salary).toLocaleString('pt-BR',{minimumFractionDigits:2})}/mês</h3>
+                      <p style={styles.muted}>{p.offer_message}</p>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                        <button style={styles.primary} disabled={carregandoCarreira} onClick={()=>responderPropostaTreinador(p.id,'accept')}>Aceitar</button>
+                        <button style={styles.secondary} disabled={carregandoCarreira} onClick={()=>responderPropostaTreinador(p.id,'reject')}>Recusar</button>
+                      </div>
+                    </article>)}
                   </div>
-                  <button style={styles.secondary} onClick={() => {setRespostaImprensa('');setImpactoImprensa(null);}}>Nova entrevista</button>
+                </div> : <p style={styles.muted}>Nenhuma proposta no momento. Novos clubes podem demonstrar interesse após sequências de partidas.</p>}
+                {mensagemCarreira && <p style={styles.notice}>{mensagemCarreira}</p>}
+                <div style={{marginTop:22}}>
+                  <h3>Histórico de clubes</h3>
+                  {historicoEmpregos.length===0 ? <p style={styles.muted}>Seu histórico profissional será registrado aqui.</p> :
+                    historicoEmpregos.map(e=><div key={e.id} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:9,padding:13,marginTop:9}}>
+                      <strong>{e.club_name}</strong><p style={styles.mutedSmall}>{e.status==='active'?'Em atividade':e.status==='dismissed'?'Demitido':e.status==='resigned'?'Transferiu-se para outro clube':'Contrato encerrado'} • {e.contract_start ? new Date(e.contract_start+'T00:00:00').toLocaleDateString('pt-BR') : ''}{e.termination_reason ? ' • '+e.termination_reason : ''}</p>
+                    </div>)}
+                </div>
+              </div> :
+              aba === 'Imprensa' ? <div>
+                <p style={styles.muted}>Entrevistas ligadas aos resultados reais do seu clube. Clássicos, decisões, disputa pelo título e luta contra o rebaixamento geram perguntas específicas.</p>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginTop:16}}>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>PRESSÃO DA TORCIDA</span>
+                    <strong style={{display:'block',fontSize:28,color:Number(clubeAtual?.pressao_torcida ?? 50)>=70?'#fca5a5':'#67e8a5',marginTop:6}}>{Number(clubeAtual?.pressao_torcida ?? 50)}/100</strong>
+                    <div style={{height:7,background:'#26364d',borderRadius:8,overflow:'hidden',marginTop:9}}><div style={{height:'100%',width:`${Number(clubeAtual?.pressao_torcida ?? 50)}%`,background:'#e8a34d'}} /></div>
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>PRESSÃO DA DIRETORIA</span>
+                    <strong style={{display:'block',fontSize:28,color:Number(clubeAtual?.pressao_diretoria ?? 50)>=70?'#fca5a5':'#67e8a5',marginTop:6}}>{Number(clubeAtual?.pressao_diretoria ?? 50)}/100</strong>
+                    <div style={{height:7,background:'#26364d',borderRadius:8,overflow:'hidden',marginTop:9}}><div style={{height:'100%',width:`${Number(clubeAtual?.pressao_diretoria ?? 50)}%`,background:'#e8a34d'}} /></div>
+                  </div>
+                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                    <span style={styles.eyebrow}>CONFIANÇA DA TORCIDA</span>
+                    <strong style={{display:'block',fontSize:28,color:'#67e8a5',marginTop:6}}>{Number(clubeAtual?.reputacao_torcida ?? 50)}/100</strong>
+                    <p style={styles.mutedSmall}>Reputação, separada da pressão</p>
+                  </div>
+                </div>
+                {carregandoImprensa ? <p style={styles.muted}>Analisando os últimos resultados e atualizando o termômetro do clube...</p> :
+                  contextoImprensa ? <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:20,marginTop:18}}>
+                    <span style={styles.eyebrow}>ENTREVISTA PÓS-JOGO • {contextoImprensa.scenarioLabel.toUpperCase()}</span>
+                    <h3 style={{margin:'10px 0'}}>{contextoImprensa.question}</h3>
+                    <p style={styles.muted}>{contextoImprensa.competition} • Rodada {contextoImprensa.round} • Placar {contextoImprensa.score}</p>
+                    {entrevistaRespondida ? <p style={{background:'#173b31',color:'#b8f5d2',padding:13,borderRadius:9}}>Entrevista desta partida já registrada. A próxima será liberada após outro jogo finalizado.</p> :
+                      <div style={{display:'grid',gridTemplateColumns:'1fr',gap:12,marginTop:16}}>
+                        {getManagerInterviewChoices(contextoImprensa).map(opcao=><button key={opcao.key} style={{...styles.secondary,textAlign:'left',padding:16}} onClick={()=>responderImprensa(opcao.key)}>
+                          <strong style={{display:'block',marginBottom:5}}>{opcao.title}</strong><span style={styles.mutedSmall}>{opcao.description}</span>
+                        </button>)}
+                      </div>}
+                  </div> : <div style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:18}}>
+                    <strong>Sem entrevista disponível</strong><p style={styles.muted}>A central libera uma entrevista após uma partida oficial finalizada do seu clube.</p>
+                  </div>}
+                {impactoImprensa && <div style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:14}}>
+                  <span style={styles.eyebrow}>DECLARAÇÃO REGISTRADA</span><h3>{respostaImprensa || 'Retorno da entrevista'}</h3>
+                  <p style={{color:'#dbe7f5',fontSize:14,lineHeight:1.7}}>{impactoImprensa}</p>
                 </div>}
-                <p style={styles.mutedSmall}>As reputações são registradas no clube e variam conforme sua declaração. Nesta etapa, os efeitos ainda não são calculados automaticamente pelo resultado real da partida.</p>
+                <div style={{marginTop:22}}>
+                  <h3>Histórico de entrevistas</h3>
+                  {historicoEntrevistas.length===0 ? <p style={styles.muted}>As declarações do treinador aparecerão aqui depois da primeira entrevista.</p> :
+                    <div style={{display:'grid',gap:10}}>
+                      {historicoEntrevistas.map(item=><div key={item.id} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:10,padding:14}}>
+                        <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><strong>{item.answer_title}</strong><span style={styles.mutedSmall}>{new Date(item.created_at).toLocaleDateString('pt-BR')}</span></div>
+                        <p style={styles.mutedSmall}>{String(item.scenario || '').replaceAll('_',' ')} • Pressão torcida {Number(item.fan_pressure_delta)>0?'+':''}{item.fan_pressure_delta} • Diretoria {Number(item.board_pressure_delta)>0?'+':''}{item.board_pressure_delta}</p>
+                        <p style={{color:'#dbe7f5',fontSize:13,lineHeight:1.6,marginBottom:0}}>{item.answer_text}</p>
+                      </div>)}
+                    </div>}
+                </div>
               </div> :
               aba === 'Amistosos' ? <MultiplayerLobby supabase={supabase} user={session?.user} club={clubeAtual} /> :
               aba === 'Rankings' ? <RankingsModule supabase={supabase} clubeAtual={clubeAtual} /> :
@@ -1393,7 +1609,7 @@ export default function App() {
                 {mensagemEstadio && <p style={styles.notice}>{mensagemEstadio}</p>}
                 <p style={styles.mutedSmall}>O investimento é debitado uma única vez e registrado no histórico financeiro. A bilheteria e a venda de camisas são calculadas quando uma partida é finalizada.</p>
               </div> :
-              (aba === 'Liga' || aba === 'Partidas' || aba === 'Competições') ? <LeagueModule supabase={supabase} clubeAtual={clubeAtual} initialTab={aba === 'Partidas' ? 'jogos' : 'classificacao'} />
+              (aba === 'Liga' || aba === 'Partidas' || aba === 'Competições') ? <LeagueModule supabase={supabase} clubeAtual={clubeAtual} initialTab={aba === 'Partidas' ? 'jogos' : 'classificacao'} onCareerChange={() => setCareerRefreshToken(value => value + 1)} />
               : aba === 'Táticas' ? <TacticsModule club={clubeAtual} />
               : <><p>Módulo {aba} do Manager Futebol Online.</p><p>Esta área será conectada aos dados reais do clube nas próximas etapas de desenvolvimento.</p></>}
           </section>
