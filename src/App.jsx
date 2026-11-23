@@ -5,6 +5,7 @@ import RankingsModule from './components/RankingsModule.jsx';
 import TacticsModule from './components/TacticsModule.jsx';
 import DashboardModule from './components/DashboardModule.jsx';
 import MultiplayerLobby from './components/MultiplayerLobby.jsx';
+import { buildManagerInterviewContext, getManagerInterviewChoices } from './domain/managerInterviews.js';
 
 export default function App() {
   const [aba, setAba] = useState('Início');
@@ -323,54 +324,22 @@ export default function App() {
         const [clubesRes, ligaRes, tabelaRes, ultimaRodadaRes] = await Promise.all([
           supabase.from('clubs').select('id,nome,cidade').in('id', ids),
           supabase.from('leagues').select('id,nome,pais,divisao,temporada').eq('id', ultimoJogo.league_id).maybeSingle(),
-          supabase.from('league_standings').select('club_id,points,goal_difference').eq('league_id', ultimoJogo.league_id)
-            .order('points', { ascending: false }).order('goal_difference', { ascending: false }),
+          supabase.from('league_standings').select('club_id,points,wins,goal_difference').eq('league_id', ultimoJogo.league_id)
+            .order('points', { ascending: false }).order('wins', { ascending: false }).order('goal_difference', { ascending: false }),
           supabase.from('matches').select('round_number').eq('league_id', ultimoJogo.league_id)
             .order('round_number', { ascending: false }).limit(1).maybeSingle()
         ]);
         if (!ativo) return;
-        const mandante = clubesRes.data?.find(c => c.id === ultimoJogo.home_club_id);
-        const visitante = clubesRes.data?.find(c => c.id === ultimoJogo.away_club_id);
-        const meuTimeEmCasa = ultimoJogo.home_club_id === clubeAtual.id;
-        const adversario = meuTimeEmCasa ? visitante : mandante;
-        const golsMeuTime = Number(meuTimeEmCasa ? ultimoJogo.home_score : ultimoJogo.away_score);
-        const golsAdversario = Number(meuTimeEmCasa ? ultimoJogo.away_score : ultimoJogo.home_score);
-        const resultado = golsMeuTime > golsAdversario ? 'win' : golsMeuTime < golsAdversario ? 'loss' : 'draw';
-        const maxRodada = Number(ultimaRodadaRes.data?.round_number || 0);
-        const posicao = (tabelaRes.data || []).findIndex(row => row.club_id === clubeAtual.id) + 1;
-        const nomeCompeticao = ligaRes.data?.nome || 'Campeonato';
-        const eClassico = Boolean(clubeAtual.cidade && adversario?.cidade &&
-          clubeAtual.cidade.trim().toLocaleLowerCase('pt-BR') === adversario.cidade.trim().toLocaleLowerCase('pt-BR'));
-        const eCopa = /copa|cup|taça/i.test(nomeCompeticao);
-        const rodadaDecisiva = maxRodada > 0 && Number(ultimoJogo.round_number) >= maxRodada - 1;
-        let scenario = 'partida';
-        let scenarioLabel = 'Jogo do campeonato';
-        if (eClassico) { scenario = 'classico'; scenarioLabel = 'Clássico regional'; }
-        else if (eCopa) { scenario = 'copa'; scenarioLabel = 'Competição eliminatória'; }
-        else if (rodadaDecisiva && posicao > 0 && posicao <= 2) { scenario = 'titulo'; scenarioLabel = 'Disputa pelo título'; }
-        else if (rodadaDecisiva && posicao > 0 && posicao >= Math.max(1, (tabelaRes.data || []).length - 2)) { scenario = 'rebaixamento'; scenarioLabel = 'Luta contra o rebaixamento'; }
-        else if (rodadaDecisiva) { scenario = 'decisiva'; scenarioLabel = 'Rodada decisiva'; }
-
-        const placar = meuTimeEmCasa
-          ? `${golsMeuTime} × ${golsAdversario}`
-          : `${golsAdversario} × ${golsMeuTime}`;
-        const nomeAdversario = adversario?.nome || 'adversário';
-        const resultadoTexto = resultado === 'win' ? 'vitória' : resultado === 'loss' ? 'derrota' : 'empate';
-        const perguntas = {
-          classico: `Depois de ${resultadoTexto} por ${placar} contra ${nomeAdversario}, como você avalia o desempenho da equipe neste clássico?`,
-          copa: `A partida contra ${nomeAdversario} terminou em ${placar}. O que esse resultado representa para a caminhada na ${nomeCompeticao}?`,
-          titulo: `Com o placar de ${placar} contra ${nomeAdversario}, sua equipe segue na disputa pelo título. Como você avalia o resultado?`,
-          rebaixamento: `O resultado de ${placar} contra ${nomeAdversario} pesa na luta contra o rebaixamento. Como o time vai reagir?`,
-          decisiva: `A rodada decisiva terminou em ${placar} contra ${nomeAdversario}. O que muda para o clube a partir de agora?`,
-          partida: `Sua equipe enfrentou ${nomeAdversario} e o jogo terminou em ${placar}. Qual é sua avaliação da partida?`
-        };
-        setContextoImprensa({
-          matchId: ultimoJogo.id, scenario, scenarioLabel,
-          question: perguntas[scenario], opponent: nomeAdversario,
-          competition: nomeCompeticao, score: placar, outcome: resultado,
-          outcomeLabel: resultadoTexto, round: ultimoJogo.round_number,
-          position: posicao
+        const contexto = buildManagerInterviewContext({
+          match: ultimoJogo,
+          clubId: clubeAtual.id,
+          homeClub: clubesRes.data?.find(c => c.id === ultimoJogo.home_club_id),
+          awayClub: clubesRes.data?.find(c => c.id === ultimoJogo.away_club_id),
+          competitionName: ligaRes.data?.nome || 'Campeonato',
+          standings: tabelaRes.data || [],
+          maxRound: Number(ultimaRodadaRes.data?.round_number || 0)
         });
+        setContextoImprensa(contexto);
       }
 
       const { data: historico, error: historicoError } = await supabase
@@ -969,57 +938,24 @@ export default function App() {
 
   async function responderImprensa(tipo) {
     if (!clubeAtual?.id || !supabase || !contextoImprensa?.matchId || entrevistaRespondida) return;
-    const resultado = contextoImprensa.outcome;
-    const opcoes = {
-      assumir: {
-        titulo: 'Assumir a responsabilidade',
-        texto: `A responsabilidade pelo resultado contra ${contextoImprensa.opponent} também é minha. Vou rever as decisões, corrigir o que não funcionou e preparar a equipe para responder em campo.`,
-        base: resultado === 'loss'
-          ? { fan: -3, board: -3, rd: 3, rp: 1, rt: 3 }
-          : resultado === 'win'
-            ? { fan: -1, board: -2, rd: 2, rp: 1, rt: 1 }
-            : { fan: -1, board: -1, rd: 2, rp: 1, rt: 1 }
-      },
-      proteger: {
-        titulo: 'Proteger o elenco',
-        texto: `O grupo merece respeito. Não vou expor jogadores individualmente por esse resultado contra ${contextoImprensa.opponent}. Vamos conversar internamente e trabalhar juntos para evoluir.`,
-        base: resultado === 'loss'
-          ? { fan: 2, board: 2, rd: 0, rp: 4, rt: 1 }
-          : resultado === 'win'
-            ? { fan: 0, board: 0, rd: 1, rp: 3, rt: 1 }
-            : { fan: 0, board: 0, rd: 1, rp: 3, rt: 0 }
-      },
-      cobrar: {
-        titulo: 'Cobrar uma reação do time',
-        texto: `A camisa do clube exige mais. Vou cobrar concentração, intensidade e compromisso nos treinamentos. Precisamos transformar essa atuação em uma resposta convincente na próxima partida.`,
-        base: resultado === 'loss'
-          ? { fan: -1, board: -1, rd: 3, rp: -3, rt: 2 }
-          : resultado === 'win'
-            ? { fan: 1, board: 1, rd: 1, rp: -2, rt: 0 }
-            : { fan: 1, board: 1, rd: 2, rp: -2, rt: 1 }
-      }
-    };
-    const escolha = opcoes[tipo];
+    const escolha = getManagerInterviewChoices(contextoImprensa).find(opcao => opcao.key === tipo);
     if (!escolha) return;
-    const ajusteClassico = contextoImprensa.scenario === 'classico'
-      ? (resultado === 'win' ? -2 : resultado === 'loss' ? 3 : 1) : 0;
-    const ajusteDecisao = ['titulo','rebaixamento','copa','decisiva'].includes(contextoImprensa.scenario)
-      ? (resultado === 'win' ? -1 : resultado === 'loss' ? 2 : 1) : 0;
-    const fanDelta = escolha.base.fan + ajusteClassico + ajusteDecisao;
-    const boardDelta = escolha.base.board + (contextoImprensa.scenario === 'rebaixamento' && resultado === 'loss' ? 2 : 0);
+
+    const fanDelta = escolha.pressureDelta.fan;
+    const boardDelta = escolha.pressureDelta.board;
     const { data, error } = await supabase.rpc('record_manager_interview', {
       p_club_id: clubeAtual.id,
       p_match_id: contextoImprensa.matchId,
       p_scenario: contextoImprensa.scenario,
       p_question: contextoImprensa.question,
-      p_answer_key: tipo,
-      p_answer_title: escolha.titulo,
-      p_answer_text: escolha.texto,
+      p_answer_key: escolha.key,
+      p_answer_title: escolha.title,
+      p_answer_text: escolha.text,
       p_fan_pressure_delta: fanDelta,
       p_board_pressure_delta: boardDelta,
-      p_reputation_diretoria_delta: escolha.base.rd,
-      p_reputation_jogadores_delta: escolha.base.rp,
-      p_reputation_torcida_delta: escolha.base.rt
+      p_reputation_diretoria_delta: escolha.reputationDelta.board,
+      p_reputation_jogadores_delta: escolha.reputationDelta.players,
+      p_reputation_torcida_delta: escolha.reputationDelta.fans
     });
     if (error) {
       setImpactoImprensa('Não foi possível registrar sua declaração: ' + error.message);
@@ -1032,7 +968,7 @@ export default function App() {
     }
     if (data?.job_status?.dismissed) {
       setEntrevistaRespondida(true);
-      setRespostaImprensa(escolha.titulo);
+      setRespostaImprensa(escolha.title);
       setImpactoImprensa('A diretoria encerrou seu contrato: ' + (data.job_status.reason || 'pressão em nível crítico.') + ' Consulte as propostas recebidas no Mercado de Treinadores.');
       setCareerRefreshToken(value => value + 1);
       return;
@@ -1045,18 +981,17 @@ export default function App() {
       match_id: contextoImprensa.matchId,
       scenario: contextoImprensa.scenario,
       question: contextoImprensa.question,
-      answer_title: escolha.titulo,
-      answer_text: escolha.texto,
+      answer_title: escolha.title,
+      answer_text: escolha.text,
       fan_pressure_delta: fanDelta,
       board_pressure_delta: boardDelta,
       created_at: new Date().toISOString()
     };
     setHistoricoEntrevistas(lista => [registro, ...lista].slice(0,8));
     setEntrevistaRespondida(true);
-    setRespostaImprensa(escolha.titulo);
-    setImpactoImprensa(`${escolha.texto} Efeitos registrados: pressão da torcida ${fanDelta > 0 ? '+' : ''}${fanDelta}; pressão da diretoria ${boardDelta > 0 ? '+' : ''}${boardDelta}.`);
+    setRespostaImprensa(escolha.title);
+    setImpactoImprensa(escolha.text + ' Efeitos registrados: pressão da torcida ' + (fanDelta > 0 ? '+' : '') + fanDelta + '; pressão da diretoria ' + (boardDelta > 0 ? '+' : '') + boardDelta + '.');
   }
-
   async function sair() {
     if (supabase) await supabase.auth.signOut();
     setSession(null);
@@ -1564,12 +1499,8 @@ export default function App() {
                     <p style={styles.muted}>{contextoImprensa.competition} • Rodada {contextoImprensa.round} • Placar {contextoImprensa.score}</p>
                     {entrevistaRespondida ? <p style={{background:'#173b31',color:'#b8f5d2',padding:13,borderRadius:9}}>Entrevista desta partida já registrada. A próxima será liberada após outro jogo finalizado.</p> :
                       <div style={{display:'grid',gridTemplateColumns:'1fr',gap:12,marginTop:16}}>
-                        {[
-                          ['assumir','Assumir a responsabilidade','Reconhecer o próprio papel e transmitir segurança.'],
-                          ['proteger','Proteger o elenco','Preservar o grupo e demonstrar confiança nos jogadores.'],
-                          ['cobrar','Cobrar uma reação do time','Exigir mais desempenho e atitude para a próxima partida.']
-                        ].map(([tipo,titulo,descricao])=><button key={tipo} style={{...styles.secondary,textAlign:'left',padding:16}} onClick={()=>responderImprensa(tipo)}>
-                          <strong style={{display:'block',marginBottom:5}}>{titulo}</strong><span style={styles.mutedSmall}>{descricao}</span>
+                        {getManagerInterviewChoices(contextoImprensa).map(opcao=><button key={opcao.key} style={{...styles.secondary,textAlign:'left',padding:16}} onClick={()=>responderImprensa(opcao.key)}>
+                          <strong style={{display:'block',marginBottom:5}}>{opcao.title}</strong><span style={styles.mutedSmall}>{opcao.description}</span>
                         </button>)}
                       </div>}
                   </div> : <div style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:18}}>
