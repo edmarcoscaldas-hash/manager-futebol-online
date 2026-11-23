@@ -139,7 +139,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       setClassificacao(standingsRes.data || []);
       setPartidas(matchesRes.data || []);
       setMensagemJogo(
-        'Rodada ' + rodada + ' processada: ' + concluidas + ' partida(s) simulada(s).' +
+        (preservadas ? 'Rodada ' + rodada + ' parcialmente processada: ' : 'Rodada ' + rodada + ' processada: ') + concluidas + ' partida(s) simulada(s).' +
         (preservadas ? ' ' + preservadas + ' partida(s) não processada(s).' : '') +
         (falhas.length ? ' Detalhes: ' + falhas.slice(0, 3).join(' | ') + (falhas.length > 3 ? ' | +' + (falhas.length - 3) + ' falha(s).' : '') : '') +
         ' Classificação atualizada.'
@@ -218,7 +218,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
         <span>PRÓXIMO JOGO</span>
         <strong>VS</strong>
         <div className="mfo-match-date">{proximaPartida.match_date?new Date(proximaPartida.match_date).toLocaleString('pt-BR'):'Data a definir'}</div>
-        <div style={{marginTop:10}}><button onClick={()=>simularPartida(proximaPartida)} disabled={Boolean(simulando)} style={{background:'linear-gradient(110deg,#15965b,#20c86b)',color:'#04170d',border:'1px solid #55e58a',borderRadius:8,padding:'9px 12px',fontWeight:900,fontSize:12}}>{simulando===proximaPartida.id?'Simulando...':'SIMULAR PARTIDA'}</button></div>
+        <div style={{marginTop:10}}><button onClick={()=>simularPartida(proximaPartida)} disabled={Boolean(simulando)} style={{background:'linear-gradient(110deg,#15965b,#20c86b)',color:'#04170d',border:'1px solid #55e58a',borderRadius:8,padding:'9px 12px',fontWeight:900,fontSize:12}}>{simulando==='rodada-'+proximaPartida.round_number?'Simulando...':'SIMULAR PARTIDA'}</button></div>
       </div>
       <div className="mfo-match-team">
         <div className="mfo-match-crest">{nomeClube(proximaPartida.away_club_id).slice(0,3).toUpperCase()}</div>
