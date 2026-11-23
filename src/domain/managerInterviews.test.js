@@ -114,9 +114,9 @@ test("identifica luta contra o rebaixamento quando a distância para a zona segu
     { club_id: "club-j", points: 18 }
   ];
   const context = buildManagerInterviewContext({
-    match: match({ round_number: 19 }),
+    match: match({ home_club_id: "club-i", round_number: 19 }),
     clubId: "club-i",
-    homeClub: clubA,
+    homeClub: { ...clubA, id: "club-i" },
     awayClub: clubB,
     standings,
     maxRound: 20
@@ -180,9 +180,9 @@ test("aplica ajuste extra de pressão em clássico e em derrota na luta contra o
     { club_id: "club-i", points: 20 }, { club_id: "club-j", points: 18 }
   ];
   const relegation = buildManagerInterviewContext({
-    match: match({ home_score: 0, away_score: 1, round_number: 19 }),
+    match: match({ home_club_id: "club-i", home_score: 0, away_score: 1, round_number: 19 }),
     clubId: "club-i",
-    homeClub: clubA,
+    homeClub: { ...clubA, id: "club-i" },
     awayClub: clubB,
     standings,
     maxRound: 20
