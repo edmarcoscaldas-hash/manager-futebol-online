@@ -929,7 +929,7 @@ export default function App() {
           <span style={styles.eyebrow}>MERCADO DE TREINADORES • INÍCIO DE CARREIRA</span>
           <h2>Escolha seu primeiro desafio</h2>
           <p style={styles.muted}>Você pode assumir um clube existente do universo do MFO ou começar do zero criando sua própria equipe. Cada treinador comanda apenas um clube por vez.</p>
-          <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
+          <div style={{background:'#0a1a12',border:'1px solid #2a6a47',borderRadius:12,padding:18,marginTop:18}}>
             <h3>Assumir um clube existente</h3>
             <label style={styles.filterLabel}>Clube disponível
               <select style={styles.input} value={clubeSelecionado} onChange={e => setClubeSelecionado(e.target.value)}>
@@ -941,7 +941,7 @@ export default function App() {
             </button>
             <p style={styles.mutedSmall}>Os clubes da IA mantêm seu cadastro original. Sua carreira registra apenas o vínculo profissional.</p>
           </div>
-          <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18,marginTop:16}}>
+          <div style={{background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:18,marginTop:16}}>
             <h3>Criar um clube do zero</h3>
             <p style={styles.muted}>Comece com estádio de 10 mil lugares e orçamento inicial de R$ 5 milhões.</p>
             <form onSubmit={criarClube} style={styles.formGrid}>
@@ -990,18 +990,18 @@ export default function App() {
                     <span style={styles.mutedSmall}>Apresentação em cartões • dados e negociações mantidos no sistema atual</span>
                   </div>
                   <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                    <span style={{background:'#17263b',border:'1px solid #34465f',padding:'9px 12px',borderRadius:9,fontSize:13}}><strong>{jogadores.length}</strong> atletas</span>
-                    <span style={{background:'#17263b',border:'1px solid #34465f',padding:'9px 12px',borderRadius:9,fontSize:13}}><strong>{jogadores.filter(j=>j.is_star).length}</strong> estrelas ★</span>
+                    <span style={{background:'#112a1c',border:'1px solid #1f4a31',padding:'9px 12px',borderRadius:9,fontSize:13}}><strong>{jogadores.length}</strong> atletas</span>
+                    <span style={{background:'#112a1c',border:'1px solid #1f4a31',padding:'9px 12px',borderRadius:9,fontSize:13}}><strong>{jogadores.filter(j=>j.is_star).length}</strong> estrelas ★</span>
                   </div>
                 </div>
                 {erroElenco && <p style={styles.error}>{erroElenco}</p>}
                 {mensagemElenco && <p style={styles.notice}>{mensagemElenco}</p>}
-                {carregandoJogadores ? <p style={styles.muted}>Carregando elenco...</p> : jogadores.length === 0 ? <div style={{background:'#0b1220',border:'1px dashed #40536d',borderRadius:12,padding:24,marginTop:18}}>
+                {carregandoJogadores ? <p style={styles.muted}>Carregando elenco...</p> : jogadores.length === 0 ? <div style={{background:'#0a1a12',border:'1px dashed #1f4a31',borderRadius:12,padding:24,marginTop:18}}>
                   <h3 style={{marginTop:0}}>Elenco vazio</h3>
                   <p style={styles.muted}>Você ainda não tem jogadores. Acesse a área Mercado para montar seu primeiro elenco.</p>
                   <button style={styles.primary} onClick={() => setAba('Mercado')}>Ir para o Mercado</button>
                 </div> : <>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:14,marginTop:18}}>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:14,marginTop:18}}>
                     <label style={styles.filterLabel}>Buscar jogador
                       <input style={styles.input} value={buscaElenco} onChange={e=>setBuscaElenco(e.target.value)} placeholder="Digite o nome do atleta"/>
                     </label>
@@ -1051,7 +1051,7 @@ export default function App() {
               aba === 'Mercado' ? <div>
                 <p style={styles.muted}>Encontre jogadores cadastrados no banco de dados do MFO. Use os filtros para montar seu elenco.</p>
                 {erroMercado && <p style={styles.error}>{erroMercado}</p>}
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16,marginTop:16}}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:16,marginTop:16}}>
                   <label style={styles.filterLabel}>Posição<select style={styles.input} value={filtroPosicao} onChange={e=>setFiltroPosicao(e.target.value)}>{['Todas','Goleiro','Zagueiro','Lateral','Volante','Meia','Ponta','Atacante'].map(x=><option key={x}>{x}</option>)}</select></label>
                   <label style={styles.filterLabel}>Clube<select style={styles.input} value={filtroClube} onChange={e=>{setFiltroClube(e.target.value);setFiltroNacionalidade('Todas');}}><option value="Todos">Todos os clubes</option>{clubesDisponiveisNoFiltro.map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}</select></label>
                   <label style={styles.filterLabel}>Liga<select style={styles.input} value={filtroLiga} onChange={e=>{setFiltroLiga(e.target.value);setFiltroClube('Todos');setFiltroNacionalidade('Todas');}}><option value="Todas">Todas as ligas</option>{ligasMercado.map(x=><option key={x.id} value={x.id}>{x.nome} • {x.pais} • {x.divisao}</option>)}</select></label>
@@ -1070,7 +1070,7 @@ export default function App() {
                   <label style={styles.filterLabel}>Valor máximo (R$)<input style={styles.input} type="number" min="0" value={valorMax} onChange={e=>setValorMax(e.target.value)} /></label>
                 </div>
                 {mensagemOferta && <p style={styles.notice}>{mensagemOferta}</p>}
-                {jogadorOferta && <form onSubmit={enviarProposta} style={{background:'#17263b',border:'1px solid #67e8a5',borderRadius:12,padding:18,marginTop:16}}>
+                {jogadorOferta && <form onSubmit={enviarProposta} style={{background:'#112a1c',border:'1px solid #67e8a5',borderRadius:12,padding:18,marginTop:16}}>
                   <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap'}}>
                     <div><span style={styles.eyebrow}>NOVA NEGOCIAÇÃO</span><h3 style={{margin:'8px 0'}}>{jogadorOferta.nome}</h3><p style={styles.mutedSmall}>Overall {jogadorOferta.overall} • Valor de mercado: R$ {Number(jogadorOferta.valor_mercado || 0).toLocaleString('pt-BR')}</p></div>
                     <button type="button" style={styles.secondary} onClick={()=>setJogadorOferta(null)}>Cancelar</button>
@@ -1101,10 +1101,10 @@ export default function App() {
                   <strong>{carregandoMercado ? 'Buscando jogadores...' : jogadoresFiltrados.length + ' jogador(es) encontrado(s)'}</strong>
                   <button style={styles.secondary} onClick={()=>{setFiltroPosicao('Todas');setFiltroClube('Todos');setFiltroLiga('Todas');setFiltroNacionalidade('Todas');setFiltroDisponibilidade('todos');setOverallMin('0');setOverallMax('100');setFaixaOverall('todos');setValorMin('0');setValorMax('100000000');}}>Limpar filtros</button>
                 </div>
-                {!carregandoMercado && jogadoresFiltrados.length === 0 ? <div style={{background:'#0b1220',border:'1px dashed #40536d',borderRadius:12,padding:22,marginTop:14}}><h3 style={{marginTop:0}}>Nenhum jogador encontrado</h3><p style={styles.muted}>O catálogo ainda está vazio ou não há jogadores com esses critérios. Os jogadores aparecerão aqui quando forem cadastrados no mercado.</p></div> :
+                {!carregandoMercado && jogadoresFiltrados.length === 0 ? <div style={{background:'#0a1a12',border:'1px dashed #1f4a31',borderRadius:12,padding:22,marginTop:14}}><h3 style={{marginTop:0}}>Nenhum jogador encontrado</h3><p style={styles.muted}>O catálogo ainda está vazio ou não há jogadores com esses critérios. Os jogadores aparecerão aqui quando forem cadastrados no mercado.</p></div> :
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:12,marginTop:14}}>
-                  {jogadoresFiltrados.map(j=>{const clube=clubesMercado.find(x=>x.id===j.club_id);const status=j.status_contrato==='livre'?'Sem contrato':j.disponivel_emprestimo?'Disponível para empréstimo':j.disponivel_transferencia?'À venda':'No elenco';return <article key={j.id} style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
-                    <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'start'}}><div><strong>{j.nome}</strong><p style={styles.mutedSmall}>{j.posicao || 'Posição não informada'} • {j.nacionalidade || 'Nacionalidade não informada'}</p></div><span style={{background:'#176b4b',padding:'6px 9px',borderRadius:8,fontWeight:'bold'}}>OVR {j.overall ?? '-'}</span></div>
+                  {jogadoresFiltrados.map(j=>{const clube=clubesMercado.find(x=>x.id===j.club_id);const status=j.status_contrato==='livre'?'Sem contrato':j.disponivel_emprestimo?'Disponível para empréstimo':j.disponivel_transferencia?'À venda':'No elenco';return <article key={j.id} style={{background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:16}}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'start'}}><div><strong>{j.nome}</strong><p style={styles.mutedSmall}>{j.posicao || 'Posição não informada'} • {j.nacionalidade || 'Nacionalidade não informada'}</p></div><span style={{background:'#168653',padding:'6px 9px',borderRadius:8,fontWeight:'bold'}}>OVR {j.overall ?? '-'}</span></div>
                     <p style={styles.muted}>Clube: {clube?.nome || (j.status_contrato==='livre'?'Jogador livre':'Clube não identificado')}</p><p style={styles.muted}>Valor: R$ {Number(j.valor_mercado || 0).toLocaleString('pt-BR')}</p><p style={{color:'#67e8a5',fontSize:13}}>{status}</p>{j.is_star && <span style={styles.eyebrow}>★ JOGADOR ESTRELA</span>}
                     {j.status_contrato==='livre' || j.disponivel_transferencia || j.disponivel_emprestimo ? <button style={{...styles.primary,width:'100%',marginTop:12}} onClick={()=>{setJogadorOferta(j);setTipoOferta(j.status_contrato==='livre'||j.disponivel_transferencia?'compra':'emprestimo');setValorOferta(j.status_contrato==='livre'?'0':String(Math.round(Number(j.valor_mercado||0)*(j.disponivel_transferencia?1:0.02))));setSalarioOferta(String(Math.round(3000*Math.pow(Math.max(40,Math.min(100,Number(j.overall||50)))/50,3.6)*(j.is_star?1.25:1))));setMensagemOferta('');}}>Negociar jogador</button> : <p style={styles.mutedSmall}>Não disponível para negociação.</p>}
                   </article>;})}
@@ -1114,16 +1114,16 @@ export default function App() {
               aba === 'Finanças' ? <div>
                 <p style={styles.muted}>Acompanhe o caixa, as receitas e despesas automáticas, o patrocínio e a movimentação do clube.</p>
                 {erroFinancas && <p style={styles.error}>{erroFinancas}</p>}
-                <section style={{background:'#0b1220',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:16}}>
+                <section style={{background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:18,marginTop:16}}>
                   <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap'}}>
                     <div><span style={styles.eyebrow}>PATROCÍNIO OFICIAL</span><h3 style={{margin:'8px 0'}}>Temporada {temporadaPatrocinio}</h3></div>
-                    {propostasPatrocinio.some(p=>p.status==='aceito') && <span style={{background:'#176b4b',padding:'7px 10px',borderRadius:8,fontWeight:700}}>CONTRATO FECHADO</span>}
+                    {propostasPatrocinio.some(p=>p.status==='aceito') && <span style={{background:'#168653',padding:'7px 10px',borderRadius:8,fontWeight:700}}>CONTRATO FECHADO</span>}
                   </div>
                   {propostasPatrocinio.some(p=>p.status==='aceito')
                     ? <p style={styles.muted}>Patrocinador escolhido: <strong>{propostasPatrocinio.find(p=>p.status==='aceito')?.empresa}</strong>. Contrato travado até o encerramento desta temporada. O valor já foi creditado ao caixa.</p>
                     : <><p style={styles.muted}>Três empresas prepararam propostas para seu clube. Escolha uma; o contrato ficará bloqueado até a próxima temporada.</p>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:12,marginTop:14}}>
-                        {propostasPatrocinio.map(p=><article key={p.id} style={{background:'#17263b',border:'1px solid #40536d',borderRadius:10,padding:15}}>
+                        {propostasPatrocinio.map(p=><article key={p.id} style={{background:'#112a1c',border:'1px solid #1f4a31',borderRadius:10,padding:15}}>
                           <strong>{p.empresa}</strong>
                           <h3 style={{color:'#67e8a5',fontSize:22,margin:'12px 0'}}>R$ {Number(p.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3>
                           <p style={styles.mutedSmall}>Valor total do patrocínio nesta temporada.</p>
@@ -1134,11 +1134,11 @@ export default function App() {
                   {mensagemFinancas && <p style={styles.notice}>{mensagemFinancas}</p>}
                 </section>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginTop:16}}>
-                  <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}><span style={styles.eyebrow}>SALDO DISPONÍVEL</span><h3 style={{fontSize:25,color:'#67e8a5',margin:'10px 0'}}>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Caixa atual do clube</p></div>
-                  <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18}}><span style={styles.eyebrow}>RECEITAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#67e8a5',margin:'10px 0'}}>R$ {receitasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Total de {Number(resumoFinanceiro.total_movimentacoes || 0).toLocaleString('pt-BR')} movimentações</p></div>
-                  <div style={{background:'#0b1220',border:'1px solid #6b3b45',borderRadius:12,padding:18}}><span style={{...styles.eyebrow,color:'#fca5a5'}}>DESPESAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#fca5a5',margin:'10px 0'}}>R$ {despesasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Total de {Number(resumoFinanceiro.total_movimentacoes || 0).toLocaleString('pt-BR')} movimentações</p></div>
+                  <div style={{background:'#0a1a12',border:'1px solid #2a6a47',borderRadius:12,padding:18}}><span style={styles.eyebrow}>SALDO DISPONÍVEL</span><h3 style={{fontSize:25,color:'#67e8a5',margin:'10px 0'}}>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Caixa atual do clube</p></div>
+                  <div style={{background:'#0a1a12',border:'1px solid #2a6a47',borderRadius:12,padding:18}}><span style={styles.eyebrow}>RECEITAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#67e8a5',margin:'10px 0'}}>R$ {receitasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Total de {Number(resumoFinanceiro.total_movimentacoes || 0).toLocaleString('pt-BR')} movimentações</p></div>
+                  <div style={{background:'#0a1a12',border:'1px solid #6b3b45',borderRadius:12,padding:18}}><span style={{...styles.eyebrow,color:'#fca5a5'}}>DESPESAS REGISTRADAS</span><h3 style={{fontSize:23,color:'#fca5a5',margin:'10px 0'}}>R$ {despesasFinanceiras.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3><p style={styles.mutedSmall}>Total de {Number(resumoFinanceiro.total_movimentacoes || 0).toLocaleString('pt-BR')} movimentações</p></div>
                 </div>
-                <section style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18,marginTop:16}}>
+                <section style={{background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:18,marginTop:16}}>
                   <span style={styles.eyebrow}>BILHETERIA</span>
                   <h3 style={{margin:'8px 0'}}>Preço do ingresso</h3>
                   <p style={styles.mutedSmall}>A arrecadação será calculada automaticamente conforme capacidade do estádio, força do elenco, fase do clube e público estimado.</p>
@@ -1149,7 +1149,7 @@ export default function App() {
                 </section>
                 <div style={{display:'grid',gridTemplateColumns:'1fr',gap:16,marginTop:20}}>
 
-                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:18}}>
+                  <div style={{background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:18}}>
                     <span style={styles.eyebrow}>VISÃO FINANCEIRA</span><h3>Resumo do clube</h3>
                     <p style={styles.muted}>Resultado acumulado de todas as movimentações: <strong style={{color:receitasFinanceiras-despesasFinanceiras>=0?'#67e8a5':'#fca5a5'}}>R$ {(receitasFinanceiras-despesasFinanceiras).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></p>
                     <p style={styles.muted}>Orçamento disponível: <strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></p>
@@ -1165,7 +1165,7 @@ export default function App() {
               </div> :
               aba === 'Imprensa' ? <div>
                 <p style={styles.muted}>Central de imprensa do clube. Responda às entrevistas após clássicos, semifinais, finais, decisões importantes e partidas marcantes.</p>
-                <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:20,marginTop:16}}>
+                <div style={{background:'#0a1a12',border:'1px solid #2a6a47',borderRadius:12,padding:20,marginTop:16}}>
                   <span style={styles.eyebrow}>ENTREVISTA PÓS-JOGO</span>
                   <h3 style={{marginTop:10}}>O que achou da derrota da equipe?</h3>
                   <p style={styles.muted}>Como treinador, escolha exatamente o que você diria aos jornalistas. Cada declaração terá consequências diferentes para a relação com diretoria, jogadores e torcida.</p>
@@ -1179,14 +1179,14 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-                {respostaImprensa && <div style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:18,marginTop:16}}>
+                {respostaImprensa && <div style={{background:'#112a1c',border:'1px solid #1f4a31',borderRadius:12,padding:18,marginTop:16}}>
                   <span style={styles.eyebrow}>DECLARAÇÃO À IMPRENSA</span>
                   <h3>{respostaImprensa}</h3>
-                  <p style={{color:"#dbe7f5",fontSize:15,lineHeight:1.8,marginTop:12}}>{impactoImprensa}</p>
+                  <p style={{color:"#e3f3e8",fontSize:15,lineHeight:1.8,marginTop:12}}>{impactoImprensa}</p>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,marginTop:16}}>
-                    <div style={{background:'#0b1220',borderRadius:9,padding:12}}><strong>Diretoria</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_diretoria ?? 50)}/100</div></div>
-                    <div style={{background:'#0b1220',borderRadius:9,padding:12}}><strong>Jogadores</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_jogadores ?? 50)}/100</div></div>
-                    <div style={{background:'#0b1220',borderRadius:9,padding:12}}><strong>Torcida</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_torcida ?? 50)}/100</div></div>
+                    <div style={{background:'#0a1a12',borderRadius:9,padding:12}}><strong>Diretoria</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_diretoria ?? 50)}/100</div></div>
+                    <div style={{background:'#0a1a12',borderRadius:9,padding:12}}><strong>Jogadores</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_jogadores ?? 50)}/100</div></div>
+                    <div style={{background:'#0a1a12',borderRadius:9,padding:12}}><strong>Torcida</strong><div style={{fontSize:23,color:'#67e8a5'}}>{Number(clubeAtual?.reputacao_torcida ?? 50)}/100</div></div>
                   </div>
                   <button style={styles.secondary} onClick={() => {setRespostaImprensa('');setImpactoImprensa(null);}}>Nova entrevista</button>
                 </div>}
@@ -1197,17 +1197,17 @@ export default function App() {
               aba === 'Base' ? <div>
                 <p style={styles.muted}>Revele novos talentos para o clube. A base recebe jogadores de 15 a 18 anos, com evolução baseada no potencial. Os jovens ficam separados do elenco profissional até serem promovidos.</p>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginTop:16}}>
-                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                  <div style={{background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:16}}>
                     <span style={styles.eyebrow}>JOVENS NA BASE</span><h3 style={{fontSize:26,margin:'8px 0'}}>{jogadoresBase.length}</h3><p style={styles.mutedSmall}>Atletas contratados</p>
                   </div>
-                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                  <div style={{background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:16}}>
                     <span style={styles.eyebrow}>JOVENS ESTRELAS</span><h3 style={{fontSize:26,margin:'8px 0',color:'#facc15'}}>{jogadoresBase.filter(j=>j.is_star).length} ★</h3><p style={styles.mutedSmall}>Talentos especiais</p>
                   </div>
-                  <div style={{background:'#0b1220',border:'1px solid #34465f',borderRadius:12,padding:16}}>
+                  <div style={{background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:16}}>
                     <span style={styles.eyebrow}>CANDIDATOS</span><h3 style={{fontSize:26,margin:'8px 0'}}>{candidatosBase.length}</h3><p style={styles.mutedSmall}>Aguardando avaliação</p>
                   </div>
                 </div>
-                <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:18,marginTop:18}}>
+                <div style={{background:'#0a1a12',border:'1px solid #2a6a47',borderRadius:12,padding:18,marginTop:18}}>
                   <span style={styles.eyebrow}>CAPTAÇÃO DE TALENTOS</span>
                   <h3 style={{margin:'8px 0'}}>Peneira de novos jogadores</h3>
                   <p style={styles.muted}>Cada peneira apresenta 5 jovens aleatórios. A maioria terá overall entre 35 e 52; de 5% a 8% poderão ser estrelas, com potencial superior. O nível geral da base é mantido abaixo da média profissional do seu clube.</p>
@@ -1220,7 +1220,7 @@ export default function App() {
                   {candidatosBase.length>0 && <div style={{marginTop:22}}>
                     <h3>Candidatos da peneira</h3>
                     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:12}}>
-                      {candidatosBase.map(c=><div key={c.id} style={{background:'#17263b',border:'1px solid #40536d',borderRadius:12,padding:15}}>
+                      {candidatosBase.map(c=><div key={c.id} style={{background:'#112a1c',border:'1px solid #1f4a31',borderRadius:12,padding:15}}>
                         <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}>
                           <strong>{c.nome}</strong>{c.is_star&&<span style={{color:'#facc15'}}>★ TALENTO</span>}
                         </div>
@@ -1255,20 +1255,20 @@ export default function App() {
               </div> :
               aba === 'Estádio' ? <div>
                 <p style={styles.muted}>Seu clube começa com um estádio de 10 mil lugares. As ampliações são financiadas pelo caixa do clube e levam tempo para ficar prontas.</p>
-                <div style={{background:'#0b1220',border:'1px solid #285b49',borderRadius:12,padding:20,marginTop:16}}>
+                <div style={{background:'#0a1a12',border:'1px solid #2a6a47',borderRadius:12,padding:20,marginTop:16}}>
                   <span style={styles.eyebrow}>INFRAESTRUTURA ATUAL</span>
                   <h3 style={{fontSize:28,margin:'8px 0',color:'#67e8a5'}}>{Number(clubeAtual?.capacidade || 10000).toLocaleString('pt-BR')} lugares</h3>
                   <p style={styles.muted}>{clubeAtual?.estadio || 'Estádio do clube'} • Nível {Number(clubeAtual?.stadium_level || 1)} de 4</p>
                   <p style={styles.muted}>Caixa disponível: <strong>R$ {Number(clubeAtual?.orcamento || 0).toLocaleString('pt-BR')}</strong></p>
                 </div>
-                {clubeAtual?.stadium_upgrade_finishes_at ? <div style={{background:'#17263b',borderRadius:10,padding:16,marginTop:16}}>
+                {clubeAtual?.stadium_upgrade_finishes_at ? <div style={{background:'#112a1c',borderRadius:10,padding:16,marginTop:16}}>
                   <strong>Obra em andamento</strong>
                   <p style={styles.muted}>Nova capacidade: {Number(clubeAtual.stadium_target_capacity).toLocaleString('pt-BR')} lugares</p>
                   <p style={styles.muted}>Previsão de conclusão: {new Date(clubeAtual.stadium_upgrade_finishes_at).toLocaleDateString('pt-BR')}</p>
                   <p style={styles.mutedSmall}>A capacidade será atualizada automaticamente quando a obra terminar e o clube acessar o jogo.</p>
                 </div> : Number(clubeAtual?.stadium_level || 1) >= 4 ? <p style={styles.notice}>Seu estádio atingiu o nível máximo de expansão.</p> : <div style={{marginTop:18}}>
                   <h3>Próxima ampliação</h3>
-                  {(() => { const prox = niveisEstadio.find(n => n.nivel === Number(clubeAtual?.stadium_level || 1) + 1); return prox ? <div style={{background:'#17263b',borderRadius:10,padding:16}}>
+                  {(() => { const prox = niveisEstadio.find(n => n.nivel === Number(clubeAtual?.stadium_level || 1) + 1); return prox ? <div style={{background:'#112a1c',borderRadius:10,padding:16}}>
                     <strong>{prox.nome} • {prox.capacidade.toLocaleString('pt-BR')} lugares</strong>
                     <p style={styles.muted}>Investimento: R$ {prox.custo.toLocaleString('pt-BR')}</p>
                     <p style={styles.muted}>Tempo estimado: {prox.dias} dias</p>
@@ -1292,32 +1292,32 @@ export default function App() {
 }
 
 const styles = {
-  page: {background:'#0b1220', color:'#f8fafc', minHeight:'100vh', padding:24, fontFamily:'Arial, sans-serif'},
+  page: {background:'#0a1a12', color:'#f8fafc', minHeight:'100vh', padding:24, fontFamily:'Arial, sans-serif'},
   header: {display:'flex', justifyContent:'space-between', alignItems:'center', gap:16, flexWrap:'wrap', marginBottom:24},
   heading: {color:'#67e8a5', margin:'0 0 8px'},
-  muted: {color:'#a7b3c5', margin:'6px 0'},
-  mutedSmall: {color:'#8492a6', fontSize:12, marginTop:20},
-  authCard: {maxWidth:430, margin:'7vh auto', padding:28, background:'#111c2e', border:'1px solid #26364d', borderRadius:18, textAlign:'center'},
+  muted: {color:'#9fb6a7', margin:'6px 0'},
+  mutedSmall: {color:'#86a193', fontSize:12, marginTop:20},
+  authCard: {maxWidth:430, margin:'7vh auto', padding:28, background:'#0d1f16', border:'1px solid #1a3d29', borderRadius:18, textAlign:'center'},
   tabs: {display:'flex', gap:8, margin:'22px 0 16px'},
-  tab: {background:'#17263b', color:'#dbe7f5', border:'1px solid #34465f', borderRadius:9, padding:'11px 15px', cursor:'pointer'},
-  activeTab: {background:'#176b4b', color:'#fff', border:'1px solid #67e8a5', borderRadius:9, padding:'11px 15px', cursor:'pointer', fontWeight:'bold'},
-  input: {width:'100%', boxSizing:'border-box', padding:13, borderRadius:9, border:'1px solid #34465f', background:'#0b1220', color:'#fff', fontSize:15, marginTop:6},
+  tab: {background:'#112a1c', color:'#e3f3e8', border:'1px solid #1f4a31', borderRadius:9, padding:'11px 15px', cursor:'pointer'},
+  activeTab: {background:'#168653', color:'#fff', border:'1px solid #67e8a5', borderRadius:9, padding:'11px 15px', cursor:'pointer', fontWeight:'bold'},
+  input: {width:'100%', boxSizing:'border-box', padding:13, borderRadius:9, border:'1px solid #1f4a31', background:'#0a1a12', color:'#fff', fontSize:15, marginTop:6},
   formGrid: {display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))', gap:14, marginTop:20},
   primary: {background:'#168653', color:'#fff', border:0, borderRadius:9, padding:'13px 18px', cursor:'pointer', fontWeight:'bold'},
-  secondary: {background:'#26364d', color:'#fff', border:0, borderRadius:9, padding:'10px 14px', cursor:'pointer'},
+  secondary: {background:'#1a3d29', color:'#fff', border:0, borderRadius:9, padding:'10px 14px', cursor:'pointer'},
   link: {background:'transparent', border:0, color:'#67e8a5', marginTop:14, cursor:'pointer'},
-  notice: {background:'#17263b', color:'#dbe7f5', padding:12, borderRadius:9, fontSize:14, overflowWrap:'anywhere'},
+  notice: {background:'#112a1c', color:'#e3f3e8', padding:12, borderRadius:9, fontSize:14, overflowWrap:'anywhere'},
   error: {background:'#3a1e25', color:'#fecaca', padding:12, borderRadius:9, fontSize:14, overflowWrap:'anywhere'},
   noticeBox: {background:'#332b18', border:'1px solid #8b6b2c', borderRadius:12, padding:18, marginBottom:20, color:'#f8e7b0'},
-  club: {background:'linear-gradient(120deg,#123d32,#17263b)', border:'1px solid #285b49', borderRadius:16, padding:22, display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18},
-  clubBadge: {width:62, height:62, borderRadius:18, background:'#67e8a5', color:'#0b1220', display:'grid', placeItems:'center', fontWeight:'bold', fontSize:18, padding:6, textAlign:'center'},
+  club: {background:'linear-gradient(120deg,#123d32,#112a1c)', border:'1px solid #2a6a47', borderRadius:16, padding:22, display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18},
+  clubBadge: {width:62, height:62, borderRadius:18, background:'#67e8a5', color:'#0a1a12', display:'grid', placeItems:'center', fontWeight:'bold', fontSize:18, padding:6, textAlign:'center'},
   eyebrow: {color:'#67e8a5', fontSize:11, letterSpacing:2, fontWeight:'bold'},
   nav: {display:'flex', flexWrap:'wrap', gap:8, marginBottom:18},
-  panel: {background:'#111c2e', border:'1px solid #26364d', borderRadius:14, padding:22, minHeight:190},
+  panel: {background:'#0d1f16', border:'1px solid #1a3d29', borderRadius:14, padding:22, minHeight:190},
   stats: {display:'flex', gap:12, flexWrap:'wrap', marginTop:24},
   table: {width:'100%', borderCollapse:'collapse', textAlign:'left', fontSize:14},
-  filterLabel: {color:'#a7b3c5',fontSize:13},
+  filterLabel: {color:'#9fb6a7',fontSize:13},
   remove: {background:'#5b2630', color:'#fff', border:0, borderRadius:6, padding:'7px 10px', cursor:'pointer'},
-  user: {fontSize:12, color:'#b7c6d8', maxWidth:220, overflowWrap:'anywhere'},
-  footer: {color:'#718096', fontSize:12, textAlign:'center', marginTop:28}
+  user: {fontSize:12, color:'#b4cdbd', maxWidth:220, overflowWrap:'anywhere'},
+  footer: {color:'#6f8e7d', fontSize:12, textAlign:'center', marginTop:28}
 };
