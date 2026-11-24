@@ -1,0 +1,126 @@
+/* ==========================================================================
+   Manager Futebol Online — layout v2
+   Menu lateral verde-campo com destaque amarelo. Substitui o bloco <style>
+   que ficava dentro do App.jsx (várias camadas de !important sobrepostas).
+   ========================================================================== */
+:root{
+  --mfo-bg:#06110b;
+  --mfo-bg-2:#0a1a11;
+  --mfo-field:#0d3b22;
+  --mfo-field-2:#0a2a18;
+  --mfo-panel:#0d1f16;
+  --mfo-panel-2:#112a1c;
+  --mfo-line:#1f4a31;
+  --mfo-line-soft:rgba(63,138,92,.28);
+  --mfo-text:#eef8f1;
+  --mfo-muted:#9fb6a7;
+  --mfo-green:#2fd179;
+  --mfo-green-d:#168653;
+  --mfo-yellow:#facc15;
+  --mfo-yellow-d:#d9a90a;
+  --mfo-danger:#e16b6b;
+  --mfo-sidebar-w:236px;
+}
+*{box-sizing:border-box}
+html,body,#root{min-height:100%;width:100%;margin:0}
+body{background:var(--mfo-bg);color:var(--mfo-text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--mfo-yellow);outline-offset:2px}
+
+/* ---------- Casca do app ---------- */
+.mfo-app{min-height:100vh;padding:18px;background:radial-gradient(ellipse at 40% -20%,#103a25 0%,#08160e 45%,var(--mfo-bg) 100%);color:var(--mfo-text)}
+.mfo-app h1{font-size:clamp(20px,2.6vw,28px);letter-spacing:-.6px}
+.mfo-app h2,.mfo-app h3{letter-spacing:-.3px}
+.mfo-app>header{background:linear-gradient(110deg,var(--mfo-field),var(--mfo-field-2));border:1px solid var(--mfo-line);border-radius:16px;padding:14px 20px;margin-bottom:16px!important;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+.mfo-app>header h1{margin:0 0 4px!important}
+.mfo-app>footer{opacity:.7}
+
+/* Barra do clube (acima do workspace) */
+.mfo-app .mfo-club-bar{margin-bottom:14px!important}
+
+/* ---------- Workspace: menu lateral + conteúdo ---------- */
+.mfo-workspace{display:grid;grid-template-columns:var(--mfo-sidebar-w) minmax(0,1fr);gap:16px;align-items:start}
+.mfo-sidebar{position:sticky;top:14px;display:flex;flex-direction:column;gap:4px;min-height:480px;padding:12px;
+  background:linear-gradient(180deg,var(--mfo-field),var(--mfo-field-2) 60%,#071a10);
+  border:1px solid var(--mfo-line);border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.3)}
+.mfo-nav-label{font-size:10px;letter-spacing:1.8px;color:#7fb396;font-weight:800;padding:8px 10px 10px}
+.mfo-nav-btn{display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;
+  background:transparent;border:1px solid transparent;color:#cfe5d6;font-size:13px;font-weight:600;
+  padding:10px 11px;border-radius:10px;transition:background .15s,border-color .15s,color .15s,transform .15s}
+.mfo-nav-btn:hover{background:rgba(47,209,121,.09);border-color:var(--mfo-line)}
+.mfo-nav-btn.is-active{background:var(--mfo-yellow);border-color:var(--mfo-yellow);color:#1a1503;font-weight:800;box-shadow:0 6px 16px rgba(250,204,21,.18)}
+.mfo-nav-dot{width:24px;height:24px;display:grid;place-items:center;border-radius:7px;flex-shrink:0;font-size:14px;
+  background:rgba(47,209,121,.14);color:#7ce0b4}
+.mfo-nav-btn.is-active .mfo-nav-dot{background:rgba(26,21,3,.14);color:#1a1503}
+.mfo-nav-sep{height:1px;background:var(--mfo-line);margin:8px 4px}
+.mfo-more-toggle{margin-top:4px}
+.mfo-menu-chevron{margin-left:auto;color:#7cdaa2}
+.mfo-nav-btn.is-active .mfo-menu-chevron{color:#1a1503}
+.mfo-sidebar-foot{margin-top:auto;padding:16px 10px 6px;border-top:1px solid var(--mfo-line);color:#5f8a73;font-size:9px;letter-spacing:2px;line-height:1.7;font-weight:800}
+.mfo-menu-toggle{display:none;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;
+  background:var(--mfo-field);border:1px solid var(--mfo-line);color:var(--mfo-text);border-radius:11px;padding:12px 14px;font-weight:700}
+
+.mfo-content{min-width:0;padding:20px!important;overflow:hidden;
+  background:linear-gradient(145deg,var(--mfo-panel-2),var(--mfo-panel))!important;
+  border:1px solid var(--mfo-line)!important;border-radius:16px!important;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.mfo-content>h2{display:flex;align-items:center;gap:10px;margin:0 0 16px!important;padding-bottom:12px;border-bottom:1px solid var(--mfo-line);font-size:20px!important;color:var(--mfo-text)!important}
+.mfo-content>h2:before{content:"";width:5px;height:22px;border-radius:3px;background:var(--mfo-yellow)}
+
+/* ---------- Controles ---------- */
+.mfo-app input,.mfo-app select{background:#0a1a12!important;border:1px solid var(--mfo-line)!important;color:var(--mfo-text);outline:none;transition:border-color .15s,box-shadow .15s}
+.mfo-app input:focus,.mfo-app select:focus{border-color:var(--mfo-green)!important;box-shadow:0 0 0 3px rgba(47,209,121,.15)}
+.mfo-app button{transition:background .15s,border-color .15s,transform .15s}
+.mfo-app button:disabled{opacity:.55;cursor:not-allowed}
+
+/* ---------- Tabelas ---------- */
+.mfo-content table{width:100%;border-collapse:collapse}
+.mfo-content table th{color:var(--mfo-green);font-size:10px;letter-spacing:.7px;text-transform:uppercase;text-align:left;padding:11px 10px;border-bottom:1px solid var(--mfo-line);white-space:nowrap}
+.mfo-content table td{font-size:12.5px;padding:10px;border-bottom:1px solid var(--mfo-line-soft)}
+.mfo-content table tbody tr:hover{background:rgba(47,209,121,.06)}
+
+/* ---------- Elenco em tabela ---------- */
+.mfo-roster-wrap{overflow-x:auto;border:1px solid var(--mfo-line);border-radius:12px;background:rgba(5,14,9,.55);margin-top:10px}
+.mfo-roster-table{min-width:880px}
+.mfo-roster-table td{vertical-align:middle}
+.mfo-pl{display:flex;align-items:center;gap:10px;min-width:190px}
+.mfo-pl-avatar{width:34px;height:34px;flex-shrink:0;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:800;
+  background:linear-gradient(135deg,var(--mfo-green-d),#0d3b22);border:1px solid #2f7a52;color:#eafff3}
+.mfo-pl-name{font-weight:700;font-size:13px}
+.mfo-pl-sub{display:block;color:var(--mfo-muted);font-size:11px;margin-top:2px}
+.mfo-ovr{display:inline-block;min-width:34px;text-align:center;padding:4px 7px;border-radius:7px;font-weight:800;font-size:13px;background:var(--mfo-green-d);color:#fff}
+.mfo-ovr.is-high{background:var(--mfo-yellow);color:#1a1503}
+.mfo-pot{color:var(--mfo-green);font-weight:700}
+.mfo-tag{display:inline-block;padding:3px 8px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.3px;border:1px solid transparent}
+.mfo-tag.ok{color:#86efac;background:rgba(134,239,172,.08);border-color:rgba(134,239,172,.25)}
+.mfo-tag.sale{color:#fca5a5;background:rgba(252,165,165,.08);border-color:rgba(252,165,165,.25)}
+.mfo-tag.loan{color:#fcd34d;background:rgba(252,211,77,.08);border-color:rgba(252,211,77,.25)}
+.mfo-roster-actions{display:flex;gap:6px;flex-wrap:nowrap}
+.mfo-roster-actions button{font-size:11px!important;padding:7px 9px!important;white-space:nowrap;border-radius:8px}
+
+/* ---------- Visão Geral (DashboardModule) ---------- */
+.mfo-dashboard-page{display:flex;flex-direction:column;gap:16px}
+.mfo-dashboard-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:18px;border-radius:15px;
+  background:linear-gradient(110deg,#11331f,#0e2418);border:1px solid var(--mfo-line)}
+.mfo-dashboard-actions{display:flex;gap:8px;flex-wrap:wrap}
+.mfo-dashboard-actions button,.mfo-dashboard-link{background:var(--mfo-green-d);color:#fff;border:1px solid var(--mfo-green);border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer;text-decoration:none}
+.mfo-dashboard-actions button:hover,.mfo-dashboard-link:hover{background:var(--mfo-yellow);border-color:var(--mfo-yellow);color:#1a1503}
+.mfo-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.mfo-dashboard-lower{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(230px,1fr);gap:13px}
+.mfo-news-item{display:flex;flex-direction:column;gap:5px;padding:13px 0;border-top:1px solid var(--mfo-line)}
+.mfo-news-date{color:#7f9d8b;font-size:11px}
+.mfo-summary-row{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid var(--mfo-line);color:#a9bdae;font-size:13px}
+.mfo-summary-row strong{color:var(--mfo-text)}
+
+/* ---------- Responsivo ---------- */
+@media(max-width:900px){
+  .mfo-dashboard-grid,.mfo-dashboard-lower{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:760px){
+  .mfo-app{padding:10px}
+  .mfo-app>header{padding:10px 12px}
+  .mfo-workspace{grid-template-columns:minmax(0,1fr);gap:10px}
+  .mfo-menu-toggle{display:flex}
+  .mfo-sidebar{display:none;position:relative;top:auto;min-height:0}
+  .mfo-sidebar.is-open{display:flex}
+  .mfo-sidebar-foot{display:none}
+  .mfo-content{padding:14px!important}
+}

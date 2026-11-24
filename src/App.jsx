@@ -5,6 +5,7 @@ import RankingsModule from './components/RankingsModule.jsx';
 import TacticsModule from './components/TacticsModule.jsx';
 import DashboardModule from './components/DashboardModule.jsx';
 import MultiplayerLobby from './components/MultiplayerLobby.jsx';
+import './layout.css';
 
 export default function App() {
   const [aba, setAba] = useState('Início');
@@ -903,111 +904,6 @@ export default function App() {
 
   return (
     <main className="mfo-app" style={styles.page}>
-      <style>{`
-        .mfo-app{background:radial-gradient(ellipse at 50% -15%,#173b55 0%,#0b1421 48%,#070d16 100%)!important;color:#edf5ff!important;padding:22px!important;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
-        .mfo-app>header{background:linear-gradient(110deg,rgba(18,42,64,.96),rgba(10,23,37,.96));border:1px solid #24445b;border-radius:18px;padding:18px 22px;box-shadow:0 12px 34px rgba(0,0,0,.22)}
-        .mfo-app h1{font-size:clamp(22px,3vw,30px)!important;letter-spacing:-.7px}
-        .mfo-app h2,.mfo-app h3{letter-spacing:-.35px}
-        .mfo-app nav{position:sticky;top:8px;z-index:20;background:rgba(7,16,27,.92);backdrop-filter:blur(14px);border:1px solid #20394e;border-radius:15px;padding:9px!important;gap:7px!important;box-shadow:0 10px 28px rgba(0,0,0,.2)}
-        .mfo-app nav button{font-size:13px!important;padding:10px 14px!important;border-radius:10px!important;transition:all .18s ease}
-        .mfo-app nav button:hover{transform:translateY(-1px);border-color:#4d9b83!important;background:#173b3b!important}
-        .mfo-app section[style*="border-radius: 14px"]{box-shadow:0 12px 30px rgba(0,0,0,.15)}
-        .mfo-app input,.mfo-app select{outline:none;transition:border-color .18s,box-shadow .18s}
-        .mfo-app input:focus,.mfo-app select:focus{border-color:#36b889!important;box-shadow:0 0 0 3px rgba(54,184,137,.13)}
-        .mfo-app button:disabled{opacity:.55;cursor:not-allowed}
-        .mfo-app table th{color:#8de0bd;border-bottom:1px solid #31516a;padding:12px 10px;white-space:nowrap}
-        .mfo-app table td{border-bottom:1px solid rgba(66,94,117,.35);padding:11px 10px}
-        .mfo-app table tbody tr:hover{background:rgba(45,108,95,.12)}
-        .mfo-workspace{display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px;align-items:start;margin-top:14px}
-        .mfo-app .mfo-sidebar{position:sticky;top:14px;display:flex;flex-direction:column;align-items:stretch;background:linear-gradient(180deg,#0c1b2b,#091522);border:1px solid #20394e;border-radius:17px;padding:13px!important;min-height:470px;box-shadow:0 12px 28px rgba(0,0,0,.2)}
-        .mfo-nav-label{font-size:10px;letter-spacing:1.8px;color:#7893a8;font-weight:800;padding:9px 10px 13px}
-        .mfo-app .mfo-sidebar button{display:flex;align-items:center;gap:10px;text-align:left;width:100%;background:transparent;border:1px solid transparent;color:#b7c9d9;padding:11px 12px!important;border-radius:10px!important}
-        .mfo-app .mfo-sidebar button:hover{background:#142c3d!important;border-color:#294d5c!important}
-        .mfo-app .mfo-sidebar button[style*="176b4b"]{background:linear-gradient(100deg,#176b4b,#174b49)!important;border-color:#3b9b78!important;color:#fff}
-        .mfo-nav-dot{width:23px;height:23px;display:grid;place-items:center;border-radius:7px;background:rgba(76,167,132,.13);color:#7ce0b4;font-size:15px;flex-shrink:0}
-        .mfo-sidebar-foot{margin-top:auto;padding:18px 10px 7px;border-top:1px solid #20394e;color:#56748a;font-size:9px;letter-spacing:2px;line-height:1.7;font-weight:800}
-        .mfo-app .mfo-content{min-width:0;margin:0!important;background:linear-gradient(145deg,rgba(17,34,51,.97),rgba(10,23,36,.97));border-color:#29445a!important}
-        .mfo-dashboard{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(230px,1fr);gap:16px;margin-top:16px}
-        .mfo-hero{position:relative;overflow:hidden;background:linear-gradient(115deg,#123d4a,#102b40 58%,#153a36);border:1px solid #2c665d;border-radius:18px;padding:24px;min-height:190px}
-        .mfo-hero:after{content:"⚽";position:absolute;right:22px;bottom:-36px;font-size:170px;opacity:.07;transform:rotate(-18deg);pointer-events:none}
-        .mfo-metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-        .mfo-metric{background:linear-gradient(145deg,#14283a,#0d1b2a);border:1px solid #29445a;border-radius:15px;padding:17px;min-width:0}
-        .mfo-metric strong{display:block;font-size:clamp(18px,2vw,25px);margin:9px 0 4px;color:#f1f8ff}
-        .mfo-subpanel{background:linear-gradient(145deg,#122437,#0d1927);border:1px solid #29445a;border-radius:16px;padding:18px}
-        @media(max-width:760px){.mfo-workspace{grid-template-columns:1fr;gap:10px}.mfo-app .mfo-sidebar{position:relative;top:auto;min-height:0;display:flex;flex-direction:row;overflow-x:auto;flex-wrap:nowrap;padding:8px!important}.mfo-nav-label,.mfo-sidebar-foot{display:none}.mfo-app .mfo-sidebar button{width:auto;white-space:nowrap;flex:0 0 auto}.mfo-app .mfo-content{padding:15px!important}.mfo-app{padding:12px!important}.mfo-app>header{padding:15px}.mfo-app nav{position:relative;top:auto;overflow-x:auto;flex-wrap:nowrap!important}.mfo-app nav button{white-space:nowrap}.mfo-dashboard{grid-template-columns:1fr}.mfo-metric-grid{grid-template-columns:1fr}.mfo-app section[style*="grid-template-columns"]{min-width:0}}
-
-        .mfo-app{background:radial-gradient(ellipse at 45% -20%,#102d27 0%,#07140f 42%,#050b08 100%)!important;color:#eef8f1!important}
-        .mfo-app>header{background:linear-gradient(110deg,#10271f,#0b1712)!important;border-color:#254638!important}
-        .mfo-app .mfo-content{background:linear-gradient(145deg,#101f19,#0b1511)!important;border-color:#244333!important}
-        .mfo-app .mfo-sidebar{background:linear-gradient(180deg,#0d1d16,#09130f)!important;border-color:#254638!important}
-        .mfo-app .mfo-sidebar button[style*="176b4b"]{background:linear-gradient(100deg,#168653,#126b43)!important;border-color:#43bd7b!important}
-        .mfo-hero{background:linear-gradient(115deg,#102c22,#10251e 60%,#102c24)!important;border-color:#28563e!important}
-        .mfo-metric,.mfo-subpanel{background:linear-gradient(145deg,#14271f,#0d1b15)!important;border-color:#294b39!important}
-        .mfo-menu-toggle{display:none;background:#11251b!important;border:1px solid #315b43!important;color:#e7f6eb!important;border-radius:11px!important;padding:12px 14px!important;margin:10px 0!important;width:100%;text-align:left}
-        .mfo-menu-chevron{margin-left:auto;color:#7cdaa2}
-        .mfo-more-toggle{margin-top:8px!important;border-top:1px solid #254638!important}
-        .mfo-content{min-width:0;overflow:hidden}
-        .mfo-content table{max-width:100%;display:block;overflow-x:auto}
-        .mfo-dashboard-page{display:flex;flex-direction:column;gap:16px}
-        .mfo-dashboard-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(110deg,#11271e,#12251d);border:1px solid #294b39;border-radius:15px;padding:18px}
-        .mfo-dashboard-actions{display:flex;gap:8px;flex-wrap:wrap}
-        .mfo-dashboard-actions button,.mfo-dashboard-link{background:#168653;color:#fff;border:1px solid #43bd7b;border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}
-        .mfo-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
-        .mfo-dashboard-lower{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(230px,1fr);gap:13px}
-        .mfo-news-item{display:flex;flex-direction:column;gap:5px;padding:13px 0;border-top:1px solid #294b39}
-        .mfo-news-date{color:#7f9d8b;font-size:11px}
-        .mfo-summary-row{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid #294b39;color:#a9bdae;font-size:13px}
-        .mfo-summary-row strong{color:#eef8f1}
-        @media(max-width:760px){
-          .mfo-workspace{grid-template-columns:minmax(0,1fr)!important}
-          .mfo-menu-toggle{display:flex;align-items:center;gap:10px}
-          .mfo-app .mfo-sidebar{display:none!important;position:relative;top:auto;min-height:0;flex-direction:column;overflow:visible;flex-wrap:nowrap;width:100%;margin-bottom:10px}
-          .mfo-app .mfo-sidebar.is-open{display:flex!important}
-          .mfo-app .mfo-sidebar button{width:100%;white-space:normal;flex:0 0 auto}
-          .mfo-sidebar-foot{display:none}
-          .mfo-dashboard-grid,.mfo-dashboard-lower{grid-template-columns:minmax(0,1fr)!important}
-          .mfo-app .mfo-content{padding:15px!important}
-          .mfo-content table{font-size:12px}
-        }
-
-
-        .mfo-roster-grid{grid-template-columns:minmax(0,1fr)!important;gap:7px!important;margin-top:12px}
-        .mfo-player-card{display:grid;grid-template-columns:minmax(190px,1.5fr) minmax(190px,1.2fr) minmax(100px,.65fr) minmax(190px,1fr);align-items:center;gap:12px;padding:9px 12px!important;border-radius:10px!important;background:linear-gradient(100deg,#11251f,#0d1a1b)!important;border:1px solid #254536!important;box-shadow:none!important}
-        .mfo-player-card>div:first-child{min-width:0}
-        .mfo-player-card>div:first-child>div:first-child{width:38px!important;height:38px!important;border-radius:9px!important}
-        .mfo-player-card>div:nth-child(2){margin-top:0!important;gap:5px!important}
-        .mfo-player-card>div:nth-child(2)>div{padding:7px!important;background:#0a1717!important}
-        .mfo-player-card>div:nth-child(2)>div strong{font-size:13px!important}
-        .mfo-player-card>div:nth-child(3){margin-top:0!important}
-        .mfo-player-card>div:nth-child(4){margin-top:0!important}
-        .mfo-player-card>div:nth-child(4) button{font-size:10px!important;padding:8px 5px!important}
-        @media(max-width:1000px){.mfo-player-card{grid-template-columns:minmax(0,1fr) minmax(160px,.8fr)}.mfo-player-card>div:nth-child(3),.mfo-player-card>div:nth-child(4){grid-column:1/-1}}
-        @media(max-width:560px){.mfo-player-card{grid-template-columns:minmax(0,1fr)}.mfo-player-card>div:nth-child(2),.mfo-player-card>div:nth-child(3),.mfo-player-card>div:nth-child(4){grid-column:1}}
-        /* Identidade visual Futmanagerbr — navegação e painéis inspirados na referência */
-        .mfo-workspace{display:flex!important;flex-direction:column!important;gap:14px!important;margin-top:12px!important}
-        .mfo-menu-toggle{display:none!important}
-        .mfo-app .mfo-sidebar{position:relative!important;top:auto!important;display:flex!important;flex-direction:row!important;align-items:center!important;flex-wrap:nowrap!important;gap:5px!important;overflow-x:auto!important;min-height:0!important;width:100%!important;padding:7px!important;background:linear-gradient(110deg,#102a22,#0c1d1b)!important;border:1px solid #24483b!important;border-radius:15px!important;scrollbar-width:thin}
-        .mfo-nav-label,.mfo-sidebar-foot{display:none!important}
-        .mfo-app .mfo-sidebar button{width:auto!important;min-width:max-content!important;flex:0 0 auto!important;justify-content:center!important;white-space:nowrap!important;padding:10px 13px!important;font-size:11px!important;letter-spacing:.2px}
-        .mfo-app .mfo-sidebar button[style*="176b4b"]{background:linear-gradient(110deg,#15965b,#20c86b)!important;border-color:#55e58a!important;color:#04170d!important}
-        .mfo-app .mfo-content{width:100%!important;margin:0!important;padding:20px!important;background:linear-gradient(145deg,#0d1c22,#09141b)!important;border:1px solid #203c3b!important;border-radius:16px!important}
-        .mfo-app .mfo-content>h2{display:flex;align-items:center;gap:10px;margin:0 0 15px!important;padding-bottom:12px;border-bottom:1px solid #234237;color:#e8f5ed!important;font-size:20px!important}
-        .mfo-app>header{background:linear-gradient(110deg,#102a22,#0b1917)!important;border-color:#2b5140!important}
-        .mfo-app>header img{filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
-        .mfo-app table th{color:#65e99a!important;font-size:10px!important;letter-spacing:.6px;text-transform:uppercase}
-        .mfo-app table td{font-size:12px!important}
-        .mfo-app input,.mfo-app select{background:#0b1920!important;border-color:#29483e!important}
-        .mfo-app button{transition:background .18s,border-color .18s,transform .18s}
-        .mfo-app button:hover{border-color:#48cf80!important}
-        @media(max-width:760px){
-          .mfo-app{padding:10px!important}
-          .mfo-app>header{padding:10px!important}
-          .mfo-app>header img{width:58px!important;height:58px!important}
-          .mfo-app .mfo-sidebar{display:flex!important;flex-direction:row!important;overflow-x:auto!important;flex-wrap:nowrap!important}
-          .mfo-app .mfo-sidebar button{width:auto!important;min-width:max-content!important;flex:0 0 auto!important}
-          .mfo-app .mfo-content{padding:13px!important}
-        }
-      `}</style>
       <header style={styles.header}>
         <div>
           <h1 style={styles.heading}>⚽ Manager Futebol Online</h1>
@@ -1062,7 +958,7 @@ export default function App() {
         </section>
       ) : (
         <>
-          {clubeAtual && aba !== 'Início' && <section style={styles.club}>
+          {clubeAtual && aba !== 'Início' && <section className="mfo-club-bar" style={styles.club}>
             <div>
               <span style={styles.eyebrow}>SEU CLUBE</span>
               <h2>{clubeAtual.nome}</h2>
@@ -1073,17 +969,18 @@ export default function App() {
           </section>}
           <div className="mfo-workspace">
           <button className="mfo-menu-toggle" onClick={() => setMenuAberto(value => !value)} aria-expanded={menuAberto} aria-label="Abrir ou recolher menu"><span>☰</span> Menu do jogo <span className="mfo-menu-chevron">{menuAberto ? '−' : '+'}</span></button>
-          <nav className={`mfo-sidebar ${menuAberto ? 'is-open' : ''}`} style={styles.nav}>
+          <nav className={`mfo-sidebar ${menuAberto ? 'is-open' : ''}`} aria-label="Menu principal do jogo">
             <span className="mfo-nav-label">MENU PRINCIPAL</span>
             {[
               ['Visão Geral','Início','⌂'],['Elenco','Elenco','♟'],['Escalação','Táticas','⚽'],
               ['Partidas','Partidas','◷'],['Competições','Competições','🏆'],['Amistosos Online','Amistosos','⚔'],['Finanças','Finanças','＄']
-            ].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value || (value === 'Competições' && aba === 'Liga') ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
-            <button className="mfo-more-toggle" onClick={() => setMaisModulosAbertos(value => !value)}><span className="mfo-nav-dot">＋</span>Outros módulos <span className="mfo-menu-chevron">{maisModulosAbertos ? '−' : '+'}</span></button>
-            {maisModulosAbertos && [['Mercado','Mercado','⇄'],['Base','Base','♙'],['Estádio','Estádio','▦'],['Imprensa','Imprensa','▤'],['Rankings','Rankings','★']].map(([label,value,icon]) => <button key={value} onClick={() => {setAba(value);setMenuAberto(false);}} style={aba === value ? styles.activeTab : styles.tab}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
+            ].map(([label,value,icon]) => <button key={value} className={`mfo-nav-btn ${aba === value || (value === 'Competições' && aba === 'Liga') ? 'is-active' : ''}`} aria-current={aba === value ? 'page' : undefined} onClick={() => {setAba(value);setMenuAberto(false);}}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
+            <div className="mfo-nav-sep" />
+            <button className="mfo-nav-btn mfo-more-toggle" onClick={() => setMaisModulosAbertos(value => !value)}><span className="mfo-nav-dot">＋</span>Outros módulos <span className="mfo-menu-chevron">{maisModulosAbertos ? '−' : '+'}</span></button>
+            {maisModulosAbertos && [['Mercado','Mercado','⇄'],['Base','Academia','♙'],['Estádio','Estádio','▦'],['Imprensa','Imprensa','▤'],['Rankings','Rankings','★']].map(([value,label,icon]) => <button key={value} className={`mfo-nav-btn ${aba === value ? 'is-active' : ''}`} aria-current={aba === value ? 'page' : undefined} onClick={() => {setAba(value);setMenuAberto(false);}}><span className="mfo-nav-dot">{icon}</span>{label}</button>)}
             <div className="mfo-sidebar-foot">MANAGER<br/>FUTEBOL ONLINE</div>
           </nav>
-          <section className="mfo-content" style={styles.panel}>
+          <section className="mfo-content">
             <h2>{aba === 'Início' ? 'Visão Geral' : aba === 'Táticas' ? 'Escalação' : aba}</h2>
             {aba === 'Início' ? <DashboardModule supabase={supabase} club={clubeAtual} onNavigate={setAba} /> :
               aba === 'Elenco' ? <div>
@@ -1123,43 +1020,32 @@ export default function App() {
                   </div>
                   {jogadores.filter(j=>(!buscaElenco || (j.nome||'').toLocaleLowerCase('pt-BR').includes(buscaElenco.toLocaleLowerCase('pt-BR')))&&(posicaoElenco==='Todas'||j.posicao===posicaoElenco)).length===0
                     ? <p style={styles.muted}>Nenhum atleta corresponde aos filtros selecionados.</p>
-                    : <div className="mfo-roster-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,290px),1fr))',gap:14}}>
+                    : <div className="mfo-roster-wrap"><table className="mfo-roster-table">
+                      <thead><tr><th>Jogador</th><th>Pos.</th><th>Idade</th><th>OVR</th><th>POT</th><th>Contrato</th><th>Valor de mercado</th><th>Situação</th><th>Ações</th></tr></thead>
+                      <tbody>
                       {jogadores.filter(j=>(!buscaElenco || (j.nome||'').toLocaleLowerCase('pt-BR').includes(buscaElenco.toLocaleLowerCase('pt-BR')))&&(posicaoElenco==='Todas'||j.posicao===posicaoElenco)).map(j=>{
                         const idade=idadeJogador(j.data_nascimento);
                         const status=j.disponivel_transferencia?'À venda':j.disponivel_emprestimo?'Para empréstimo':'No elenco';
+                        const tagClasse=j.disponivel_transferencia?'sale':j.disponivel_emprestimo?'loan':'ok';
                         const iniciais=(j.nome||'Jogador').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase();
-                        return <article className="mfo-player-card" key={j.id} style={{background:'linear-gradient(145deg,#17263b,#0b1220 72%)',border:'1px solid #34465f',borderRadius:14,padding:15,boxShadow:'0 8px 22px rgba(0,0,0,.16)'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:12}}>
-                            <div style={{width:54,height:54,flexShrink:0,borderRadius:13,display:'grid',placeItems:'center',background:'linear-gradient(135deg,#176b4b,#26364d)',border:'1px solid #4b806b',fontSize:19,fontWeight:800,color:'#eafff3'}}>{iniciais}</div>
-                            <div style={{minWidth:0,flex:1}}>
-                              <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                                <strong style={{fontSize:15}}>{j.nome}</strong>{j.is_star&&<span style={{color:'#facc15'}}>★</span>}
-                              </div>
-                              <p style={{...styles.mutedSmall,margin:'5px 0 0'}}>{j.posicao||'Posição não informada'} • {idade?idade+' anos':'Idade não informada'}</p>
-                              <p style={{...styles.mutedSmall,margin:'3px 0 0'}}>{j.nacionalidade||'Nacionalidade não informada'}</p>
-                            </div>
-                            <div style={{background:'#176b4b',border:'1px solid #3b9b70',borderRadius:10,minWidth:52,textAlign:'center',padding:'7px 6px'}}>
-                              <span style={{display:'block',fontSize:9,color:'#c9f7df',letterSpacing:1}}>OVR</span>
-                              <strong style={{fontSize:22}}>{j.overall??'-'}</strong>
-                            </div>
-                          </div>
-                          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginTop:14}}>
-                            <div style={{background:'#0b1220',borderRadius:8,padding:9}}><span style={{...styles.mutedSmall,margin:0,fontSize:10}}>POTENCIAL</span><strong style={{display:'block',fontSize:17,color:'#67e8a5',marginTop:4}}>{j.potencial??'-'}</strong></div>
-                            <div style={{background:'#0b1220',borderRadius:8,padding:9}}><span style={{...styles.mutedSmall,margin:0,fontSize:10}}>CONTRATO</span><strong style={{display:'block',fontSize:12,marginTop:7}}>{j.contrato_ate?new Date(j.contrato_ate+'T12:00:00').toLocaleDateString('pt-BR'):'Sem prazo'}</strong></div>
-                            <div style={{background:'#0b1220',borderRadius:8,padding:9}}><span style={{...styles.mutedSmall,margin:0,fontSize:10}}>MERCADO</span><strong style={{display:'block',fontSize:12,marginTop:7}}>R$ {Number(j.valor_mercado||0).toLocaleString('pt-BR')}</strong></div>
-                          </div>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginTop:12}}>
-                            <span style={{fontSize:11,color:j.disponivel_transferencia?'#fca5a5':j.disponivel_emprestimo?'#fcd34d':'#86efac',fontWeight:700}}>{status}</span>
-                            <span style={{fontSize:10,color:'#8492a6'}}>{j.status_contrato==='livre'?'SEM CONTRATO':'VÍNCULO ATIVO'}</span>
-                          </div>
-                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,marginTop:12}}>
-                            <button style={{...styles.secondary,fontSize:12,padding:'9px 7px'}} onClick={()=>alterarDisponibilidadeJogador(j,'venda')}>{j.disponivel_transferencia?'Retirar venda':'Colocar à venda'}</button>
-                            <button style={{...styles.secondary,fontSize:12,padding:'9px 7px'}} onClick={()=>alterarDisponibilidadeJogador(j,'emprestimo')}>{j.disponivel_emprestimo?'Retirar empréstimo':'Emprestar'}</button>
-                            <button style={{...styles.primary,gridColumn:'1 / -1',fontSize:12,padding:'10px 7px'}} onClick={()=>renovarContrato(j)}>Renovar contrato</button>
-                          </div>
-                        </article>;
+                        return <tr key={j.id}>
+                          <td><div className="mfo-pl"><div className="mfo-pl-avatar">{iniciais}</div><div><span className="mfo-pl-name">{j.nome}{j.is_star&&<span style={{color:'#facc15',marginLeft:5}}>★</span>}</span><span className="mfo-pl-sub">{j.nacionalidade||'Nacionalidade não informada'}</span></div></div></td>
+                          <td>{j.posicao||'—'}</td>
+                          <td>{idade?idade:'—'}</td>
+                          <td><span className={`mfo-ovr ${Number(j.overall)>=80?'is-high':''}`}>{j.overall??'-'}</span></td>
+                          <td className="mfo-pot">{j.potencial??'-'}</td>
+                          <td>{j.contrato_ate?new Date(j.contrato_ate+'T12:00:00').toLocaleDateString('pt-BR'):'Sem prazo'}{j.status_contrato==='livre'&&<span className="mfo-pl-sub">Sem contrato</span>}</td>
+                          <td>R$ {Number(j.valor_mercado||0).toLocaleString('pt-BR')}</td>
+                          <td><span className={`mfo-tag ${tagClasse}`}>{status}</span></td>
+                          <td><div className="mfo-roster-actions">
+                            <button style={styles.secondary} onClick={()=>alterarDisponibilidadeJogador(j,'venda')}>{j.disponivel_transferencia?'Retirar venda':'Vender'}</button>
+                            <button style={styles.secondary} onClick={()=>alterarDisponibilidadeJogador(j,'emprestimo')}>{j.disponivel_emprestimo?'Retirar empréstimo':'Emprestar'}</button>
+                            <button style={styles.primary} onClick={()=>renovarContrato(j)}>Renovar</button>
+                          </div></td>
+                        </tr>;
                       })}
-                    </div>}
+                      </tbody>
+                    </table></div>}
                 </>}
               </div> :
               aba === 'Mercado' ? <div>
