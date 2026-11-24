@@ -52,6 +52,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       const [standingsRes, matchesRes, clubsRes] = await Promise.all([
         supabase.from('league_standings').select('*').eq('league_id', ligaId)
           .order('points', { ascending:false })
+          .order('wins', { ascending:false })
           .order('goal_difference', { ascending:false })
           .order('goals_for', { ascending:false }),
         supabase.from('matches').select('*').eq('league_id', ligaId)
@@ -84,6 +85,13 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
   async function simularRodadaCompleta(partidaBase) {
     if (!partidaBase?.round_number || simulando) return;
     const rodada = partidaBase.round_number;
+    const primeiraRodadaPendente = partidas
+      .filter(p => p.status === 'scheduled')
+      .reduce((menor, p) => menor === null || p.round_number < menor ? p.round_number : menor, null);
+    if (primeiraRodadaPendente !== null && rodada !== primeiraRodadaPendente) {
+      setMensagemJogo('Para manter a classificação correta, conclua primeiro a rodada ' + primeiraRodadaPendente + '.');
+      return;
+    }
     const pendentes = partidas.filter(p => p.round_number === rodada && p.status === 'scheduled');
     if (!pendentes.length) {
       setMensagemJogo('Esta rodada não possui partidas pendentes.');
@@ -102,13 +110,14 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     setMensagemJogo('Simulando os jogos da rodada ' + rodada + '...');
     let concluidas = 0;
     let preservadas = 0;
+    const falhas = [];
 
     try {
       for (const jogo of ordem) {
         const { error } = await supabase.rpc('simulate_match', { p_match_id: jogo.id });
         if (error) {
-          // Partidas sem autorização ou sem elenco válido permanecem intactas.
           preservadas += 1;
+          falhas.push(nomeClube(jogo.home_club_id) + ' x ' + nomeClube(jogo.away_club_id) + ': ' + error.message);
         } else {
           concluidas += 1;
         }
@@ -117,6 +126,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       const [standingsRes, matchesRes] = await Promise.all([
         supabase.from('league_standings').select('*').eq('league_id', ligaId)
           .order('points', { ascending:false })
+          .order('wins', { ascending:false })
           .order('goal_difference', { ascending:false })
           .order('goals_for', { ascending:false }),
         supabase.from('matches').select('*').eq('league_id', ligaId)
@@ -129,8 +139,9 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       setClassificacao(standingsRes.data || []);
       setPartidas(matchesRes.data || []);
       setMensagemJogo(
-        'Rodada ' + rodada + ' processada: ' + concluidas + ' partida(s) simulada(s).' +
-        (preservadas ? ' ' + preservadas + ' partida(s) não processada(s), por proteção de acesso ou falta de escalação.' : '') +
+        (preservadas ? 'Rodada ' + rodada + ' parcialmente processada: ' : 'Rodada ' + rodada + ' processada: ') + concluidas + ' partida(s) simulada(s).' +
+        (preservadas ? ' ' + preservadas + ' partida(s) não processada(s).' : '') +
+        (falhas.length ? ' Detalhes: ' + falhas.slice(0, 3).join(' | ') + (falhas.length > 3 ? ' | +' + (falhas.length - 3) + ' falha(s).' : '') : '') +
         ' Classificação atualizada.'
       );
     } catch (error) {
@@ -150,41 +161,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       setMensagemJogo('Você só pode solicitar a simulação de partidas do clube que está treinando.');
       return;
     }
-
-    setSimulando(partida.id);
-    setMensagemJogo('');
-    try {
-      const { data, error } = await supabase.rpc('simulate_match', { p_match_id: partida.id });
-      if (error) throw error;
-
-      const [standingsRes, matchesRes] = await Promise.all([
-        supabase.from('league_standings').select('*').eq('league_id', ligaId)
-          .order('points', { ascending:false })
-          .order('goal_difference', { ascending:false })
-          .order('goals_for', { ascending:false }),
-        supabase.from('matches').select('*').eq('league_id', ligaId)
-          .order('round_number').order('match_date')
-      ]);
-
-      if (standingsRes.error) throw new Error('Partida processada, mas não foi possível atualizar a classificação: ' + standingsRes.error.message);
-      if (matchesRes.error) throw new Error('Partida processada, mas não foi possível atualizar o calendário: ' + matchesRes.error.message);
-
-      setClassificacao(standingsRes.data || []);
-      setPartidas(matchesRes.data || []);
-
-      const result = Array.isArray(data) ? data[0] : data;
-      const homeScore = result?.home_score;
-      const awayScore = result?.away_score;
-      setMensagemJogo(
-        homeScore !== undefined && awayScore !== undefined
-          ? 'Partida simulada! Placar: ' + homeScore + ' × ' + awayScore
-          : 'Partida processada. Calendário e classificação atualizados.'
-      );
-    } catch (error) {
-      setMensagemJogo('Não foi possível concluir a simulação: ' + (error?.message || 'Erro inesperado.'));
-    } finally {
-      setSimulando('');
-    }
+    await simularRodadaCompleta(partida);
   }
 
   return <div className="mfo-matches">
@@ -241,7 +218,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
         <span>PRÓXIMO JOGO</span>
         <strong>VS</strong>
         <div className="mfo-match-date">{proximaPartida.match_date?new Date(proximaPartida.match_date).toLocaleString('pt-BR'):'Data a definir'}</div>
-        <div style={{marginTop:10}}><button onClick={()=>simularPartida(proximaPartida)} disabled={Boolean(simulando)} style={{background:'linear-gradient(110deg,#15965b,#20c86b)',color:'#04170d',border:'1px solid #55e58a',borderRadius:8,padding:'9px 12px',fontWeight:900,fontSize:12}}>{simulando===proximaPartida.id?'Simulando...':'SIMULAR PARTIDA'}</button></div>
+        <div style={{marginTop:10}}><button onClick={()=>simularPartida(proximaPartida)} disabled={Boolean(simulando)} style={{background:'linear-gradient(110deg,#15965b,#20c86b)',color:'#04170d',border:'1px solid #55e58a',borderRadius:8,padding:'9px 12px',fontWeight:900,fontSize:12}}>{simulando==='rodada-'+proximaPartida.round_number?'Simulando...':'SIMULAR PARTIDA'}</button></div>
       </div>
       <div className="mfo-match-team">
         <div className="mfo-match-crest">{nomeClube(proximaPartida.away_club_id).slice(0,3).toUpperCase()}</div>
