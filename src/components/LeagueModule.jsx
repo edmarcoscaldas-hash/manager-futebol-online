@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import LiveMatch from './LiveMatch.jsx';
 
-const card = { background:'#0b1220', border:'1px solid #34465f', borderRadius:12, padding:16 };
-const muted = { color:'#a7b3c5', margin:'6px 0' };
-const small = { color:'#8492a6', fontSize:12 };
-const input = { width:'100%', boxSizing:'border-box', padding:12, borderRadius:9, border:'1px solid #34465f', background:'#0b1220', color:'#fff', marginTop:6 };
-const th = { textAlign:'left', padding:'11px 9px', borderBottom:'1px solid #34465f', color:'#67e8a5', fontSize:12, whiteSpace:'nowrap' };
-const td = { padding:'11px 9px', borderBottom:'1px solid #26364d', fontSize:13, whiteSpace:'nowrap' };
+const card = { background:'#0a1a12', border:'1px solid #1f4a31', borderRadius:12, padding:16 };
+const muted = { color:'#9fb6a7', margin:'6px 0' };
+const small = { color:'#86a193', fontSize:12 };
+const input = { width:'100%', boxSizing:'border-box', padding:12, borderRadius:9, border:'1px solid #1f4a31', background:'#0a1a12', color:'#fff', marginTop:6 };
+const th = { textAlign:'left', padding:'11px 9px', borderBottom:'1px solid #1f4a31', color:'#67e8a5', fontSize:12, whiteSpace:'nowrap' };
+const td = { padding:'11px 9px', borderBottom:'1px solid #1a3d29', fontSize:13, whiteSpace:'nowrap' };
 
 export default function LeagueModule({ supabase, clubeAtual, initialTab = 'classificacao' }) {
   const [ligas, setLigas] = useState([]);
@@ -19,6 +20,10 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
   useEffect(() => { setAbaInterna(initialTab); }, [initialTab]);
   const [simulando, setSimulando] = useState('');
   const [mensagemJogo, setMensagemJogo] = useState('');
+  const [encerrando, setEncerrando] = useState(false);
+  const [resumoTemporada, setResumoTemporada] = useState(null);
+  const [historico, setHistorico] = useState([]);
+  const [aoVivo, setAoVivo] = useState(null);
 
   useEffect(() => {
     let ativo = true;
@@ -54,7 +59,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
           .order('points', { ascending:false })
           .order('goal_difference', { ascending:false })
           .order('goals_for', { ascending:false }),
-        supabase.from('matches').select('*').eq('league_id', ligaId)
+        supabase.from('current_season_matches').select('*').eq('league_id', ligaId)
           .order('round_number').order('match_date'),
         supabase.from('clubs').select('id,nome,league_id').eq('league_id', ligaId).order('nome')
       ]);
@@ -81,6 +86,35 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
   const proximaPartida = [...proximasPartidas].sort((a,b) => new Date(a.match_date || 0) - new Date(b.match_date || 0))[0] || null;
 
 
+  async function abrirAoVivo(ids, rodada, fixos = []) {
+    if (!ids.length) return;
+    const [jogosRes, eventosRes] = await Promise.all([
+      supabase.from('current_season_matches').select('id,round_number,home_club_id,away_club_id,home_score,away_score,status').in('id', ids),
+      supabase.from('match_events').select('match_id,club_id,player_id,related_player_id,minute,event_type').in('match_id', ids).eq('event_type', 'goal').order('minute')
+    ]);
+    const jogos = (jogosRes.data || []).filter(j => j.status === 'finished');
+    if (jogosRes.error || !jogos.length) return;
+    const eventos = eventosRes.data || [];
+    const idsJogadores = [...new Set(eventos.flatMap(e => [e.player_id, e.related_player_id]).filter(Boolean))];
+    let nomes = {};
+    if (idsJogadores.length) {
+      const { data } = await supabase.from('players').select('id,nome').in('id', idsJogadores);
+      nomes = Object.fromEntries((data || []).map(j => [j.id, j.nome]));
+    }
+    setAoVivo({ jogos, eventos, nomes, rodada, fixos });
+  }
+
+  async function registrarPressao(jogo) {
+    if (!clubeAtual?.id || !jogo?.id) return;
+    if (jogo.home_club_id !== clubeAtual.id && jogo.away_club_id !== clubeAtual.id) return;
+    const { data, error } = await supabase.rpc('apply_match_pressure_event', { p_match_id: jogo.id, p_club_id: clubeAtual.id });
+    window.dispatchEvent(new Event('mfo:atualizar-cabecalho'));
+    if (!error && data?.job_status?.dismissed) {
+      setMensagemJogo('A diretoria demitiu você: ' + (data.job_status.reason || 'resultados abaixo do esperado.') + ' Vamos escolher um novo clube...');
+      setTimeout(() => window.location.reload(), 3500);
+    }
+  }
+
   async function simularRodadaCompleta(partidaBase) {
     if (!partidaBase?.round_number || simulando) return;
     const rodada = partidaBase.round_number;
@@ -102,6 +136,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     setMensagemJogo('Simulando os jogos da rodada ' + rodada + '...');
     let concluidas = 0;
     let preservadas = 0;
+    const idsConcluidos = [];
 
     try {
       for (const jogo of ordem) {
@@ -111,6 +146,8 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
           preservadas += 1;
         } else {
           concluidas += 1;
+          idsConcluidos.push(jogo.id);
+          if (jogo.id === jogoDoUsuario?.id) await registrarPressao(jogo);
         }
       }
 
@@ -119,7 +156,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
           .order('points', { ascending:false })
           .order('goal_difference', { ascending:false })
           .order('goals_for', { ascending:false }),
-        supabase.from('matches').select('*').eq('league_id', ligaId)
+        supabase.from('current_season_matches').select('*').eq('league_id', ligaId)
           .order('round_number').order('match_date')
       ]);
 
@@ -133,6 +170,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
         (preservadas ? ' ' + preservadas + ' partida(s) não processada(s), por proteção de acesso ou falta de escalação.' : '') +
         ' Classificação atualizada.'
       );
+      await abrirAoVivo(idsConcluidos, rodada);
     } catch (error) {
       setMensagemJogo('A rodada foi parcialmente processada: ' + (error?.message || 'Erro inesperado.'));
     } finally {
@@ -156,13 +194,14 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     try {
       const { data, error } = await supabase.rpc('simulate_match', { p_match_id: partida.id });
       if (error) throw error;
+      await registrarPressao(partida);
 
       const [standingsRes, matchesRes] = await Promise.all([
         supabase.from('league_standings').select('*').eq('league_id', ligaId)
           .order('points', { ascending:false })
           .order('goal_difference', { ascending:false })
           .order('goals_for', { ascending:false }),
-        supabase.from('matches').select('*').eq('league_id', ligaId)
+        supabase.from('current_season_matches').select('*').eq('league_id', ligaId)
           .order('round_number').order('match_date')
       ]);
 
@@ -180,10 +219,54 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
           ? 'Partida simulada! Placar: ' + homeScore + ' × ' + awayScore
           : 'Partida processada. Calendário e classificação atualizados.'
       );
+      const outrosFinalizados = (matchesRes.data || [])
+        .filter(p => p.round_number === partida.round_number && p.status === 'finished' && p.id !== partida.id)
+        .map(p => p.id);
+      await abrirAoVivo([partida.id, ...outrosFinalizados], partida.round_number, outrosFinalizados);
     } catch (error) {
       setMensagemJogo('Não foi possível concluir a simulação: ' + (error?.message || 'Erro inesperado.'));
     } finally {
       setSimulando('');
+    }
+  }
+
+  const temporadaConcluida = partidas.length > 0 && partidas.every(p => p.status === 'finished' || p.status === 'cancelled');
+  const ligaDoMeuClube = Boolean(clubeAtual?.league_id) && ligaId === clubeAtual.league_id;
+
+  useEffect(() => {
+    let ativo = true;
+    async function carregarHistorico() {
+      if (abaInterna !== 'historico' || !ligaSelecionada?.pais) return;
+      const { data } = await supabase.from('league_season_results')
+        .select('temporada,divisao,club_id,club_nome,posicao,pontos,campeao')
+        .eq('pais', ligaSelecionada.pais).eq('campeao', true)
+        .order('temporada', { ascending:false }).order('divisao');
+      if (ativo) setHistorico(data || []);
+    }
+    carregarHistorico();
+    return () => { ativo = false; };
+  }, [supabase, abaInterna, ligaSelecionada?.pais, resumoTemporada]);
+
+  async function encerrarTemporada() {
+    if (!ligaSelecionada?.pais || encerrando) return;
+    const ok = window.confirm('Encerrar a temporada ' + ligaSelecionada.temporada + ' do ' + ligaSelecionada.pais + '?\n\nAs divisões sem técnico serão simuladas, haverá acesso e rebaixamento, premiação, evolução dos jogadores e um novo calendário. Isso não pode ser desfeito.');
+    if (!ok) return;
+    setEncerrando(true);
+    setMensagemJogo('');
+    try {
+      const { data, error } = await supabase.rpc('mfo_encerrar_temporada', { p_pais: ligaSelecionada.pais });
+      if (error) throw error;
+      let meuResultado = null;
+      if (clubeAtual?.id) {
+        const { data: r } = await supabase.from('league_season_results').select('*')
+          .eq('club_id', clubeAtual.id).eq('temporada', data.temporada_encerrada).maybeSingle();
+        meuResultado = r || null;
+      }
+      setResumoTemporada({ ...data, meuResultado });
+    } catch (e) {
+      setMensagemJogo('Não foi possível encerrar a temporada: ' + (e?.message || 'Erro inesperado.'));
+    } finally {
+      setEncerrando(false);
     }
   }
 
@@ -218,7 +301,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     <p style={muted}>Acompanhe os campeonatos cadastrados no MFO, a classificação calculada pelos resultados e a agenda de partidas.</p>
     {erro && <p style={{background:'#3a1e25',color:'#fecaca',padding:12,borderRadius:9}}>{erro}</p>}
     <div style={{...card, marginTop:16}}>
-      <label style={{color:'#a7b3c5',fontSize:13}}>Campeonato
+      <label style={{color:'#9fb6a7',fontSize:13}}>Campeonato
         <select style={input} value={ligaId} onChange={e=>setLigaId(e.target.value)}>
           {ligas.map(l=><option key={l.id} value={l.id}>{l.nome} • {l.pais} • {l.divisao} • {l.temporada}</option>)}
         </select>
@@ -249,12 +332,46 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
         <div className="mfo-match-date">VISITANTE</div>
       </div>
     </section>}
+    {aoVivo && <LiveMatch jogos={aoVivo.jogos} eventos={aoVivo.eventos} nomes={aoVivo.nomes} fixos={aoVivo.fixos}
+      rodada={aoVivo.rodada} competicao={ligaSelecionada?.divisao} meuClubeId={clubeAtual?.id}
+      nomeClube={nomeClube} onClose={() => setAoVivo(null)} />}
+    {resumoTemporada && <div role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:50,background:'rgba(2,10,6,.82)',display:'grid',placeItems:'center',padding:16,overflowY:'auto'}}>
+      <div style={{...card,maxWidth:560,width:'100%',background:'#0d1f16',border:'1px solid #facc15'}}>
+        <h2 style={{margin:'0 0 4px',color:'#facc15'}}>🏆 Temporada {resumoTemporada.temporada_encerrada} encerrada</h2>
+        <p style={small}>{resumoTemporada.pais} • {resumoTemporada.partidas_simuladas} jogos de outras divisões simulados</p>
+        {resumoTemporada.meuResultado && <div style={{background:'#112a1c',border:'1px solid #1f4a31',borderRadius:10,padding:12,margin:'12px 0'}}>
+          <strong>{resumoTemporada.meuResultado.club_nome}: {resumoTemporada.meuResultado.posicao}º lugar</strong> na {resumoTemporada.meuResultado.divisao}
+          <div style={small}>{resumoTemporada.meuResultado.pontos} pontos • {resumoTemporada.meuResultado.vitorias}V {resumoTemporada.meuResultado.empates}E {resumoTemporada.meuResultado.derrotas}D • premiação R$ {Number(resumoTemporada.meuResultado.premio||0).toLocaleString('pt-BR')}</div>
+          {resumoTemporada.meuResultado.promovido && <div style={{color:'#67e8a5',fontWeight:800,marginTop:6}}>⬆ Seu clube foi promovido!</div>}
+          {resumoTemporada.meuResultado.rebaixado && <div style={{color:'#fca5a5',fontWeight:800,marginTop:6}}>⬇ Seu clube foi rebaixado.</div>}
+        </div>}
+        <h4 style={{margin:'12px 0 6px',color:'#67e8a5'}}>Campeões</h4>
+        {(resumoTemporada.campeoes||[]).map(c=><div key={c.divisao} style={{fontSize:13,padding:'3px 0'}}>{c.divisao}: <strong>{c.clube}</strong></div>)}
+        {(resumoTemporada.promovidos||[]).length>0 && <><h4 style={{margin:'12px 0 6px',color:'#67e8a5'}}>Promovidos</h4><p style={{...small,margin:0}}>{resumoTemporada.promovidos.join(', ')}</p></>}
+        {(resumoTemporada.rebaixados||[]).length>0 && <><h4 style={{margin:'12px 0 6px',color:'#fca5a5'}}>Rebaixados</h4><p style={{...small,margin:0}}>{resumoTemporada.rebaixados.join(', ')}</p></>}
+        <button onClick={()=>window.location.reload()} style={{marginTop:16,width:'100%',background:'#facc15',color:'#1a1503',border:0,borderRadius:9,padding:'12px 14px',fontWeight:900,cursor:'pointer'}}>Começar a temporada {resumoTemporada.nova_temporada}</button>
+      </div>
+    </div>}
+    {temporadaConcluida && ligaDoMeuClube && <section style={{...card,marginTop:14,border:'1px solid #facc15',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+      <div><strong style={{color:'#facc15'}}>🏁 Temporada {ligaSelecionada?.temporada} concluída</strong><p style={{...small,margin:'4px 0 0'}}>Todas as rodadas foram jogadas. Encerre para ver campeões, acesso e rebaixamento e começar a próxima temporada.</p></div>
+      <button onClick={encerrarTemporada} disabled={encerrando} style={{background:'#facc15',color:'#1a1503',border:0,borderRadius:9,padding:'11px 15px',fontWeight:900,cursor:'pointer',opacity:encerrando?0.6:1}}>{encerrando?'ENCERRANDO...':'ENCERRAR TEMPORADA'}</button>
+    </section>}
     <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'18px 0 12px'}}>
-      <button style={{background:abaInterna==='classificacao'?'#176b4b':'#26364d',color:'#fff',border:0,borderRadius:8,padding:'10px 14px',cursor:'pointer'}} onClick={()=>setAbaInterna('classificacao')}>Classificação</button>
-      <button style={{background:abaInterna==='jogos'?'#176b4b':'#26364d',color:'#fff',border:0,borderRadius:8,padding:'10px 14px',cursor:'pointer'}} onClick={()=>setAbaInterna('jogos')}>Calendário e jogos</button>
+      <button style={{background:abaInterna==='classificacao'?'#168653':'#1a3d29',color:'#fff',border:0,borderRadius:8,padding:'10px 14px',cursor:'pointer'}} onClick={()=>setAbaInterna('classificacao')}>Classificação</button>
+      <button style={{background:abaInterna==='jogos'?'#168653':'#1a3d29',color:'#fff',border:0,borderRadius:8,padding:'10px 14px',cursor:'pointer'}} onClick={()=>setAbaInterna('jogos')}>Calendário e jogos</button>
+      <button style={{background:abaInterna==='historico'?'#168653':'#1a3d29',color:'#fff',border:0,borderRadius:8,padding:'10px 14px',cursor:'pointer'}} onClick={()=>setAbaInterna('historico')}>Histórico</button>
     </div>
-    {mensagemJogo && <p style={{background:'#17263b',color:'#dbe7f5',padding:12,borderRadius:9,marginTop:12}}>{mensagemJogo}</p>}
-    {carregando ? <p style={muted}>Carregando dados do campeonato...</p> : abaInterna==='classificacao' ? <section style={card}>
+    {mensagemJogo && <p style={{background:'#112a1c',color:'#e3f3e8',padding:12,borderRadius:9,marginTop:12}}>{mensagemJogo}</p>}
+    {abaInterna==='historico' ? <section style={card}>
+      <h3 style={{margin:'0 0 12px'}}>Campeões por temporada — {ligaSelecionada?.pais}</h3>
+      {historico.length===0 ? <p style={muted}>Nenhuma temporada foi encerrada ainda. Quando você encerrar a primeira, os campeões aparecem aqui.</p> :
+      <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',textAlign:'left'}}>
+        <thead><tr>{['Temporada','Divisão','Campeão','Pontos'].map(x=><th key={x} style={th}>{x}</th>)}</tr></thead>
+        <tbody>{historico.map(h=><tr key={h.temporada+h.divisao} style={{background:h.club_id===clubeAtual?.id?'#153b31':'transparent'}}>
+          <td style={td}>{h.temporada}</td><td style={td}>{h.divisao}</td><td style={{...td,fontWeight:800}}>🏆 {h.club_nome}{h.club_id===clubeAtual?.id?' ★':''}</td><td style={td}>{h.pontos}</td>
+        </tr>)}</tbody>
+      </table></div>}
+    </section> : carregando ? <p style={muted}>Carregando dados do campeonato...</p> : abaInterna==='classificacao' ? <section style={card}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap'}}>
         <h3 style={{margin:'0 0 12px'}}>Tabela de classificação</h3>
         <span style={small}>3 pontos por vitória • 1 por empate</span>
@@ -278,7 +395,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       </div>
       {partidas.length===0 ? <p style={muted}>O calendário desta liga ainda não foi gerado. Nenhuma partida foi criada automaticamente para não alterar a composição atual dos campeonatos.</p> :
         rodadas.map(r=><div key={r} style={{marginTop:16}}>
-          <h4 style={{color:'#67e8a5',borderBottom:'1px solid #34465f',paddingBottom:8}}>RODADA {r}</h4>
+          <h4 style={{color:'#67e8a5',borderBottom:'1px solid #1f4a31',paddingBottom:8}}>RODADA {r}</h4>
           <div className="mfo-fixture-list">{partidas.filter(p=>p.round_number===r).map(p=><article className="mfo-fixture-card" key={p.id}>
             <strong className="mfo-fixture-club" style={{textAlign:'right'}}>{nomeClube(p.home_club_id)}</strong>
             <div className="mfo-fixture-score">{p.status==='finished'?p.home_score+' × '+p.away_score:p.status==='live'?'AO VIVO':'VS'}</div>

@@ -22,7 +22,7 @@ export default function DashboardModule({ supabase, club, onNavigate }) {
       if (club.league_id) {
         const [tableRes,matchRes,clubRes] = await Promise.all([
           supabase.from('league_standings').select('*').eq('league_id',club.league_id).order('points',{ascending:false}).order('goal_difference',{ascending:false}).order('goals_for',{ascending:false}),
-          supabase.from('matches').select('*').eq('league_id',club.league_id).order('match_date',{ascending:true}),
+          supabase.from('current_season_matches').select('*').eq('league_id',club.league_id).order('match_date',{ascending:true}),
           supabase.from('clubs').select('id,nome').eq('league_id',club.league_id)
         ]);
         if (!active) return;
