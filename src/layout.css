@@ -124,3 +124,105 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   .mfo-sidebar-foot{display:none}
   .mfo-content{padding:14px!important}
 }
+
+/* ---------- Cabeçalho do clube (estilo Brasfoot) ---------- */
+.mfo-hd{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,1fr);gap:14px 20px;align-items:center;
+  margin-bottom:14px;padding:14px 18px;border-radius:16px;border:1px solid var(--mfo-line);
+  background:linear-gradient(110deg,var(--mfo-field),var(--mfo-field-2));box-shadow:0 10px 30px rgba(0,0,0,.28)}
+.mfo-hd-club{display:flex;align-items:center;gap:12px;min-width:0}
+.mfo-hd-crest{width:48px;height:48px;flex-shrink:0;border-radius:13px;display:grid;place-items:center;font-size:14px;font-weight:900;
+  background:linear-gradient(135deg,var(--mfo-green-d),#0d3b22);border:1px solid #2f7a52;color:#eafff3}
+.mfo-hd-id{display:flex;flex-direction:column;min-width:0}
+.mfo-hd-name{font-size:clamp(16px,2.2vw,21px);line-height:1.15;overflow-wrap:anywhere}
+.mfo-hd-name em{font-style:normal;color:var(--mfo-yellow)}
+.mfo-hd-coach{color:var(--mfo-muted);font-size:12px;margin-top:3px}
+.mfo-hd-next{display:flex;flex-direction:column;gap:3px;min-width:0;padding-left:18px;border-left:1px solid var(--mfo-line)}
+.mfo-hd-kicker{color:var(--mfo-yellow);font-weight:800;font-size:11px;letter-spacing:1.1px}
+.mfo-hd-line{color:#cfe5d6;font-size:12.5px}
+.mfo-hd-opp{font-size:15px;overflow-wrap:anywhere}
+.mfo-hd-stats{display:flex;flex-direction:column;gap:7px;min-width:0}
+.mfo-hd-bar-row{display:grid;grid-template-columns:118px minmax(0,1fr) 38px;align-items:center;gap:8px;font-size:11px;color:#b4cdbd}
+.mfo-hd-bar-row b{text-align:right;color:var(--mfo-text);font-size:11px}
+.mfo-hd-bar{height:9px;border-radius:99px;background:#06110b;border:1px solid var(--mfo-line);overflow:hidden}
+.mfo-hd-bar i{display:block;height:100%;border-radius:99px;transition:width .4s}
+.mfo-hd-bar i.is-alto{background:var(--mfo-green)}
+.mfo-hd-bar i.is-medio{background:var(--mfo-yellow)}
+.mfo-hd-bar i.is-baixo{background:var(--mfo-danger)}
+.mfo-hd-cash{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:#b4cdbd;border-top:1px solid var(--mfo-line);padding-top:6px}
+.mfo-hd-cash b{font-size:15px;color:var(--mfo-yellow)}
+.mfo-hd-cash b.neg{color:var(--mfo-danger)}
+@media(max-width:980px){
+  .mfo-hd{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .mfo-hd-stats{grid-column:1/-1}
+}
+@media(max-width:560px){
+  .mfo-hd{grid-template-columns:minmax(0,1fr);padding:12px}
+  .mfo-hd-next{padding-left:0;border-left:0;padding-top:10px;border-top:1px solid var(--mfo-line)}
+  .mfo-hd-bar-row{grid-template-columns:104px minmax(0,1fr) 36px}
+}
+
+/* ---------- Elenco: filtros, energia e grupos de posição ---------- */
+.mfo-rf{margin-top:16px;padding:12px;border:1px solid var(--mfo-line);border-radius:12px;background:rgba(5,14,9,.55)}
+.mfo-rf label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;color:var(--mfo-muted);letter-spacing:.3px}
+.mfo-rf input[type=text],.mfo-rf input:not([type]),.mfo-rf input[type=number],.mfo-rf select{width:100%;padding:10px 11px;border-radius:9px;font-size:13px;color:var(--mfo-text)}
+.mfo-rf-main{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:10px;align-items:end}
+.mfo-rf-toggle{padding:10px 14px;border-radius:9px;border:1px solid var(--mfo-line);background:var(--mfo-field);color:var(--mfo-text);font-weight:700;cursor:pointer;white-space:nowrap}
+.mfo-rf-toggle:hover{border-color:var(--mfo-yellow)}
+.mfo-rf-adv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;margin-top:12px;padding-top:12px;border-top:1px solid var(--mfo-line)}
+.mfo-rf-checks{display:flex;gap:14px;flex-wrap:wrap;align-items:center;min-height:40px}
+.mfo-rf-checks label{flex-direction:row;align-items:center;gap:6px;font-size:12px;color:var(--mfo-text)}
+.mfo-rf-checks input{width:auto!important;accent-color:var(--mfo-yellow)}
+.mfo-rf-summary{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 8px;font-size:13px}
+.mfo-rf-summary span{color:var(--mfo-muted)}
+.mfo-energy{font-weight:800;font-size:12px}
+.mfo-energy.is-ok{color:var(--mfo-green)}
+.mfo-energy.is-mid{color:var(--mfo-yellow)}
+.mfo-energy.is-low{color:var(--mfo-danger)}
+.mfo-star{color:var(--mfo-yellow)}
+.mfo-youth{font-size:10px;font-weight:800;color:#7ce0b4;border:1px solid var(--mfo-line);border-radius:6px;padding:1px 5px;margin-left:4px}
+.mfo-roster-table tr[data-grupo="gol"] td:first-child{box-shadow:inset 3px 0 0 #facc15}
+.mfo-roster-table tr[data-grupo="def"] td:first-child{box-shadow:inset 3px 0 0 #60a5fa}
+.mfo-roster-table tr[data-grupo="mei"] td:first-child{box-shadow:inset 3px 0 0 var(--mfo-green)}
+.mfo-roster-table tr[data-grupo="ata"] td:first-child{box-shadow:inset 3px 0 0 #f87171}
+.mfo-roster-table{min-width:1040px}
+@media(max-width:560px){.mfo-rf-main{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- Partida ao vivo ---------- */
+.mfo-live{position:fixed;inset:0;z-index:60;background:rgba(2,10,6,.9);display:grid;place-items:center;padding:12px;overflow-y:auto}
+.mfo-live-box{width:min(620px,100%);max-height:100%;overflow-y:auto;padding:16px;border-radius:18px;border:1px solid var(--mfo-line);
+  background:linear-gradient(180deg,#0e2a19,#08150d);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.mfo-live-top{display:flex;justify-content:space-between;align-items:center;color:var(--mfo-muted);font-size:12px;gap:10px}
+.mfo-live-clock{min-width:58px;text-align:center;padding:6px 10px;border-radius:99px;border:2px solid var(--mfo-yellow);color:var(--mfo-yellow);font-weight:900;font-size:15px}
+.mfo-live-clock.is-break{border-color:#60a5fa;color:#93c5fd}
+.mfo-live-clock.is-end{border-color:var(--mfo-green);color:var(--mfo-green)}
+.mfo-live-phase{margin:6px 0 10px;text-align:center;font-size:11px;font-weight:800;letter-spacing:1.6px;color:var(--mfo-yellow)}
+.mfo-live-score{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;text-align:center}
+.mfo-live-score strong{font-size:clamp(13px,3.6vw,18px);overflow-wrap:anywhere}
+.mfo-live-score strong.is-me{color:var(--mfo-yellow)}
+.mfo-live-num{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:12px;background:#04100a;border:1px solid var(--mfo-line)}
+.mfo-live-num b{font-size:30px;min-width:24px}
+.mfo-live-num i{font-style:normal;color:var(--mfo-muted)}
+.mfo-live-goals{display:flex;flex-direction:column;gap:5px;margin:14px 0;min-height:44px}
+.mfo-live-goal{display:flex;flex-direction:column;font-size:13px;padding:7px 10px;border-radius:9px;background:rgba(47,209,121,.08);border:1px solid var(--mfo-line-soft);max-width:78%}
+.mfo-live-goal small{color:var(--mfo-muted);font-size:11px}
+.mfo-live-goal.is-home{align-self:flex-start}
+.mfo-live-goal.is-away{align-self:flex-end;text-align:right}
+.mfo-live-goal.is-new{border-color:var(--mfo-yellow);background:rgba(250,204,21,.14);animation:mfo-pop .5s ease}
+.mfo-live-muted{color:var(--mfo-muted);font-size:12px;text-align:center;margin:8px 0}
+.mfo-live-result{margin:4px auto 10px;text-align:center;font-weight:900;letter-spacing:1.4px;padding:8px 14px;border-radius:10px;width:max-content}
+.mfo-live-result.vitória{background:rgba(47,209,121,.16);color:var(--mfo-green)}
+.mfo-live-result.empate{background:rgba(250,204,21,.14);color:var(--mfo-yellow)}
+.mfo-live-result.derrota{background:rgba(225,107,107,.16);color:var(--mfo-danger)}
+.mfo-live-round{border-top:1px solid var(--mfo-line);padding-top:10px}
+.mfo-live-round h4{margin:0 0 8px;text-align:center;font-size:12px;letter-spacing:1px;color:#e7d27a}
+.mfo-live-row{display:grid;grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr);gap:8px;padding:6px 8px;font-size:12px;border-radius:8px;align-items:center}
+.mfo-live-row .h{text-align:right}
+.mfo-live-row b{text-align:center}
+.mfo-live-row.is-main{background:rgba(250,204,21,.09)}
+.mfo-live-row.is-goal b{color:var(--mfo-yellow);animation:mfo-pop .5s ease}
+.mfo-live-controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.mfo-live-controls button{padding:9px 14px;border-radius:9px;border:1px solid var(--mfo-line);background:var(--mfo-field);color:var(--mfo-text);font-weight:700;cursor:pointer}
+.mfo-live-controls button.is-on{background:var(--mfo-yellow);border-color:var(--mfo-yellow);color:#1a1503}
+.mfo-live-controls button.is-primary{background:var(--mfo-yellow);border-color:var(--mfo-yellow);color:#1a1503;min-width:180px;font-weight:900}
+@keyframes mfo-pop{0%{transform:scale(.94)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.mfo-live-goal.is-new,.mfo-live-row.is-goal b{animation:none}}

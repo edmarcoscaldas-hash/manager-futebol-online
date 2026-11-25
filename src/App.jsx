@@ -5,6 +5,8 @@ import RankingsModule from './components/RankingsModule.jsx';
 import TacticsModule from './components/TacticsModule.jsx';
 import DashboardModule from './components/DashboardModule.jsx';
 import MultiplayerLobby from './components/MultiplayerLobby.jsx';
+import ClubHeader from './components/ClubHeader.jsx';
+import RosterTable from './components/RosterTable.jsx';
 import './layout.css';
 
 export default function App() {
@@ -396,32 +398,13 @@ export default function App() {
     if (!candidato?.id || !clubeAtual?.id || !supabase) return;
     setCarregandoBase(true);
     setErroBase('');
-    const { data: jogador, error } = await supabase.from('players').insert({
-      club_id: clubeAtual.id,
-      nome: candidato.nome,
-      posicao: candidato.posicao,
-      data_nascimento: candidato.data_nascimento,
-      overall: candidato.overall,
-      potencial: candidato.potencial,
-      nacionalidade: candidato.nacionalidade,
-      is_star: candidato.is_star,
-      is_youth: true,
-      valor_mercado: candidato.is_star ? 180000 : 50000,
-      salario: 0,
-      salario_mensal: 0,
-      status_contrato: 'ativo',
-      disponivel_transferencia: false,
-      disponivel_emprestimo: false
-    }).select().single();
+    const { data: jogador, error } = await supabase.rpc('mfo_sign_academy_trial', { p_trial_id: candidato.id });
     if (error) {
       setErroBase('Não foi possível contratar o jovem: ' + error.message);
       setCarregandoBase(false);
       return;
     }
-    const { error: erroCandidato } = await supabase.from('academy_trials').update({
-      status: 'contratado',
-      signed_player_id: jogador.id
-    }).eq('id', candidato.id);
+    const erroCandidato = null;
     setJogadoresBase(lista => [jogador, ...lista]);
     setCandidatosBase(lista => lista.filter(c => c.id !== candidato.id));
     setMensagemBase(erroCandidato
@@ -442,7 +425,7 @@ export default function App() {
   async function promoverJogador(jogador) {
     if (!jogador?.id || !supabase) return;
     setCarregandoBase(true);
-    const { data, error } = await supabase.from('players').update({ is_youth: false }).eq('id', jogador.id).eq('club_id', clubeAtual.id).select().single();
+    const { data, error } = await supabase.rpc('mfo_promote_youth', { p_player_id: jogador.id });
     if (error) setErroBase('Não foi possível promover o jogador: ' + error.message);
     else {
       setJogadoresBase(lista => lista.filter(j => j.id !== jogador.id));
@@ -455,12 +438,7 @@ export default function App() {
     if (!jogador?.id || !clubeAtual?.id || !supabase) return;
     setErroElenco('');
     setMensagemElenco('');
-    const atual = tipo === 'venda' ? Boolean(jogador.disponivel_transferencia) : Boolean(jogador.disponivel_emprestimo);
-    const atualizacao = tipo === 'venda'
-      ? { disponivel_transferencia: !atual, disponivel_emprestimo: false }
-      : { disponivel_emprestimo: !atual, disponivel_transferencia: false };
-    const { data, error } = await supabase.from('players').update(atualizacao)
-      .eq('id', jogador.id).eq('club_id', clubeAtual.id).select().single();
+    const { data, error } = await supabase.rpc('mfo_set_player_availability', { p_player_id: jogador.id, p_tipo: tipo });
     if (error) setErroElenco('Não foi possível atualizar a disponibilidade: ' + error.message);
     else {
       setJogadores(lista => lista.map(item => item.id === data.id ? data : item));
@@ -691,20 +669,12 @@ export default function App() {
     if (!session) return;
     setCarregando(true);
     setErroClube('');
-    const { data, error } = await supabase
-      .from('clubs')
-      .insert({
-        owner_id: session.user.id,
-        nome: nomeClube.trim(),
-        sigla: sigla.trim().toUpperCase(),
-        cidade: cidade.trim(),
-        estadio: estadio.trim() || null,
-        capacidade: 10000,
-        pais: 'Brasil',
-        orcamento: 5000000
-      })
-      .select()
-      .single();
+    const { data, error } = await supabase.rpc('create_custom_club', {
+      p_nome: nomeClube,
+      p_sigla: sigla,
+      p_cidade: cidade,
+      p_estadio: estadio
+    });
     if (error) {
       setErroClube('Não foi possível criar o clube: ' + error.message);
     } else {
@@ -800,14 +770,10 @@ export default function App() {
       if (new Date(clubeAtual.stadium_upgrade_finishes_at).getTime() > Date.now()) return;
       const proximo = niveisEstadio.find(n => n.capacidade === Number(clubeAtual.stadium_target_capacity));
       if (!proximo) return;
-      const { data, error } = await supabase.from('clubs').update({
-        capacidade: proximo.capacidade,
-        stadium_level: proximo.nivel,
-        stadium_target_capacity: null,
-        stadium_upgrade_started_at: null,
-        stadium_upgrade_finishes_at: null
-      }).eq('id', clubeAtual.id).select().single();
-      if (!error && data) setClubes(lista => lista.map(clube => clube.id === data.id ? data : clube));
+      const { data: resultado, error } = await supabase.rpc('mfo_complete_stadium_upgrade', { p_club_id: clubeAtual.id });
+      if (error || !resultado?.done) return;
+      const { data } = await supabase.from('clubs').select('*').eq('id', clubeAtual.id).single();
+      if (data) setClubes(lista => lista.map(clube => clube.id === data.id ? data : clube));
     }
     concluirObra();
   }, [clubeAtual?.id, clubeAtual?.stadium_upgrade_finishes_at]);
@@ -819,11 +785,6 @@ export default function App() {
       return;
     }
 
-    const reputacaoAtual = {
-      reputacao_diretoria: Number(clubeAtual.reputacao_diretoria ?? 50),
-      reputacao_jogadores: Number(clubeAtual.reputacao_jogadores ?? 50),
-      reputacao_torcida: Number(clubeAtual.reputacao_torcida ?? 50)
-    };
     const escolhas = {
       elogiar: {
         titulo: 'Elogiar a entrega da equipe',
@@ -853,20 +814,47 @@ export default function App() {
     };
     const escolha = escolhas[tipo];
     if (!escolha) return;
-    const atualizadas = {
-      reputacao_diretoria: Math.max(0, Math.min(100, reputacaoAtual.reputacao_diretoria + escolha.delta.reputacao_diretoria)),
-      reputacao_jogadores: Math.max(0, Math.min(100, reputacaoAtual.reputacao_jogadores + escolha.delta.reputacao_jogadores)),
-      reputacao_torcida: Math.max(0, Math.min(100, reputacaoAtual.reputacao_torcida + escolha.delta.reputacao_torcida))
-    };
-    const { data, error } = await supabase.from('clubs').update(atualizadas).eq('id', clubeAtual.id).select().single();
-    if (error) {
+    const chaves = { elogiar:'proteger', reconhecer:'assumir', criticar:'cobrar', proteger:'proteger', cobrar:'cobrar' };
+    const pressao = { elogiar:[-1,0], reconhecer:[-2,-2], criticar:[-2,-1], proteger:[-1,-1], cobrar:[-3,-2] }[tipo] || [0,0];
+    const filtroClube = 'home_club_id.eq.' + clubeAtual.id + ',away_club_id.eq.' + clubeAtual.id;
+    const { data: ultimos } = await supabase.from('current_season_matches').select('id')
+      .eq('status', 'finished').or(filtroClube).order('round_number', { ascending: false }).limit(1);
+    if (!ultimos?.length) {
       setRespostaImprensa(escolha.titulo);
-      setImpactoImprensa(escolha.fala + ' (A declaração foi exibida, mas as reputações não foram salvas. Verifique se a atualização SQL foi executada.)');
+      setImpactoImprensa('A coletiva acontece depois de uma partida. Jogue a próxima rodada primeiro.');
       return;
     }
-    setClubes(lista => lista.map(clube => clube.id === data.id ? data : clube));
+    const { data: resultado, error } = await supabase.rpc('record_manager_interview', {
+      p_club_id: clubeAtual.id,
+      p_match_id: ultimos[0].id,
+      p_scenario: 'pos_jogo',
+      p_question: 'Como o senhor avalia o resultado da última partida?',
+      p_answer_key: chaves[tipo] || 'assumir',
+      p_answer_title: escolha.titulo,
+      p_answer_text: escolha.fala,
+      p_fan_pressure_delta: pressao[0],
+      p_board_pressure_delta: pressao[1],
+      p_reputation_diretoria_delta: escolha.delta.reputacao_diretoria,
+      p_reputation_jogadores_delta: escolha.delta.reputacao_jogadores,
+      p_reputation_torcida_delta: escolha.delta.reputacao_torcida
+    });
     setRespostaImprensa(escolha.titulo);
+    if (error) {
+      setImpactoImprensa(escolha.fala + ' (A declaração foi exibida, mas não foi registrada: ' + error.message + ')');
+      return;
+    }
+    if (resultado?.status === 'already_answered') {
+      setImpactoImprensa('Você já deu a coletiva desta partida. A próxima só depois do próximo jogo.');
+      return;
+    }
+    const { data: clubeNovo } = await supabase.from('clubs').select('*').eq('id', clubeAtual.id).single();
+    if (clubeNovo) setClubes(lista => lista.map(clube => clube.id === clubeNovo.id ? clubeNovo : clube));
+    window.dispatchEvent(new Event('mfo:atualizar-cabecalho'));
     setImpactoImprensa(escolha.fala);
+    if (resultado?.job_status?.dismissed) {
+      setImpactoImprensa('A diretoria demitiu você: ' + (resultado.job_status.reason || 'resultados abaixo do esperado.') + ' Vamos escolher um novo clube...');
+      setTimeout(() => window.location.reload(), 3500);
+    }
   }
 
   async function sair() {
@@ -958,15 +946,7 @@ export default function App() {
         </section>
       ) : (
         <>
-          {clubeAtual && aba !== 'Início' && <section className="mfo-club-bar" style={styles.club}>
-            <div>
-              <span style={styles.eyebrow}>SEU CLUBE</span>
-              <h2>{clubeAtual.nome}</h2>
-              <p style={styles.muted}>{clubeAtual.cidade} • {clubeAtual.pais}</p>
-              <p style={styles.muted}>Estádio: {clubeAtual.estadio || 'A definir'} • Capacidade: {Number(clubeAtual.capacidade).toLocaleString('pt-BR')}</p>
-            </div>
-            <div style={styles.clubBadge}>{clubeAtual.sigla || 'MFO'}</div>
-          </section>}
+          {clubeAtual && <ClubHeader supabase={supabase} clubeAtual={clubeAtual} tecnico={carreira?.manager_name} aba={aba} />}
           <div className="mfo-workspace">
           <button className="mfo-menu-toggle" onClick={() => setMenuAberto(value => !value)} aria-expanded={menuAberto} aria-label="Abrir ou recolher menu"><span>☰</span> Menu do jogo <span className="mfo-menu-chevron">{menuAberto ? '−' : '+'}</span></button>
           <nav className={`mfo-sidebar ${menuAberto ? 'is-open' : ''}`} aria-label="Menu principal do jogo">
@@ -987,7 +967,7 @@ export default function App() {
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
                   <div>
                     <p style={styles.muted}>Gerencie seu grupo profissional, acompanhe os contratos e organize os jogadores do clube.</p>
-                    <span style={styles.mutedSmall}>Apresentação em cartões • dados e negociações mantidos no sistema atual</span>
+                    <span style={styles.mutedSmall}>Ordene, filtre por característica, idade e valor, e gerencie vendas e contratos</span>
                   </div>
                   <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                     <span style={{background:'#112a1c',border:'1px solid #1f4a31',padding:'9px 12px',borderRadius:9,fontSize:13}}><strong>{jogadores.length}</strong> atletas</span>
@@ -1001,51 +981,7 @@ export default function App() {
                   <p style={styles.muted}>Você ainda não tem jogadores. Acesse a área Mercado para montar seu primeiro elenco.</p>
                   <button style={styles.primary} onClick={() => setAba('Mercado')}>Ir para o Mercado</button>
                 </div> : <>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,background:'#0a1a12',border:'1px solid #1f4a31',borderRadius:12,padding:14,marginTop:18}}>
-                    <label style={styles.filterLabel}>Buscar jogador
-                      <input style={styles.input} value={buscaElenco} onChange={e=>setBuscaElenco(e.target.value)} placeholder="Digite o nome do atleta"/>
-                    </label>
-                    <label style={styles.filterLabel}>Filtrar por posição
-                      <select style={styles.input} value={posicaoElenco} onChange={e=>setPosicaoElenco(e.target.value)}>
-                        {['Todas','Goleiro','Zagueiro','Lateral','Volante','Meia','Ponta','Atacante'].map(p=><option key={p}>{p}</option>)}
-                      </select>
-                    </label>
-                    <div style={{display:'flex',alignItems:'end'}}>
-                      <button style={styles.secondary} onClick={()=>{setBuscaElenco('');setPosicaoElenco('Todas');}}>Limpar filtros</button>
-                    </div>
-                  </div>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap',margin:'16px 0 10px'}}>
-                    <strong>{jogadores.filter(j=>(!buscaElenco || (j.nome||'').toLocaleLowerCase('pt-BR').includes(buscaElenco.toLocaleLowerCase('pt-BR')))&&(posicaoElenco==='Todas'||j.posicao===posicaoElenco)).length} jogador(es) exibido(s)</strong>
-                    <span style={styles.mutedSmall}>Overall • contrato • disponibilidade</span>
-                  </div>
-                  {jogadores.filter(j=>(!buscaElenco || (j.nome||'').toLocaleLowerCase('pt-BR').includes(buscaElenco.toLocaleLowerCase('pt-BR')))&&(posicaoElenco==='Todas'||j.posicao===posicaoElenco)).length===0
-                    ? <p style={styles.muted}>Nenhum atleta corresponde aos filtros selecionados.</p>
-                    : <div className="mfo-roster-wrap"><table className="mfo-roster-table">
-                      <thead><tr><th>Jogador</th><th>Pos.</th><th>Idade</th><th>OVR</th><th>POT</th><th>Contrato</th><th>Valor de mercado</th><th>Situação</th><th>Ações</th></tr></thead>
-                      <tbody>
-                      {jogadores.filter(j=>(!buscaElenco || (j.nome||'').toLocaleLowerCase('pt-BR').includes(buscaElenco.toLocaleLowerCase('pt-BR')))&&(posicaoElenco==='Todas'||j.posicao===posicaoElenco)).map(j=>{
-                        const idade=idadeJogador(j.data_nascimento);
-                        const status=j.disponivel_transferencia?'À venda':j.disponivel_emprestimo?'Para empréstimo':'No elenco';
-                        const tagClasse=j.disponivel_transferencia?'sale':j.disponivel_emprestimo?'loan':'ok';
-                        const iniciais=(j.nome||'Jogador').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase();
-                        return <tr key={j.id}>
-                          <td><div className="mfo-pl"><div className="mfo-pl-avatar">{iniciais}</div><div><span className="mfo-pl-name">{j.nome}{j.is_star&&<span style={{color:'#facc15',marginLeft:5}}>★</span>}</span><span className="mfo-pl-sub">{j.nacionalidade||'Nacionalidade não informada'}</span></div></div></td>
-                          <td>{j.posicao||'—'}</td>
-                          <td>{idade?idade:'—'}</td>
-                          <td><span className={`mfo-ovr ${Number(j.overall)>=80?'is-high':''}`}>{j.overall??'-'}</span></td>
-                          <td className="mfo-pot">{j.potencial??'-'}</td>
-                          <td>{j.contrato_ate?new Date(j.contrato_ate+'T12:00:00').toLocaleDateString('pt-BR'):'Sem prazo'}{j.status_contrato==='livre'&&<span className="mfo-pl-sub">Sem contrato</span>}</td>
-                          <td>R$ {Number(j.valor_mercado||0).toLocaleString('pt-BR')}</td>
-                          <td><span className={`mfo-tag ${tagClasse}`}>{status}</span></td>
-                          <td><div className="mfo-roster-actions">
-                            <button style={styles.secondary} onClick={()=>alterarDisponibilidadeJogador(j,'venda')}>{j.disponivel_transferencia?'Retirar venda':'Vender'}</button>
-                            <button style={styles.secondary} onClick={()=>alterarDisponibilidadeJogador(j,'emprestimo')}>{j.disponivel_emprestimo?'Retirar empréstimo':'Emprestar'}</button>
-                            <button style={styles.primary} onClick={()=>renovarContrato(j)}>Renovar</button>
-                          </div></td>
-                        </tr>;
-                      })}
-                      </tbody>
-                    </table></div>}
+                  <RosterTable jogadores={jogadores} onDisponibilidade={alterarDisponibilidadeJogador} onRenovar={renovarContrato} estilos={styles} />
                 </>}
               </div> :
               aba === 'Mercado' ? <div>
