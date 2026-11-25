@@ -150,6 +150,41 @@ export default function TacticsModule({ club }) {
           <label style={styles.muted}>Mentalidade<select style={styles.input} value={config.mentality} onChange={e=>update('mentality',e.target.value)}>{[{value:'very_defensive',label:'Muito defensiva'},{value:'defensive',label:'Defensiva'},{value:'normal',label:'Normal'},{value:'offensive',label:'Ofensiva'},{value:'very_offensive',label:'Muito ofensiva'}].map(x=><option key={x.value} value={x.value}>{x.label}</option>)}</select></label>
         </div>
       </section>
+      <section className="mfo-tactics-lineup" style={styles.panel}>
+        <div className="mfo-lineup-heading">
+          <h3>Escalação titular</h3>
+          <span className="mfo-lineup-count">{config.starters.filter(Boolean).length}/11 titulares definidos</span>
+        </div>
+        <div className="mfo-lineup-scroll">
+          <table className="mfo-lineup-table">
+            <thead><tr><th>JOGADOR</th><th>POS.</th><th>IDADE</th><th>ENERGIA</th><th>OVR</th><th>POT.</th></tr></thead>
+            <tbody>
+              {config.starters.map((id,i)=>{
+                const p=playerMap.get(id);
+                const position=(p?.posicao||'').toLowerCase();
+                const group=position.includes('goleiro')?'goalkeeper':(position.includes('zagueiro')||position.includes('lateral')||position.includes('defensor'))?'defender':(position.includes('atacante')||position.includes('ponta')||position.includes('centroavante'))?'forward':'midfielder';
+                const energy=Math.max(0,Math.min(100,Number(p?.energia??100)));
+                const energyClass=energy<40?'is-low':energy<70?'is-mid':'';
+                const overall=Number(p?.overall||0);
+                const ovrClass=overall>=76?'is-high':overall>=51?'is-mid':'is-low';
+                const initials=(p?.nome||'—').trim().split(/\\s+/).slice(0,2).map(part=>part[0]||'').join('').toUpperCase();
+                return <tr key={i} data-position={group}>
+                  <td><div className="mfo-lineup-player">
+                    <span className="mfo-lineup-avatar">{p?initials:'—'}</span>
+                    <span className="mfo-lineup-player-info"><span className="mfo-lineup-name">{p?.nome||'Vaga '+(i+1)}</span><span className="mfo-lineup-sub">{p?(p.is_star?'★ Destaque':'Titular'):'Selecione um jogador'}</span></span>
+                    <button type="button" className="mfo-lineup-change" onClick={()=>setActiveSlot(i)} aria-label={'Alterar jogador da posição '+(i+1)}>{p?'Alterar':'Escolher'}</button>
+                  </div></td>
+                  <td className="mfo-lineup-pos">{p?.posicao||'—'}</td>
+                  <td>—</td>
+                  <td><span className={'mfo-lineup-energy '+energyClass}>{p?energy+'%':'—'}{p&&<span className="mfo-lineup-energy-track"><i style={{width:energy+'%'}}/></span>}</span></td>
+                  <td><span className={'mfo-lineup-ovr '+(p?ovrClass:'')}>{p?overall:'—'}</span></td>
+                  <td className="mfo-lineup-pot">—</td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
       <section className="mfo-tactics-pitch" style={styles.panel}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <h3 style={{margin:0}}>Prévia tática • ${config.formation}</h3>
