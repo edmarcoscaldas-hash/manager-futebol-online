@@ -167,7 +167,7 @@ export default function TacticsModule({ club }) {
                 const energyClass=energy<40?'is-low':energy<70?'is-mid':'';
                 const overall=Number(p?.overall||0);
                 const ovrClass=overall>=76?'is-high':overall>=51?'is-mid':'is-low';
-                const initials=(p?.nome||'—').trim().split(/\\s+/).slice(0,2).map(part=>part[0]||'').join('').toUpperCase();
+                const initials=(p?.nome||'—').trim().split(/\s+/).slice(0,2).map(part=>part[0]||'').join('').toUpperCase();
                 return <tr key={i} data-position={group}>
                   <td><div className="mfo-lineup-player">
                     <span className="mfo-lineup-avatar">{p?initials:'—'}</span>
