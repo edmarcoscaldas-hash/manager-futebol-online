@@ -892,10 +892,13 @@ export default function App() {
 
   return (
     <main className="mfo-app" style={styles.page}>
-      <header style={styles.header}>
-        <div>
-          <h1 style={styles.heading}>⚽ Manager Futebol Online</h1>
-          <p style={styles.muted}>Gestão de clube • Painel da temporada</p>
+      <header className="mfo-topbar" style={styles.header}>
+        <div className="mfo-brand-lockup">
+          <span className="mfo-brand-mark" aria-hidden="true"><svg viewBox="0 0 64 72"><path d="M32 3 57 13v21c0 16-10 27-25 35C17 61 7 50 7 34V13L32 3Z" fill="#0b2818" stroke="#46e58b" strokeWidth="3"/><circle cx="32" cy="31" r="17" fill="#f4fff7" stroke="#39d77c" strokeWidth="2"/><path d="m32 20 7 5-3 8h-8l-3-8 7-5Zm-14 8 7-3m14 0 7 3m-25 9 8-4m10 0 8 4m-25 4 7 5m10 0 7-5" fill="none" stroke="#123b25" strokeWidth="2.5" strokeLinecap="round"/><path d="M20 57h24" stroke="#facc15" strokeWidth="3" strokeLinecap="round"/></svg></span>
+          <div>
+            <h1 style={styles.heading}>Manager <span>Futebol Online</span></h1>
+            <p style={styles.muted}>Gestão de clube • Painel da temporada</p>
+          </div>
         </div>
         <div style={{display:'flex', gap:8, alignItems:'center', flexWrap:'wrap'}}>
           {session && <span style={styles.user}>{session.user.email}</span>}
@@ -950,6 +953,7 @@ export default function App() {
           <div className="mfo-workspace">
           <button className="mfo-menu-toggle" onClick={() => setMenuAberto(value => !value)} aria-expanded={menuAberto} aria-label="Abrir ou recolher menu"><span>☰</span> Menu do jogo <span className="mfo-menu-chevron">{menuAberto ? '−' : '+'}</span></button>
           <nav className={`mfo-sidebar ${menuAberto ? 'is-open' : ''}`} aria-label="Menu principal do jogo">
+            <div className="mfo-sidebar-brand"><span className="mfo-sidebar-logo">MFO</span><div><strong>MANAGER</strong><small>FUTEBOL ONLINE</small></div></div>
             <span className="mfo-nav-label">MENU PRINCIPAL</span>
             {[
               ['Visão Geral','Início','⌂'],['Elenco','Elenco','♟'],['Escalação','Táticas','⚽'],
