@@ -10,7 +10,6 @@ const FORMATION_ROLES = {
   '3-5-2': [['Goleiro'],['Zagueiro'],['Zagueiro'],['Zagueiro'],['Lateral','Ponta'],['Volante'],['Meia','Volante'],['Meia'],['Lateral','Ponta'],['Atacante'],['Atacante']],
   '5-3-2': [['Goleiro'],['Lateral'],['Zagueiro'],['Zagueiro'],['Zagueiro'],['Lateral'],['Volante','Meia'],['Meia'],['Meia','Volante'],['Atacante'],['Atacante']]
 };
-const RESERVE_ROLES = [['Goleiro'],['Lateral','Zagueiro'],['Zagueiro','Lateral'],['Volante','Meia'],['Meia','Volante'],['Atacante','Ponta'],['Ponta','Atacante']];
 const autoPickLineup = (roster, formation, criterion) => {
   const remaining = [...roster];
   const pick = roles => {
@@ -28,8 +27,7 @@ const autoPickLineup = (roster, formation, criterion) => {
     return chosen?.id || '';
   };
   const starters = (FORMATION_ROLES[formation] || FORMATION_ROLES['4-3-3']).map(pick);
-  const bench = RESERVE_ROLES.map(pick);
-  return {starters,bench};
+  return {starters};
 };
 
 const FORMATION_POSITIONS = {
@@ -88,13 +86,13 @@ export default function TacticsModule({ club }) {
   },[club?.id]);
 
   const playerMap=useMemo(()=>new Map(players.map(p=>[p.id,p])),[players]);
-  const selected=[...config.starters,...config.bench].filter(Boolean);
+  const selected=config.starters.filter(Boolean);
   const pitchPositions = FORMATION_POSITIONS[config.formation] || FORMATION_POSITIONS['4-3-3'];
   const duplicates=selected.length!==new Set(selected).size;
   const update=(key,value)=>setConfig(old=>({...old,[key]:value}));
   const generateLineup=(formation=config.formation,mode=criterion)=>{
     const lineup=autoPickLineup(players,formation,mode);
-    setConfig(old=>({...old,formation,starters:lineup.starters,bench:lineup.bench}));
+    setConfig(old=>({...old,formation,starters:lineup.starters,bench:Array(7).fill('')}));
     setMessage('Escalação montada automaticamente. Você pode ajustar qualquer jogador antes de salvar.');
     setError('');
   };
@@ -118,7 +116,7 @@ export default function TacticsModule({ club }) {
     const settings={club_id:club.id,formation:config.formation,tactical_style:normalizeTacticalStyle(config.tactical_style),mentality:normalizeMentality(config.mentality),captain_player_id:config.captain_player_id||null,penalty_taker_player_id:config.penalty_taker_player_id||null,free_kick_taker_player_id:config.free_kick_taker_player_id||null,corner_taker_player_id:config.corner_taker_player_id||null};
     const [a,b]=await Promise.all([
       supabase.from('club_tactical_settings').upsert(settings,{onConflict:'club_id'}),
-      supabase.from('club_default_lineups').upsert({club_id:club.id,starters:config.starters,bench:config.bench},{onConflict:'club_id'})
+      supabase.from('club_default_lineups').upsert({club_id:club.id,starters:config.starters,bench:[]},{onConflict:'club_id'})
     ]);
     setSaving(false);
     if(a.error||b.error)setError('Falha ao salvar: '+(a.error?.message||b.error?.message));
@@ -133,12 +131,12 @@ export default function TacticsModule({ club }) {
       .mfo-tactics-config{grid-column:2;grid-row:2}
       .mfo-tactics-pitch{grid-column:1;grid-row:2 / span 4}
       .mfo-tactics-pitch>div[role="img"]{max-width:none!important;height:560px!important}
-      .mfo-tactics-bench,.mfo-tactics-responsibilities{grid-column:2}
+      .mfo-tactics-responsibilities{grid-column:2}
       .mfo-tactics-layout>div:last-child{grid-column:2;display:flex;flex-wrap:wrap}
       @media(max-width:900px){.mfo-tactics-layout{grid-template-columns:minmax(0,1fr)}.mfo-tactics-layout>*{grid-column:1!important;grid-row:auto!important}.mfo-tactics-pitch>div[role="img"]{height:480px!important}}
       @media(max-width:560px){.mfo-tactics-pitch>div[role="img"]{height:390px!important}}
     `}</style>
-    <p className="mfo-tactics-intro" style={styles.muted}>Configure a equipe principal. A escalação padrão será usada como base para preparar cada partida.</p>
+    <p className="mfo-tactics-intro" style={styles.muted}>Configure a equipe principal. Defina os 11 titulares diretamente no campo. O banco de reservas não faz parte desta configuração.</p>
     {error&&<p style={{color:'#ff9c9c'}}>{error}</p>}
     {message&&<p style={{color:'#80e0b2'}}>{message}</p>}
     {players.length<11?<section style={styles.panel}><h3>Elenco insuficiente</h3><p style={styles.muted}>Você precisa ter pelo menos 11 jogadores profissionais no clube para montar a escalação.</p></section>:<>
@@ -227,12 +225,6 @@ export default function TacticsModule({ club }) {
         </div>}
       </section>
       <p style={styles.muted}>Titulares definidos: {config.starters.filter(Boolean).length}/11</p>
-      <section className="mfo-tactics-bench" style={styles.panel}>
-        <h3 style={{marginTop:0}}>Banco de reservas ({config.bench.filter(Boolean).length}/7)</h3>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
-          {config.bench.map((id,i)=><label key={i} style={styles.muted}>Reserva {i+1}{playerSelect(id,v=>update('bench',config.bench.map((x,j)=>j===i?v:x)),selected.filter(x=>x!==id))}</label>)}
-        </div>
-      </section>
       <section className="mfo-tactics-responsibilities" style={styles.panel}>
         <h3 style={{marginTop:0}}>Responsáveis</h3>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:12}}>
