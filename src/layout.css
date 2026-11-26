@@ -270,3 +270,43 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
       @media(max-width:900px){.mfo-tactics-pitch>div[role="img"]{height:400px!important}}
       @media(max-width:560px){.mfo-lineup-heading{padding:12px}.mfo-lineup-table{min-width:620px}.mfo-tactics-pitch>div[role="img"]{height:360px!important}}
     
+
+
+/* ---------- Identidade MFO e início redesenhado ---------- */
+.mfo-topbar{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.mfo-brand-lockup{display:flex;align-items:center;gap:14px;min-width:0}
+.mfo-brand-mark{width:54px;height:60px;display:grid;place-items:center;flex:0 0 auto;filter:drop-shadow(0 5px 12px rgba(25,220,111,.2))}
+.mfo-brand-mark svg{width:100%;height:100%}
+.mfo-brand-lockup h1 span{color:#6bea9c}
+.mfo-sidebar-brand{display:flex;align-items:center;gap:10px;padding:10px 8px 16px;margin-bottom:5px;border-bottom:1px solid var(--mfo-line)}
+.mfo-sidebar-brand>div{display:grid;gap:3px}
+.mfo-sidebar-brand strong{font-size:12px;letter-spacing:1.1px;color:#effff4}
+.mfo-sidebar-brand small{font-size:9px;letter-spacing:1.6px;color:#76b990}
+.mfo-sidebar-logo{width:43px;height:43px;display:grid;place-items:center;border:2px solid #42db82;border-radius:13px 13px 17px 17px;background:linear-gradient(145deg,#164b2d,#071b10);color:#facc15;font-weight:950;font-size:15px;box-shadow:inset 0 0 0 3px rgba(66,219,130,.12),0 5px 15px rgba(0,0,0,.22)}
+.mfo-home-hero{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:22px;border:1px solid rgba(65,211,126,.34);border-radius:16px;background:radial-gradient(ellipse at 90% 0%,rgba(47,209,121,.18),transparent 48%),linear-gradient(120deg,#123b25,#0b2116 72%);margin-bottom:16px;position:relative;overflow:hidden}
+.mfo-home-hero:after{content:"⚽";position:absolute;right:28%;top:-30px;font-size:110px;opacity:.045;pointer-events:none}
+.mfo-home-hero-copy{min-width:0;position:relative;z-index:1}
+.mfo-home-kicker{font-size:10px;letter-spacing:2px;font-weight:900;color:#6de5a0}
+.mfo-home-hero h2{font-size:clamp(24px,3vw,34px);margin:7px 0 3px;color:#f3fff6}
+.mfo-home-hero p{margin:0;color:#a8c4b2;font-size:13px}
+.mfo-home-hero-actions{display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
+.mfo-home-hero-actions button{border:1px solid #28794b;background:#174c30;color:#eafff0;border-radius:10px;padding:10px 13px;font-weight:750;font-size:12px}
+.mfo-home-hero-actions button:first-child{background:#facc15;border-color:#facc15;color:#1b1908}
+.mfo-dashboard-grid{gap:12px!important}
+.mfo-dashboard-grid>div{box-shadow:0 8px 22px rgba(0,0,0,.16);transition:transform .18s,border-color .18s}
+.mfo-dashboard-grid>div:hover{transform:translateY(-2px);border-color:#3a8b5c!important}
+.mfo-dashboard-lower{gap:12px!important}
+.mfo-dashboard-page .mfo-dashboard-link{color:#7de5a8;background:rgba(47,209,121,.08);border:1px solid rgba(47,209,121,.2);border-radius:8px;padding:8px 10px;font-weight:700}
+.mfo-news-item{border-bottom:1px solid rgba(83,145,105,.18);padding:11px 0}
+.mfo-summary-row{padding:10px 0;border-bottom:1px solid rgba(83,145,105,.18)}
+@media(max-width:700px){
+ .mfo-topbar{align-items:flex-start;padding:12px 14px!important}
+ .mfo-brand-mark{width:43px;height:49px}
+ .mfo-brand-lockup{gap:9px}
+ .mfo-brand-lockup h1{font-size:18px!important}
+ .mfo-topbar>div:last-child{justify-content:flex-end}
+ .mfo-home-hero{align-items:flex-start;flex-direction:column;padding:18px}
+ .mfo-home-hero-actions{width:100%}
+ .mfo-home-hero-actions button{flex:1}
+ .mfo-sidebar-brand{padding-bottom:12px}
+}
