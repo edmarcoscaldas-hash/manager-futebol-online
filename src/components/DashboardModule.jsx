@@ -43,7 +43,10 @@ export default function DashboardModule({ supabase, club, onNavigate }) {
   const opponent = nextMatch ? clubName(nextMatch.home_club_id === club?.id ? nextMatch.away_club_id : nextMatch.home_club_id) : '';
   const finishedCount = matches.filter(match=>match.status==='finished'&&(match.home_club_id===club?.id||match.away_club_id===club?.id)).length;
   return <div className="mfo-dashboard-page">
-    <div className="mfo-dashboard-heading"><div><span style={label}>CENTRAL DO TREINADOR</span><h2 style={{fontSize:'clamp(22px,3vw,30px)',margin:'7px 0'}}>{club?.nome || 'Meu clube'}</h2><p style={muted}>{league ? league.nome+' • '+league.divisao+' • Temporada '+league.temporada : 'Divisão não vinculada • Temporada não informada'}</p></div><div className="mfo-dashboard-actions"><button onClick={()=>onNavigate('Táticas')}>⚽ Escalação</button><button onClick={()=>onNavigate('Competições')}>🏆 Competições</button></div></div>
+    <section className="mfo-home-hero">
+      <div className="mfo-home-hero-copy"><span className="mfo-home-kicker">CENTRAL DO TREINADOR</span><h2>{club?.nome || 'Meu clube'}</h2><p>{league ? league.nome+' • '+league.divisao+' • Temporada '+league.temporada : 'Sua carreira começa aqui'}</p></div>
+      <div className="mfo-home-hero-actions"><button onClick={()=>onNavigate('Táticas')}>⚽ Montar escalação</button><button onClick={()=>onNavigate('Competições')}>🏆 Ver competições</button></div>
+    </section>
     {error && <p role="status" style={{background:'#382124',color:'#ffcaca',padding:12,borderRadius:10}}>{error}</p>}
     {loading ? <p style={muted}>Carregando dados reais do clube...</p> : <>
       <div className="mfo-dashboard-grid">
