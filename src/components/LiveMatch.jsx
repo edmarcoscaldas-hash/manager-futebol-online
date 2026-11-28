@@ -136,7 +136,7 @@ export default function LiveMatch({ jogos, eventos, nomes, nomeClube, meuClubeId
   const relogio = fim ? 'FIM' : (emDecisao || intervalo) ? 'INT' : minuto + "'";
   const textoEvento = e => e.tipo === 'gol' ? '⚽ ' + e.minuto + "' " + e.autor
     : e.tipo === 'cartao' ? '🟨 ' + e.minuto + "' " + e.autor
-    : '🔁 ' + e.minuto + "' Entra ' + e.entrou + ' • sai ' + e.saiu;
+    : '🔁 ' + e.minuto + "' Entra " + e.entrou + ' • sai ' + e.saiu;
 
   return <div className="mfo-live" role="dialog" aria-modal="true" aria-label="Partida ao vivo">
     <div className="mfo-live-box">
