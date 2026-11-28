@@ -86,22 +86,72 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
   const proximaPartida = [...proximasPartidas].sort((a,b) => new Date(a.match_date || 0) - new Date(b.match_date || 0))[0] || null;
 
 
-  async function abrirAoVivo(ids, rodada, fixos = []) {
-    if (!ids.length) return;
-    const [jogosRes, eventosRes] = await Promise.all([
-      supabase.from('current_season_matches').select('id,round_number,home_club_id,away_club_id,home_score,away_score,status').in('id', ids),
-      supabase.from('match_events').select('match_id,club_id,player_id,related_player_id,minute,event_type').in('match_id', ids).eq('event_type', 'goal').order('minute')
-    ]);
-    const jogos = (jogosRes.data || []).filter(j => j.status === 'finished');
-    if (jogosRes.error || !jogos.length) return;
-    const eventos = eventosRes.data || [];
+  async function abrirAoVivo(ids, rodada, fixos = [], interativo = null, minutoInicial = 0) {
+    if (!ids.length && !interativo) return;
+    let jogos = [];
+    let eventos = [];
+    if (ids.length) {
+      const [jogosRes, eventosRes] = await Promise.all([
+        supabase.from('current_season_matches').select('id,round_number,home_club_id,away_club_id,home_score,away_score,status').in('id', ids),
+        supabase.from('match_events').select('match_id,club_id,player_id,related_player_id,minute,event_type')
+          .in('match_id', ids).in('event_type', ['goal', 'penalty_goal', 'yellow_card', 'substitution']).order('minute')
+      ]);
+      if (jogosRes.error) return;
+      jogos = (jogosRes.data || []).filter(j => j.status === 'finished');
+      eventos = eventosRes.data || [];
+    }
+    if (interativo) {
+      const e = interativo.estado;
+      jogos = [...jogos, { id: e.match_id, round_number: rodada, home_club_id: e.home_club_id, away_club_id: e.away_club_id,
+        home_score: e.home_score, away_score: e.away_score, status: 'live' }];
+    }
+    if (!jogos.length) return;
     const idsJogadores = [...new Set(eventos.flatMap(e => [e.player_id, e.related_player_id]).filter(Boolean))];
     let nomes = {};
     if (idsJogadores.length) {
       const { data } = await supabase.from('players').select('id,nome').in('id', idsJogadores);
       nomes = Object.fromEntries((data || []).map(j => [j.id, j.nome]));
     }
-    setAoVivo({ jogos, eventos, nomes, rodada, fixos });
+    setAoVivo({ jogos, eventos, nomes, rodada, fixos, interativo, minutoInicial });
+  }
+
+  // Executa o primeiro tempo e prepara os dados para o painel de intervalo.
+  async function prepararInterativo(partida) {
+    const { data: estado, error } = await supabase.rpc('mfo_match_first_half', { p_match_id: partida.id });
+    if (error) throw error;
+    const idsElenco = (estado?.squad || []).map(j => j.id);
+    let contratos = {};
+    if (idsElenco.length) {
+      const { data, error: erroContratos } = await supabase.from('players').select('id,contrato_ate').in('id', idsElenco);
+      if (erroContratos) throw erroContratos;
+      contratos = Object.fromEntries((data || []).map(j => [j.id, j.contrato_ate]));
+    }
+    return {
+      estado,
+      contratos,
+      onSegundoTempo: async mudancas => {
+        const { data, error: erroSegundo } = await supabase.rpc('mfo_match_second_half', {
+          p_match_id: partida.id,
+          p_formation: mudancas.formation,
+          p_style: mudancas.style,
+          p_mentality: mudancas.mentality,
+          p_substitutions: mudancas.subs
+        });
+        if (erroSegundo) throw new Error(erroSegundo.message);
+        return data;
+      }
+    };
+  }
+
+  async function fecharAoVivo() {
+    const atual = aoVivo;
+    setAoVivo(null);
+    if (atual?.interativo) {
+      const principal = atual.jogos.find(j => j.id === atual.interativo.estado.match_id);
+      if (principal) await registrarPressao(principal);
+      setMensagemJogo('Partida encerrada. Classificação e energia dos jogadores atualizadas.');
+    }
+    await atualizarLiga();
   }
 
   async function registrarPressao(jogo) {
@@ -137,17 +187,26 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     let concluidas = 0;
     let preservadas = 0;
     const idsConcluidos = [];
+    let interativo = null;
+    let avisoPartida = '';
 
     try {
       for (const jogo of ordem) {
+        if (jogo.id === jogoDoUsuario?.id) {
+          try {
+            interativo = await prepararInterativo(jogo);
+          } catch (erroInicio) {
+            preservadas += 1;
+            avisoPartida = ' Sua partida não pôde começar: ' + (erroInicio?.message || 'erro inesperado.');
+          }
+          continue;
+        }
         const { error } = await supabase.rpc('simulate_match', { p_match_id: jogo.id });
         if (error) {
-          // Partidas sem autorização ou sem elenco válido permanecem intactas.
           preservadas += 1;
         } else {
           concluidas += 1;
           idsConcluidos.push(jogo.id);
-          if (jogo.id === jogoDoUsuario?.id) await registrarPressao(jogo);
         }
       }
 
@@ -168,9 +227,9 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
       setMensagemJogo(
         'Rodada ' + rodada + ' processada: ' + concluidas + ' partida(s) simulada(s).' +
         (preservadas ? ' ' + preservadas + ' partida(s) não processada(s), por proteção de acesso ou falta de escalação.' : '') +
-        ' Classificação atualizada.'
+        ' Classificação atualizada.' + avisoPartida
       );
-      await abrirAoVivo(idsConcluidos, rodada);
+      await abrirAoVivo(idsConcluidos, rodada, [], interativo);
     } catch (error) {
       setMensagemJogo('A rodada foi parcialmente processada: ' + (error?.message || 'Erro inesperado.'));
     } finally {
@@ -192,10 +251,7 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
     setSimulando(partida.id);
     setMensagemJogo('');
     try {
-      const { data, error } = await supabase.rpc('simulate_match', { p_match_id: partida.id });
-      if (error) throw error;
-      await registrarPressao(partida);
-
+      const interativo = await prepararInterativo(partida);
       const [standingsRes, matchesRes] = await Promise.all([
         supabase.from('league_standings').select('*').eq('league_id', ligaId)
           .order('points', { ascending:false })
@@ -204,27 +260,33 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
         supabase.from('current_season_matches').select('*').eq('league_id', ligaId)
           .order('round_number').order('match_date')
       ]);
-
-      if (standingsRes.error) throw new Error('Partida processada, mas não foi possível atualizar a classificação: ' + standingsRes.error.message);
-      if (matchesRes.error) throw new Error('Partida processada, mas não foi possível atualizar o calendário: ' + matchesRes.error.message);
-
+      if (standingsRes.error) throw standingsRes.error;
+      if (matchesRes.error) throw matchesRes.error;
       setClassificacao(standingsRes.data || []);
       setPartidas(matchesRes.data || []);
-
-      const result = Array.isArray(data) ? data[0] : data;
-      const homeScore = result?.home_score;
-      const awayScore = result?.away_score;
-      setMensagemJogo(
-        homeScore !== undefined && awayScore !== undefined
-          ? 'Partida simulada! Placar: ' + homeScore + ' × ' + awayScore
-          : 'Partida processada. Calendário e classificação atualizados.'
-      );
       const outrosFinalizados = (matchesRes.data || [])
-        .filter(p => p.round_number === partida.round_number && p.status === 'finished' && p.id !== partida.id)
+        .filter(p => p.round_number === partida.round_number && p.status === 'finished')
         .map(p => p.id);
-      await abrirAoVivo([partida.id, ...outrosFinalizados], partida.round_number, outrosFinalizados);
+      await abrirAoVivo(outrosFinalizados, partida.round_number, [], interativo);
     } catch (error) {
-      setMensagemJogo('Não foi possível concluir a simulação: ' + (error?.message || 'Erro inesperado.'));
+      setMensagemJogo('Não foi possível iniciar a partida: ' + (error?.message || 'Erro inesperado.'));
+    } finally {
+      setSimulando('');
+    }
+  }
+
+  const jogoAoVivoMeu = partidas.find(p => p.status === 'live' &&
+    (p.home_club_id === clubeAtual?.id || p.away_club_id === clubeAtual?.id));
+
+  async function retomarPartida() {
+    if (!jogoAoVivoMeu || simulando) return;
+    setSimulando(jogoAoVivoMeu.id);
+    try {
+      const interativo = await prepararInterativo(jogoAoVivoMeu);
+      const outros = partidas.filter(p => p.round_number === jogoAoVivoMeu.round_number && p.status === 'finished').map(p => p.id);
+      await abrirAoVivo(outros, jogoAoVivoMeu.round_number, [], interativo, 45);
+    } catch (e) {
+      setMensagemJogo('Não foi possível retomar a partida: ' + (e?.message || 'Erro inesperado.'));
     } finally {
       setSimulando('');
     }
@@ -332,9 +394,14 @@ export default function LeagueModule({ supabase, clubeAtual, initialTab = 'class
         <div className="mfo-match-date">VISITANTE</div>
       </div>
     </section>}
+    {jogoAoVivoMeu && !aoVivo && <section style={{...card,marginTop:14,border:'1px solid #facc15',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+      <div><strong style={{color:'#facc15'}}>Partida em andamento</strong><p style={{...small,margin:'4px 0 0'}}>Seu jogo foi pausado. Retome para continuar do intervalo.</p></div>
+      <button onClick={retomarPartida} disabled={Boolean(simulando)} style={{background:'#facc15',color:'#1a1503',border:0,borderRadius:9,padding:'11px 15px',fontWeight:900,cursor:'pointer'}}>{simulando ? 'CARREGANDO...' : 'RETOMAR PARTIDA'}</button>
+    </section>}
     {aoVivo && <LiveMatch jogos={aoVivo.jogos} eventos={aoVivo.eventos} nomes={aoVivo.nomes} fixos={aoVivo.fixos}
-      rodada={aoVivo.rodada} competicao={ligaSelecionada?.divisao} meuClubeId={clubeAtual?.id}
-      nomeClube={nomeClube} onClose={() => setAoVivo(null)} />}
+      interativo={aoVivo.interativo} minutoInicial={aoVivo.minutoInicial} rodada={aoVivo.rodada}
+      competicao={ligaSelecionada?.divisao} meuClubeId={clubeAtual?.id}
+      nomeClube={nomeClube} onClose={fecharAoVivo} />}
     {resumoTemporada && <div role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:50,background:'rgba(2,10,6,.82)',display:'grid',placeItems:'center',padding:16,overflowY:'auto'}}>
       <div style={{...card,maxWidth:560,width:'100%',background:'#0d1f16',border:'1px solid #facc15'}}>
         <h2 style={{margin:'0 0 4px',color:'#facc15'}}>🏆 Temporada {resumoTemporada.temporada_encerrada} encerrada</h2>
